@@ -204,11 +204,16 @@ func createCertificate(c *gin.Context) {
 		BasicConstraintsValid: true,
 	}
 
-	certTemplate.DNSNames = append(certTemplate.DNSNames, dnsNames...)
+	// Append non-empty DNS names
+	for _, dns := range dnsNames {
+		if dns != "" {
+			certTemplate.DNSNames = append(certTemplate.DNSNames, dns)
+		}
+	}
 
+	// Append non-empty IP addresses
 	for _, ip := range ipAddresses {
-		parsedIP := net.ParseIP(ip)
-		if parsedIP != nil {
+		if parsedIP := net.ParseIP(ip); parsedIP != nil {
 			certTemplate.IPAddresses = append(certTemplate.IPAddresses, parsedIP)
 		}
 	}
@@ -329,38 +334,67 @@ func viewCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
 	filePath := "./data/certs/" + fileName
 
+	if !isValidFileName(fileName) {
+		c.String(http.StatusBadRequest, "Invalid file name")
+		return
+	}
+
 	// Check if the file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.String(http.StatusNotFound, "File not found")
 		return
 	}
 
-	// Read the file content
-	content, err := os.ReadFile(filePath)
+	// Read and decode the certificate
+	cert, err := readCertificate(filePath)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error reading certificate: %v", err)
-		return
-	}
-
-	// Decode the certificate
-	block, _ := pem.Decode(content)
-	if block == nil {
-		c.String(http.StatusInternalServerError, "Failed to parse certificate PEM")
-		return
-	}
-
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Failed to parse certificate: %v", err)
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// Create a decoded view of the certificate
-	decoded := fmt.Sprintf("Issuer: %s\nSubject: %s\nValidity:\n  Not Before: %s\n  Not After : %s\n", cert.Issuer, cert.Subject, cert.NotBefore, cert.NotAfter)
+	decoded := fmt.Sprintf(
+		"Issuer: %s\nSubject: %s\nValidity:\n  Not Before: %s\n  Not After : %s\n",
+		cert.Issuer, cert.Subject, cert.NotBefore, cert.NotAfter,
+	)
+
+	// Check for SubjectAlternativeName and IP Addresses
+	if len(cert.DNSNames) > 0 || len(cert.IPAddresses) > 0 {
+		decoded += "Subject Alternative Names:\n"
+		for _, dns := range cert.DNSNames {
+			decoded += fmt.Sprintf("  DNS: %s\n", dns)
+		}
+		for _, ip := range cert.IPAddresses {
+			decoded += fmt.Sprintf("  IP: %s\n", ip.String())
+		}
+	}
 
 	// Return the file content and decoded view as JSON
 	c.JSON(http.StatusOK, gin.H{
-		// "encoded": string(content),
 		"decoded": decoded,
 	})
+}
+
+func isValidFileName(fileName string) bool {
+	// Implement validation logic here
+	return !strings.Contains(fileName, "..")
+}
+
+func readCertificate(filePath string) (*x509.Certificate, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading certificate: %v", err)
+	}
+
+	block, _ := pem.Decode(content)
+	if block == nil {
+		return nil, fmt.Errorf("Failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse certificate: %v", err)
+	}
+
+	return cert, nil
 }

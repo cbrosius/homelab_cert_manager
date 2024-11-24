@@ -18,6 +18,9 @@
             display: flex;
             gap: 10px;
         }
+        .left-align {
+            text-align: left;
+        }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -28,7 +31,6 @@
             fetch(`/certificates/view/${certName}.pem`)
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById(`certContent-${certName}`).innerText = data.encoded;
                     document.getElementById(`certDecodedContent-${certName}`).innerText = data.decoded;
                     document.getElementById(`certRow-${certName}`).style.display = 'table-row';
                     document.getElementById(`viewButton-${certName}`).style.display = 'none';
@@ -111,8 +113,8 @@
             </tr>
             <tr id="certRow-{{.}}" style="display:none;">
                 <td colspan="5">
-                    <pre id="certContent-{{.}}" class="materialize-textarea"></pre>
-                    <pre id="certDecodedContent-{{.}}" class="materialize-textarea"></pre>
+                    <pre id="certContent-{{.}}" class="materialize-textarea left-align"></pre>
+                    <pre id="certDecodedContent-{{.}}" class="materialize-textarea left-align"></pre>
                 </td>
             </tr>
             {{end}}
