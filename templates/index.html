@@ -1,26 +1,127 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Home</title>
+    <title>Certificate Manager</title>
     <!-- Materialize CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
     <!-- Materialize JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <style>
+        .container {
+            margin-top: 50px;
+        }
+        .mandatory::after {
+            content: " *";
+            color: red;
+        }
+        .helper-text.mandatory {
+            color: red;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Materialize CSS components
+            M.updateTextFields();
+        });
+
+        function clearForm() {
+            const fields = ['common_name', 'organization', 'organizational_unit', 'country', 'state', 'locality', 'email', 'validity_years'];
+            fields.forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            M.updateTextFields(); // Update the labels for Materialize CSS
+        }
+
+        function prefillForm() {
+            const defaultValues = {
+                common_name: 'My HomeLab Root CA',
+                organization: 'private',
+                organizational_unit: '',
+                country: 'DE',
+                state: 'Rhineland-Palatinate',
+                locality: 'Vorderweidenthal',
+                email: 'Christian.Brosius@gmail.com',
+                validity_years: '30'
+            };
+
+            Object.keys(defaultValues).forEach(id => {
+                document.getElementById(id).value = defaultValues[id];
+            });
+            M.updateTextFields(); // Update the labels for Materialize CSS
+        }
+    </script>
 </head>
 <body class="container">
-    <h1>Home</h1>
+    <h1>Certificate Manager</h1>
+    <p>This application helps you create, manage, and download various types of digital certificates for secure communication and authentication. Follow the instructions below to create a root certificate.</p>
 
-    <h2>Create Root Certificate</h2>
-    <form action="/create-root-certificate" method="POST" class="col s12">
-        <div class="row">
-            <div class="input-field col s12">
-                <input type="text" id="organization" name="organization" class="validate" required>
-                <label for="organization">Organization</label>
-            </div>
+    <div class="row">
+        <div class="col s8">
+            <h2>Create Root Certificate</h2>
+            <form action="/create-root-certificate" method="POST" class="col s12">
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input type="text" id="common_name" name="common_name" class="validate" required>
+                        <label for="common_name" class="active mandatory">Common Name (CN)</label>
+                        <span class="helper-text mandatory" data-error="Please enter the common name">This field is mandatory.</span>
+                        <span class="helper-text" data-success="Looks good!">e.g., MyOrganization Root CA</span>
+                    </div>
+                    <div class="input-field col s12">
+                        <input type="text" id="organization" name="organization" class="validate">
+                        <label for="organization" class="active">Organization (O)</label>
+                        <span class="helper-text" data-error="Please enter the organization" data-success="Looks good!">e.g., MyOrganization</span>
+                    </div>
+                    <div class="input-field col s12">
+                        <input type="text" id="organizational_unit" name="organizational_unit" class="validate">
+                        <label for="organizational_unit" class="active">Organizational Unit (OU)</label>
+                        <span class="helper-text" data-error="Please enter the organizational unit" data-success="Looks good!">e.g., IT Department</span>
+                    </div>
+                    <div class="input-field col s12">
+                        <input type="text" id="country" name="country" class="validate">
+                        <label for="country" class="active">Country (C)</label>
+                        <span class="helper-text" data-error="Please enter the country" data-success="Looks good!">e.g., DE</span>
+                    </div>
+                    <div class="input-field col s12">
+                        <input type="text" id="state" name="state" class="validate">
+                        <label for="state" class="active">State or Province (ST)</label>
+                        <span class="helper-text" data-error="Please enter the state or province" data-success="Looks good!">e.g., Rhineland-Palatinate</span>
+                    </div>
+                    <div class="input-field col s12">
+                        <input type="text" id="locality" name="locality" class="validate">
+                        <label for="locality" class="active">Locality (L)</label>
+                        <span class="helper-text" data-error="Please enter the locality" data-success="Looks good!">e.g., Dahn</span>
+                    </div>
+                    <div class="input-field col s12">
+                        <input type="email" id="email" name="email" class="validate">
+                        <label for="email" class="active">Email</label>
+                        <span class="helper-text" data-error="Please enter a valid email" data-success="Looks good!">e.g., admin@myorganization.com</span>
+                    </div>
+                    <div class="input-field col s12">
+                        <input type="number" id="validity_years" name="validity_years" class="validate" required>
+                        <label for="validity_years" class="active mandatory">Validity Period (Years)</label>
+                        <span class="helper-text mandatory" data-error="Please enter the validity period in years">This field is mandatory.</span>
+                        <span class="helper-text" data-success="Looks good!">e.g., 10</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <button type="submit" class="btn waves-effect waves-light">Create Root Certificate</button>
+                    <button type="button" onclick="clearForm()" class="btn waves-effect waves-light red">Reset Form Entries</button>
+                    <button type="button" onclick="prefillForm()" class="btn waves-effect waves-light blue">Prefill Form</button>
+                </div>
+            </form>
         </div>
-        <div class="row">
-            <button type="submit" class="btn waves-effect waves-light">Create Root Certificate</button>
+
+        <div class="col s4">
+            <h2>Form Instructions</h2>
+            <p><strong>Common Name (CN):</strong> The name that uniquely identifies the certificate, e.g., "MyOrganization Root CA".</p>
+            <p><strong>Organization (O):</strong> The name of the organization issuing the certificate, e.g., "MyOrganization".</p>
+            <p><strong>Organizational Unit (OU):</strong> The department within the organization responsible for managing the certificate, e.g., "IT Department".</p>
+            <p><strong>Country (C):</strong> The country where the organization is located, e.g., "DE" for Germany.</p>
+            <p><strong>State or Province (ST):</strong> The state or province where the organization is located, e.g., "Rhineland-Palatinate".</p>
+            <p><strong>Locality (L):</strong> The city where the organization is located, e.g., "Dahn".</p>
+            <p><strong>Email:</strong> An email address for contact, e.g., "admin@myorganization.com".</p>
+            <p><strong>Validity Period (Years):</strong> The validity period of the certificate, e.g., "10" years.</p>
         </div>
-    </form>
+    </div>
 </body>
 </html>

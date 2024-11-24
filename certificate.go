@@ -32,6 +32,11 @@ func listCertificates(c *gin.Context) {
 		}
 	}
 
+	if len(certs) == 0 {
+		c.Redirect(http.StatusSeeOther, "/")
+		return
+	}
+
 	c.HTML(http.StatusOK, "cert_list.html", gin.H{
 		"certificates": certs,
 	})
@@ -195,74 +200,4 @@ func viewCertificate(c *gin.Context) {
 		"encoded": string(content),
 		"decoded": decoded,
 	})
-}
-
-func createRootCertificate(c *gin.Context) {
-	organization := c.PostForm("organization")
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error generating private key: %v", err)
-		return
-	}
-
-	rootCertTemplate := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{
-			Organization: []string{organization},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(10, 0, 0),
-		IsCA:                  true,
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
-		BasicConstraintsValid: true,
-	}
-
-	rootCertBytes, err := x509.CreateCertificate(rand.Reader, rootCertTemplate, rootCertTemplate, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating root certificate: %v", err)
-		return
-	}
-
-	os.MkdirAll("certs", os.ModePerm)
-
-	rootCertFile, err := os.Create("certs/rootCA.pem")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating root certificate file: %v", err)
-		return
-	}
-	defer rootCertFile.Close()
-	pem.Encode(rootCertFile, &pem.Block{Type: "CERTIFICATE", Bytes: rootCertBytes})
-
-	rootKeyFile, err := os.Create("certs/rootCA.key")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating root key file: %v", err)
-		return
-	}
-	defer rootKeyFile.Close()
-	pem.Encode(rootKeyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
-
-	// Generate .pfx file for root certificate
-	rootCert, err := x509.ParseCertificate(rootCertBytes)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error parsing root certificate: %v", err)
-		return
-	}
-
-	rootPfxData, err := pkcs12.Encode(rand.Reader, privateKey, rootCert, nil, "")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
-		return
-	}
-
-	rootPfxFile, err := os.Create("certs/rootCA.pfx")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
-		return
-	}
-	defer rootPfxFile.Close()
-
-	rootPfxFile.Write(rootPfxData)
-
-	c.Redirect(http.StatusSeeOther, "/")
 }

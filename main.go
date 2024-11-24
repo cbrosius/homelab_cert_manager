@@ -27,8 +27,8 @@ func main() {
 	r.GET("/certificates/view/:filename", viewCertificate)
 	r.POST("/certificates/delete/:filename", deleteCertificate)
 	r.POST("/create-certificate", createCertificate)
-	r.POST("/create-root-certificate", createRootCertificate)
-	r.GET("/create-certificate-form", showCreateCertificateForm) // New route for certificate form
+	r.POST("/create-root-certificate", createRootCertificate)    // Ensure the route for creating root certificate
+	r.GET("/create-certificate-form", showCreateCertificateForm) // Route for certificate form
 
 	r.Run(":8080")
 }
