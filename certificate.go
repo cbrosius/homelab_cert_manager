@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -225,6 +226,7 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
+	// Save the certificate in PEM format
 	certFile, err := os.Create("certs/" + commonName + ".pem")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating certificate file: %v", err)
@@ -233,6 +235,7 @@ func createCertificate(c *gin.Context) {
 	defer certFile.Close()
 	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 
+	// Save the private key in PEM format
 	keyFile, err := os.Create("certs/" + commonName + ".key")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating key file: %v", err)
@@ -241,8 +244,15 @@ func createCertificate(c *gin.Context) {
 	defer keyFile.Close()
 	pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
 
-	// Create .pfx file
-	pfxData, err := pkcs12.Encode(rand.Reader, privateKey, certTemplate, []*x509.Certificate{rootCert}, "")
+	// Create a .pfx file using Modern.Encode
+	privateKeyAsCrypto := crypto.PrivateKey(privateKey) // Convert to the appropriate interface
+	cert, err := x509.ParseCertificate(certBytes)       // Parse the raw certificate bytes
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error parsing certificate: %v", err)
+		return
+	}
+
+	pfxData, err := pkcs12.Modern.Encode(privateKeyAsCrypto, cert, []*x509.Certificate{rootCert}, "")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
 		return
