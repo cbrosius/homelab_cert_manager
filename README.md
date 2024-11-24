@@ -2,49 +2,20 @@
 
 ## Overview
 
-Homelab Cert Manager is a Go project designed to manage SSL/TLS certificates for your homelab environment. This tool automates the process of generating, renewing, and distributing certificates, ensuring your services are always secured.
+Homelab Cert Manager is a Go project designed to manage SSL/TLS certificates for your homelab environment. 
+This tool can generate a Homlab Root-Certificate and additional certificates for your homelab-services like docker-containers or devices.
+
+All you need to do is import and trust the generated Root-Certificate once to your PC and generate a new certificate for each of your services.
+
+Then your internal sites show secure connections in all modern browsers.
 
 ## Features
 
-- **Automated Certificate Management:** Automatically generate and renew SSL/TLS certificates.
+- **Internal Certificate Management:** Generate and manage internal SSL/TLS certificates.
 - **Ease of Use:** Simple configuration and operation.
-- **Integration:** Easily integrates with various homelab services and infrastructure.
 
 ## Getting Started
 
-### Prerequisites
+To use Homelab Cert Manager, just download and install the Docker-Image from the github-repo (ghcr.io/cbrosius/homelab_cert_manager/homelab_cert_manager:latest)
 
-- [Go](https://golang.org/doc/install) (version 1.18 or later)
-- [Docker](https://docs.docker.com/get-docker/)
-- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
-
-### Installation
-
-1. **Clone the repository:**
-    ```sh
-    git clone https://github.com/cbrosius/homelab_cert_manager.git
-    cd homelab_cert_manager
-    ```
-
-2. **Build the Docker image:**
-    ```sh
-    docker build -t ghcr.io/cbrosius/homelab_cert_manager:latest .
-    ```
-
-3. **Run the container:**
-    ```sh
-    docker run -d --name homelab_cert_manager ghcr.io/cbrosius/homelab_cert_manager:latest
-    ```
-
-## Usage
-
-To use Homelab Cert Manager, configure your certificate settings in the `config.yaml` file and start the service. The application will handle the rest, including certificate generation and renewal.
-
-### Configuration
-
-Edit the `config.yaml` file to set up your domain names, email for certificate notifications, and other necessary configurations.
-
-```yaml
-domains:
-  - example.com
-email: your-email@example.com
+As an alternative you can clone the repo and compile the project by yourself locally.
