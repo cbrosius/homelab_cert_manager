@@ -1,1 +1,3 @@
 cert_manager.exe
+certs/*
+root-cert/*

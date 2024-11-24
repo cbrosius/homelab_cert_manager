@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"net/http"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"software.sslmate.com/src/go-pkcs12"
 )
 
 func createRootCertificate(c *gin.Context) {
@@ -73,12 +73,11 @@ func createRootCertificate(c *gin.Context) {
 		return
 	}
 
-	os.MkdirAll("certs", os.ModePerm)
+	os.MkdirAll("root-cert", os.ModePerm)
 
 	sanitizedCommonName := strings.ReplaceAll(commonName, " ", "_")
-	rootCertFilename := "certs/" + sanitizedCommonName + ".pem"
-	rootKeyFilename := "certs/" + sanitizedCommonName + ".key"
-	rootPfxFilename := "certs/" + sanitizedCommonName + ".pfx"
+	rootCertFilename := "root-cert/" + sanitizedCommonName + ".pem"
+	rootKeyFilename := "root-cert/" + sanitizedCommonName + ".key"
 
 	rootCertFile, err := os.Create(rootCertFilename)
 	if err != nil {
@@ -96,27 +95,63 @@ func createRootCertificate(c *gin.Context) {
 	defer rootKeyFile.Close()
 	pem.Encode(rootKeyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
 
-	// Generate .pfx file for root certificate
-	rootCert, err := x509.ParseCertificate(rootCertBytes)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error parsing root certificate: %v", err)
-		return
-	}
-
-	rootPfxData, err := pkcs12.Encode(rand.Reader, privateKey, rootCert, nil, "")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
-		return
-	}
-
-	rootPfxFile, err := os.Create(rootPfxFilename)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
-		return
-	}
-	defer rootPfxFile.Close()
-
-	rootPfxFile.Write(rootPfxData)
-
 	c.Redirect(http.StatusSeeOther, "/certificates")
+}
+
+func downloadRootCertificate(c *gin.Context) {
+	fileName := c.Param("filename")
+	filePath := "./root-cert/" + fileName
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	switch {
+	case strings.HasSuffix(fileName, ".pem"):
+		c.Header("Content-Type", "application/x-pem-file")
+	case strings.HasSuffix(fileName, ".key"):
+		c.Header("Content-Type", "application/x-iwork-keynote-sffkey")
+	case strings.HasSuffix(fileName, ".pfx"):
+		c.Header("Content-Type", "application/x-pkcs12")
+	default:
+		c.Header("Content-Type", "application/octet-stream")
+	}
+	c.File(filePath)
+}
+
+func deleteRootCertificate(c *gin.Context) {
+	fileName := c.Param("filename")
+	filePathPem := "./root-cert/" + fileName
+	filePathKey := strings.TrimSuffix(filePathPem, ".pem") + ".key"
+
+	// Remove the .pem file
+	err := os.Remove(filePathPem)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error deleting root certificate .pem file: %v", err)
+		return
+	}
+
+	// Remove the .key file
+	err = os.Remove(filePathKey)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error deleting root certificate .key file: %v", err)
+		return
+	}
+
+	// Remove all files in the certs folder
+	certFiles, err := os.ReadDir("./certs")
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error reading certificates directory: %v", err)
+		return
+	}
+
+	for _, file := range certFiles {
+		err = os.Remove("./certs/" + file.Name())
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Error deleting certificate file: %v", err)
+			return
+		}
+	}
+
+	// Redirect to the index page to create a new root certificate
+	c.Redirect(http.StatusSeeOther, "/")
 }
