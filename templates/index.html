@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+    <!-- Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Materialize JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</head>
+<body class="container">
+    <h1>Home</h1>
+
+    <h2>Create Root Certificate</h2>
+    <form action="/create-root-certificate" method="POST" class="col s12">
+        <div class="row">
+            <div class="input-field col s12">
+                <input type="text" id="organization" name="organization" class="validate" required>
+                <label for="organization">Organization</label>
+            </div>
+        </div>
+        <div class="row">
+            <button type="submit" class="btn waves-effect waves-light">Create Root Certificate</button>
+        </div>
+    </form>
+</body>
+</html>

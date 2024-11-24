@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Certificate List</title>
+    <!-- Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Materialize JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            M.AutoInit();
+        });
+
+        function viewCertificate(certName) {
+            fetch(`/certificates/view/${certName}.pem`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById(`certContent-${certName}`).innerText = data.encoded;
+                    document.getElementById(`certDecodedContent-${certName}`).innerText = data.decoded;
+                    document.getElementById(`certRow-${certName}`).style.display = 'table-row';
+                    document.getElementById(`viewButton-${certName}`).style.display = 'none';
+                    document.getElementById(`hideButton-${certName}`).style.display = 'inline';
+                })
+                .catch(error => console.error('Error fetching certificate:', error));
+        }
+
+        function hideCertificate(certName) {
+            document.getElementById(`certRow-${certName}`).style.display = 'none';
+            document.getElementById(`viewButton-${certName}`).style.display = 'inline';
+            document.getElementById(`hideButton-${certName}`).style.display = 'none';
+        }
+    </script>
+</head>
+<body class="container">
+    <h1>Certificates</h1>
+
+    <div class="row">
+        <a href="/create-certificate-form" class="btn waves-effect waves-light">Create New Certificate</a>
+    </div>
+
+    <table class="highlight">
+        <thead>
+            <tr>
+                <th>Certificate</th>
+                <th>Download PEM</th>
+                <th>Download KEY</th>
+                <th>Download PFX</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .certificates}}
+            <tr>
+                <td>{{.}}</td>
+                <td><a href="/certificates/download/{{.}}.pem" class="btn-small waves-effect waves-light">Download PEM</a></td>
+                <td><a href="/certificates/download/{{.}}.key" class="btn-small waves-effect waves-light">Download KEY</a></td>
+                <td><a href="/certificates/download/{{.}}.pfx" class="btn-small waves-effect waves-light">Download PFX</a></td>
+                <td>
+                    <button id="viewButton-{{.}}" class="btn-small waves-effect waves-light" onclick="viewCertificate('{{.}}')">View Certificate</button>
+                    <button id="hideButton-{{.}}" class="btn-small waves-effect waves-light red" onclick="hideCertificate('{{.}}')" style="display:none;">Hide Certificate</button>
+                    <form action="/certificates/delete/{{.}}.pem" method="POST" style="display:inline;">
+                        <button class="btn-small red waves-effect waves-light" type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <tr id="certRow-{{.}}" style="display:none;">
+                <td colspan="5">
+                    <pre id="certContent-{{.}}" class="materialize-textarea"></pre>
+                    <pre id="certDecodedContent-{{.}}" class="materialize-textarea"></pre>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</body>
+</html>

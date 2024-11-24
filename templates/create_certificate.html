@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Certificate</title>
+    <!-- Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Materialize JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</head>
+<body class="container">
+    <h1>Create New Certificate</h1>
+    <form action="/create-certificate" method="POST" class="col s12">
+        <div class="row">
+            <div class="input-field col s12">
+                <input type="text" id="common_name" name="common_name" class="validate" required>
+                <label for="common_name">Common Name</label>
+            </div>
+        </div>
+        <div class="row">
+            <button type="submit" class="btn waves-effect waves-light">Create Certificate</button>
+        </div>
+    </form>
+</body>
+</html>
