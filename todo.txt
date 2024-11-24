@@ -1,0 +1,10 @@
+- implement versioning for the sources
+- add a site-menu with settings
+- secure the service with HTTPS
+- secure the access to the service with a password
+- add more description how to use the service
+- add good defaults for certificates
+- add screenshots and better descriptions to the README.md
+- add a changelog
+- add warnings before deletion of certificates with details about the consequences
+

@@ -10,12 +10,12 @@ import (
 )
 
 func main() {
-	os.MkdirAll("certs", os.ModePerm)
-	os.MkdirAll("root-cert", os.ModePerm) // Ensure the root-cert directory exists
+	os.MkdirAll("data/certs", os.ModePerm)
+	os.MkdirAll("data/root-cert", os.ModePerm) // Ensure the root-cert directory exists
 
 	// Check if any .pem file exists in the root-cert directory
 	rootCertExists := false
-	err := filepath.Walk("root-cert", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk("data/root-cert", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -54,7 +54,7 @@ func main() {
 func showHomePage(c *gin.Context) {
 	// Check if any .pem file exists in the root-cert directory
 	rootCertExists := false
-	err := filepath.Walk("root-cert", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk("data/root-cert", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

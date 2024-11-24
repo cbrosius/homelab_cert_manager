@@ -73,11 +73,11 @@ func createRootCertificate(c *gin.Context) {
 		return
 	}
 
-	os.MkdirAll("root-cert", os.ModePerm)
+	os.MkdirAll("data/root-cert", os.ModePerm)
 
 	sanitizedCommonName := strings.ReplaceAll(commonName, " ", "_")
-	rootCertFilename := "root-cert/" + sanitizedCommonName + ".pem"
-	rootKeyFilename := "root-cert/" + sanitizedCommonName + ".key"
+	rootCertFilename := "data/root-cert/" + sanitizedCommonName + ".pem"
+	rootKeyFilename := "data/root-cert/" + sanitizedCommonName + ".key"
 
 	rootCertFile, err := os.Create(rootCertFilename)
 	if err != nil {
@@ -100,7 +100,7 @@ func createRootCertificate(c *gin.Context) {
 
 func downloadRootCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	filePath := "./root-cert/" + fileName
+	filePath := "./data/root-cert/" + fileName
 
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
@@ -120,7 +120,7 @@ func downloadRootCertificate(c *gin.Context) {
 
 func deleteRootCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	filePathPem := "./root-cert/" + fileName
+	filePathPem := "./data/root-cert/" + fileName
 	filePathKey := strings.TrimSuffix(filePathPem, ".pem") + ".key"
 
 	// Remove the .pem file
@@ -138,14 +138,14 @@ func deleteRootCertificate(c *gin.Context) {
 	}
 
 	// Remove all files in the certs folder
-	certFiles, err := os.ReadDir("./certs")
+	certFiles, err := os.ReadDir("./data/certs")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error reading certificates directory: %v", err)
 		return
 	}
 
 	for _, file := range certFiles {
-		err = os.Remove("./certs/" + file.Name())
+		err = os.Remove("./data/certs/" + file.Name())
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Error deleting certificate file: %v", err)
 			return

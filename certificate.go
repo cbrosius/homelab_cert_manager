@@ -23,7 +23,7 @@ import (
 )
 
 func listCertificates(c *gin.Context) {
-	files, err := os.ReadDir("./certs")
+	files, err := os.ReadDir("./data/certs")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Unable to read certificates directory: %v", err)
 		return
@@ -49,7 +49,7 @@ func checkRootCertAndListCerts(c *gin.Context) {
 	var rootCertFile string
 
 	// Walk the root-cert directory and find the root certificate
-	err := filepath.Walk("root-cert", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk("data/root-cert", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("Error walking root-cert directory: %v", err)
 			return err
@@ -88,7 +88,7 @@ func checkRootCertAndListCerts(c *gin.Context) {
 		return
 	}
 
-	files, err := os.ReadDir("./certs")
+	files, err := os.ReadDir("./data/certs")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Unable to read certificates directory: %v", err)
 		return
@@ -127,7 +127,7 @@ func findRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 	var rootCert *x509.Certificate
 	var rootKey *rsa.PrivateKey
 
-	err := filepath.Walk("root-cert", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk("data/root-cert", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -227,7 +227,7 @@ func createCertificate(c *gin.Context) {
 	}
 
 	// Save the certificate in PEM format
-	certFile, err := os.Create("certs/" + commonName + ".pem")
+	certFile, err := os.Create("data/certs/" + commonName + ".pem")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating certificate file: %v", err)
 		return
@@ -236,7 +236,7 @@ func createCertificate(c *gin.Context) {
 	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 
 	// Save the private key in PEM format
-	keyFile, err := os.Create("certs/" + commonName + ".key")
+	keyFile, err := os.Create("data/certs/" + commonName + ".key")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating key file: %v", err)
 		return
@@ -258,7 +258,7 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	pfxFile, err := os.Create("certs/" + commonName + ".pfx")
+	pfxFile, err := os.Create("data/certs/" + commonName + ".pfx")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
 		return
@@ -275,7 +275,7 @@ func createCertificate(c *gin.Context) {
 
 func downloadCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	filePath := "./certs/" + fileName
+	filePath := "./data/certs/" + fileName
 
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
@@ -296,9 +296,9 @@ func downloadCertificate(c *gin.Context) {
 func deleteCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
 	baseName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	certFilePath := "./certs/" + fileName
-	keyFilePath := "./certs/" + baseName + ".key"
-	pfxFilePath := "./certs/" + baseName + ".pfx"
+	certFilePath := "./data/certs/" + fileName
+	keyFilePath := "./data/certs/" + baseName + ".key"
+	pfxFilePath := "./data/certs/" + baseName + ".pfx"
 
 	// Delete the certificate file
 	err := os.Remove(certFilePath)
@@ -327,7 +327,7 @@ func deleteCertificate(c *gin.Context) {
 
 func viewCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	filePath := "./certs/" + fileName
+	filePath := "./data/certs/" + fileName
 
 	// Check if the file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {

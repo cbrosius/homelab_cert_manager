@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # create Volumes
-VOLUME [ "/app/root-cert", "/app/certs" ]
+VOLUME [ "/app/data" ]
 
 # use Port 8080
 EXPOSE 8080
