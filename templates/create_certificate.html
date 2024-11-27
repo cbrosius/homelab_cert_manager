@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Create Certificate</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
     <!-- Materialize JavaScript -->
@@ -63,7 +64,8 @@
         }
     </script>
 </head>
-<body class="container">
+{{ template "header.html" . }}
+<div class="container">
     <h1>Create Certificate</h1>
     <form action="/create-certificate" method="POST" class="col s12">
         <div class="row">

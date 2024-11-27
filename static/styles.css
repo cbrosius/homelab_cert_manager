@@ -1,0 +1,43 @@
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-wrapper {
+    position: relative;
+}
+
+#profileButton {
+    background-color: #4CAF50;
+    color: white;
+    padding: 0px 20px;
+    border: none;
+    cursor: pointer;
+}
+
+#dropdown1 {
+    display: none;
+    position: relative;
+    top: -55px; /* Adjust this value to move the menu down */
+    right: 10px;
+    background-color: white;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+}
+
+#dropdown1 a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+#dropdown1 a:hover {
+    background-color: #f1f1f1;
+}
+
+.hidden {
+    display: none;
+}

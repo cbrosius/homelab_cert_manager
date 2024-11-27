@@ -34,7 +34,7 @@ func main() {
 	}
 
 	r := gin.Default()
-
+	r.Static("/static", "./static") // Konfiguration, um statische Dateien zu bedienen
 	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/", showHomePage)
@@ -47,6 +47,7 @@ func main() {
 	r.GET("/create-certificate-form", showCreateCertificateForm)                 // Route for certificate form
 	r.GET("/certificates/download/root-cert/:filename", downloadRootCertificate) // Route for downloading root certificate
 	r.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate)    // Route for deleting root certificate
+	r.GET("/settings", showSettingsPage)                                         // Route for settings page
 
 	r.Run(":8080")
 }
@@ -81,4 +82,8 @@ func showHomePage(c *gin.Context) {
 
 func showCreateCertificateForm(c *gin.Context) {
 	c.HTML(http.StatusOK, "create_certificate.html", nil)
+}
+
+func showSettingsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "settings.html", nil)
 }

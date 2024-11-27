@@ -1,0 +1,39 @@
+<!-- header.html -->
+<header>
+    <div class="navbar-fixed">
+        <nav>
+            <div class="nav-wrapper">
+                <a href="/certificates" class="brand-logo left">HomeLab Certificate Manager</a>
+                <ul id="nav-mobile" class="right">
+                    <li>
+                        <a id="profileButton" class="dropdown-trigger" href="#!" data-target="dropdown1">
+                            Admin
+                            <i class="material-icons right">arrow_drop_down</i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Dropdown Structure -->
+    <ul id="dropdown1" class="dropdown-content hidden">
+        <li><a href="/changePassword">Change Password</a></li>
+        <li><a href="/settings">Settings</a></li>
+        <li><a id="about-link" href="#aboutModal" class="modal-trigger">About</a></li>
+        <li class="divider"></li>
+        <li><a href="/logout">Logout</a></li>
+    </ul>
+</header>
+
+<!-- Modal Structure -->
+<div id="aboutModal" class="modal">
+    <div class="modal-content">
+        <h4>About HomeLab Certificate Manager</h4>
+        <img src="/static/Homelab Certification Authority.png" alt="Homelab Certification Authority" class="responsive-img">
+        <p>This application helps you manage certificates for your homelab environment...</p>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Close</a>
+    </div>
+</div>
