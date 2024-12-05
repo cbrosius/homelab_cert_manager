@@ -1,13 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-    <title>Certificate List</title>
+    <meta charset="UTF-8">
+    <title>Zertifikatsliste</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Materialize JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/script.js"></script>
     <style>
         .collapsible-header {
             display: flex;
@@ -48,77 +52,80 @@
         }
     </script>
 </head>
-<body class="container">
-    <h1 class="center-align">Certificates</h1>
+<body>
+    {{ template "header.html" . }}
+    <div class="container">
+        <h1 class="center-align">Certificates</h1>
 
-    <!-- Root Certificate Section -->
-    <div class="row">
-        <h4>Root Certificate</h4>
-        {{if .rootCertificate}}
-        <ul class="collapsible">
-            <li>
-                <div class="collapsible-header">
-                    <div>
-                        <i class="material-icons">security</i>
-                        {{.rootCertificate.CommonName}}
+        <!-- Root Certificate Section -->
+        <div class="row">
+            <h4>Root Certificate</h4>
+            {{if .rootCertificate}}
+            <ul class="collapsible">
+                <li>
+                    <div class="collapsible-header">
+                        <div>
+                            <i class="material-icons">security</i>
+                            {{.rootCertificate.CommonName}}
+                        </div>
+                        <div class="right">
+                            <a href="/certificates/download/root-cert/{{.rootCertificate.Filename}}.pem" class="btn-small waves-effect waves-light">Download PEM</a>
+                            <form action="/certificates/delete/root-cert/{{.rootCertificate.Filename}}.pem" method="POST" style="display:inline;">
+                                <button class="btn-small red waves-effect waves-light" type="submit">Delete Root Certificate</button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="right">
-                        <a href="/certificates/download/root-cert/{{.rootCertificate.Filename}}.pem" class="btn-small waves-effect waves-light">Download PEM</a>
-                        <form action="/certificates/delete/root-cert/{{.rootCertificate.Filename}}.pem" method="POST" style="display:inline;">
-                            <button class="btn-small red waves-effect waves-light" type="submit">Delete Root Certificate</button>
-                        </form>
+                    <div class="collapsible-body">
+                        <p><strong>Issuer:</strong> {{.rootCertificate.Issuer}}</p>
+                        <p><strong>Subject:</strong> {{.rootCertificate.Subject}}</p>
+                        <p><strong>Validity:</strong> Not Before: {{.rootCertificate.NotBefore}}, Not After: {{.rootCertificate.NotAfter}}</p>
                     </div>
-                </div>
-                <div class="collapsible-body">
-                    <p><strong>Issuer:</strong> {{.rootCertificate.Issuer}}</p>
-                    <p><strong>Subject:</strong> {{.rootCertificate.Subject}}</p>
-                    <p><strong>Validity:</strong> Not Before: {{.rootCertificate.NotBefore}}, Not After: {{.rootCertificate.NotAfter}}</p>
-                </div>
-            </li>
-        </ul>
-        {{else}}
-        <p>No root certificate found.</p>
-        {{end}}
-    </div>
-
-    <!-- Certificates Section -->
-    <div class="row">
-        <a href="/create-certificate-form" class="btn waves-effect waves-light col s12 m4 offset-m4">Create New Certificate</a>
-    </div>
-
-    <table class="highlight centered">
-        <thead>
-            <tr>
-                <th>Certificate</th>
-                <th>Download PEM</th>
-                <th>Download KEY</th>
-                <th>Download PFX</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .certificates}}
-            <tr>
-                <td>{{.}}</td>
-                <td><a href="/certificates/download/{{.}}.pem" class="btn-small waves-effect waves-light">Download PEM</a></td>
-                <td><a href="/certificates/download/{{.}}.key" class="btn-small waves-effect waves-light">Download KEY</a></td>
-                <td><a href="/certificates/download/{{.}}.pfx" class="btn-small waves-effect waves-light">Download PFX</a></td>
-                <td>
-                    <button id="viewButton-{{.}}" class="btn-small waves-effect waves-light" onclick="viewCertificate('{{.}}')">View Certificate</button>
-                    <button id="hideButton-{{.}}" class="btn-small waves-effect waves-light red" onclick="hideCertificate('{{.}}')" style="display:none;">Hide Certificate</button>
-                    <form action="/certificates/delete/{{.}}.pem" method="POST" style="display:inline;">
-                        <button class="btn-small red waves-effect waves-light" type="submit">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            <tr id="certRow-{{.}}" style="display:none;">
-                <td colspan="5">
-                    <pre id="certContent-{{.}}" class="materialize-textarea left-align"></pre>
-                    <pre id="certDecodedContent-{{.}}" class="materialize-textarea left-align"></pre>
-                </td>
-            </tr>
+                </li>
+            </ul>
+            {{else}}
+            <p>No root certificate found.</p>
             {{end}}
-        </tbody>
-    </table>
+        </div>
+
+        <!-- Certificates Section -->
+        <div class="row">
+            <a href="/create-certificate-form" class="btn waves-effect waves-light col s12 m4 offset-m4">Create New Certificate</a>
+        </div>
+
+        <table class="highlight centered">
+            <thead>
+                <tr>
+                    <th>Certificate</th>
+                    <th>Download PEM</th>
+                    <th>Download KEY</th>
+                    <th>Download PFX</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .certificates}}
+                <tr>
+                    <td>{{.}}</td>
+                    <td><a href="/certificates/download/{{.}}.pem" class="btn-small waves-effect waves-light">Download PEM</a></td>
+                    <td><a href="/certificates/download/{{.}}.key" class="btn-small waves-effect waves-light">Download KEY</a></td>
+                    <td><a href="/certificates/download/{{.}}.pfx" class="btn-small waves-effect waves-light">Download PFX</a></td>
+                    <td>
+                        <button id="viewButton-{{.}}" class="btn-small waves-effect waves-light" onclick="viewCertificate('{{.}}')">View Certificate</button>
+                        <button id="hideButton-{{.}}" class="btn-small waves-effect waves-light red" onclick="hideCertificate('{{.}}')" style="display:none;">Hide Certificate</button>
+                        <form action="/certificates/delete/{{.}}.pem" method="POST" style="display:inline;">
+                            <button class="btn-small red waves-effect waves-light" type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr id="certRow-{{.}}" style="display:none;">
+                    <td colspan="5">
+                        <pre id="certContent-{{.}}" class="materialize-textarea left-align"></pre>
+                        <pre id="certDecodedContent-{{.}}" class="materialize-textarea left-align"></pre>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>

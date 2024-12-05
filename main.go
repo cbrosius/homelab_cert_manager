@@ -1,12 +1,21 @@
 package main
 
 import (
+	"crypto/rand"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	userKey         = "user"
+	defaultUsername = "admin"
+	defaultPassword = "admin123" // In production, use a secure password and store it hashed
 )
 
 func main() {
@@ -35,20 +44,41 @@ func main() {
 
 	r := gin.Default()
 
+	// Add these two lines
+	r.Static("/static", "./static")
 	r.LoadHTMLGlob("templates/*")
 
-	r.GET("/", showHomePage)
-	r.GET("/certificates", checkRootCertAndListCerts) // Ensure this route calls the correct function
-	r.GET("/certificates/download/:filename", downloadCertificate)
-	r.GET("/certificates/view/:filename", viewCertificate)
-	r.POST("/certificates/delete/:filename", deleteCertificate)
-	r.POST("/create-certificate", createCertificate)
-	r.POST("/create-root-certificate", createRootCertificate)
-	r.GET("/create-certificate-form", showCreateCertificateForm)                 // Route for certificate form
-	r.GET("/certificates/download/root-cert/:filename", downloadRootCertificate) // Route for downloading root certificate
-	r.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate)    // Route for deleting root certificate
+	// Generate a random 32-byte key for cookie store
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		log.Fatal("Failed to generate session key:", err)
+	}
+	store := cookie.NewStore(key)
+	r.Use(sessions.Sessions("homelab_session", store))
 
-	r.Run(":8080")
+	// Public routes
+	r.GET("/login", showLoginPage)
+	r.POST("/login", handleLogin)
+
+	// Protected routes group
+	authorized := r.Group("/")
+	authorized.Use(authRequired())
+	{
+		authorized.GET("/", showHomePage)
+		authorized.GET("/certificates", checkRootCertAndListCerts)
+		authorized.GET("/certificates/download/:filename", downloadCertificate)
+		authorized.GET("/certificates/view/:filename", viewCertificate)
+		authorized.POST("/certificates/delete/:filename", deleteCertificate)
+		authorized.POST("/create-certificate", createCertificate)
+		authorized.POST("/create-root-certificate", createRootCertificate)
+		authorized.GET("/create-certificate-form", showCreateCertificateForm)
+		authorized.GET("/certificates/download/root-cert/:filename", downloadRootCertificate)
+		authorized.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate)
+		authorized.GET("/settings", showSettingsPage)
+		authorized.GET("/logout", handleLogout)
+	}
+
+	r.Run(":8085")
 }
 
 func showHomePage(c *gin.Context) {
@@ -81,4 +111,67 @@ func showHomePage(c *gin.Context) {
 
 func showCreateCertificateForm(c *gin.Context) {
 	c.HTML(http.StatusOK, "create_certificate.html", nil)
+}
+
+func showSettingsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "settings.html", nil)
+}
+
+// Authentication middleware
+func authRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		user := session.Get(userKey)
+		if user == nil {
+			c.Redirect(http.StatusSeeOther, "/login")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+// Login page handler
+func showLoginPage(c *gin.Context) {
+	session := sessions.Default(c)
+	user := session.Get(userKey)
+	if user != nil {
+		c.Redirect(http.StatusSeeOther, "/")
+		return
+	}
+	c.HTML(http.StatusOK, "login.html", gin.H{
+		"error": session.Flashes("error"),
+	})
+}
+
+// Login handler
+func handleLogin(c *gin.Context) {
+	session := sessions.Default(c)
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+
+	// In production, use proper password hashing and database storage
+	if username == defaultUsername && password == defaultPassword {
+		session.Set(userKey, username)
+		if err := session.Save(); err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"error": "Failed to save session",
+			})
+			return
+		}
+		c.Redirect(http.StatusSeeOther, "/")
+		return
+	}
+
+	session.AddFlash("Invalid credentials", "error")
+	session.Save()
+	c.Redirect(http.StatusSeeOther, "/login")
+}
+
+// Logout handler
+func handleLogout(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Delete(userKey)
+	session.Save()
+	c.Redirect(http.StatusSeeOther, "/login")
 }

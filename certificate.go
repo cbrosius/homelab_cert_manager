@@ -22,26 +22,6 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
-func listCertificates(c *gin.Context) {
-	files, err := os.ReadDir("./data/certs")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Unable to read certificates directory: %v", err)
-		return
-	}
-
-	certs := []string{}
-	for _, file := range files {
-		if file.Type().IsRegular() && strings.HasSuffix(file.Name(), ".pem") {
-			name := strings.TrimSuffix(file.Name(), ".pem")
-			certs = append(certs, name)
-		}
-	}
-
-	c.HTML(http.StatusOK, "cert_list.html", gin.H{
-		"certificates": certs,
-	})
-}
-
 func checkRootCertAndListCerts(c *gin.Context) {
 	log.Println("checkRootCertAndListCerts called")
 
@@ -383,17 +363,17 @@ func isValidFileName(fileName string) bool {
 func readCertificate(filePath string) (*x509.Certificate, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading certificate: %v", err)
+		return nil, fmt.Errorf("error reading certificate: %v", err)
 	}
 
 	block, _ := pem.Decode(content)
 	if block == nil {
-		return nil, fmt.Errorf("Failed to parse certificate PEM")
+		return nil, fmt.Errorf("failed to parse certificate PEM")
 	}
 
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse certificate: %v", err)
+		return nil, fmt.Errorf("failed to parse certificate: %v", err)
 	}
 
 	return cert, nil
