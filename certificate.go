@@ -25,47 +25,26 @@ import (
 func checkRootCertAndListCerts(c *gin.Context) {
 	log.Println("checkRootCertAndListCerts called")
 
-	var rootCert *x509.Certificate
-	var rootCertFile string
-
-	// Walk the root-cert directory and find the root certificate
-	err := filepath.Walk("data/root-cert", func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			log.Printf("Error walking root-cert directory: %v", err)
-			return err
-		}
-		if !info.IsDir() && filepath.Ext(info.Name()) == ".pem" {
-			log.Printf("Found root certificate file: %s", path)
-			rootCertBytes, err := os.ReadFile(path)
-			if err != nil {
-				log.Printf("Error reading root certificate file: %v", err)
-				return err
-			}
-			block, _ := pem.Decode(rootCertBytes)
-			if block == nil {
-				log.Printf("Failed to parse root certificate PEM")
-				return fmt.Errorf("failed to parse root certificate PEM")
-			}
-			rootCert, err = x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				log.Printf("Error parsing root certificate: %v", err)
-				return err
-			}
-			rootCertFile = strings.TrimSuffix(info.Name(), ".pem")
-			log.Printf("Successfully parsed root certificate: %s", rootCert.Subject.CommonName)
-			return filepath.SkipDir
-		}
-		return nil
-	})
-
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error checking root-cert directory: %v", err)
-		return
+	// Get root certificate info
+	rootCert, err := readCertificate("data/root-cert/HomeLab_Root_CA.pem")
+	var rootCertInfo *x509.Certificate
+	if err == nil {
+		rootCertInfo = rootCert
 	}
 
-	if rootCert == nil {
-		c.Redirect(http.StatusSeeOther, "/")
-		return
+	// Check for self-signed certificate
+	selfSignedExists := false
+	if _, err := os.Stat("data/certmanager-cert/selfsigned.pem"); err == nil {
+		selfSignedExists = true
+	}
+
+	// Check for homelab certificate
+	homelabCertExists := false
+	homelabCert, err := readCertificate("data/certmanager-cert/homelab_certificate_manager.pem")
+	var homelabCertInfo *x509.Certificate
+	if err == nil {
+		homelabCertInfo = homelabCert
+		homelabCertExists = true
 	}
 
 	files, err := os.ReadDir("./data/certs")
@@ -98,8 +77,11 @@ func checkRootCertAndListCerts(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "cert_list.html", gin.H{
-		"rootCertificate": rootCertDetails,
-		"certificates":    certs,
+		"rootCertificate":    rootCertInfo,
+		"homelabCertificate": homelabCertInfo,
+		"certificates":       certs,
+		"selfSignedExists":   selfSignedExists,
+		"homelabCertExists":  homelabCertExists,
 	})
 }
 
@@ -255,26 +237,40 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
+	// Redirect to the certificates list page after creation
 	c.Redirect(http.StatusSeeOther, "/certificates")
 }
 
 func downloadCertificate(c *gin.Context) {
+	certType := c.Param("certType")
 	fileName := c.Param("filename")
-	filePath := "./data/certs/" + fileName
+	var filePath string
+
+	switch certType {
+	case "root-cert":
+		filePath = filepath.Join("data", "root-cert", fileName)
+	case "certs":
+		filePath = filepath.Join("data", "certs", fileName)
+	default:
+		c.String(http.StatusBadRequest, "Invalid certificate type")
+		return
+	}
 
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+
 	switch {
 	case strings.HasSuffix(fileName, ".pem"):
 		c.Header("Content-Type", "application/x-pem-file")
 	case strings.HasSuffix(fileName, ".key"):
-		c.Header("Content-Type", "application/x-iwork-keynote-sffkey")
+		c.Header("Content-Type", "application/x-pem-file")
 	case strings.HasSuffix(fileName, ".pfx"):
 		c.Header("Content-Type", "application/x-pkcs12")
 	default:
 		c.Header("Content-Type", "application/octet-stream")
 	}
+
 	c.File(filePath)
 }
 
@@ -312,7 +308,14 @@ func deleteCertificate(c *gin.Context) {
 
 func viewCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	filePath := "./data/certs/" + fileName
+	var filePath string
+
+	// Special case for homelab certificate manager certificate
+	if fileName == "homelab_certificate_manager.pem" {
+		filePath = "data/certmanager-cert/" + fileName
+	} else {
+		filePath = "./data/certs/" + fileName
+	}
 
 	if !isValidFileName(fileName) {
 		c.String(http.StatusBadRequest, "Invalid file name")
