@@ -1,6 +1,6 @@
 module cert_manager
 
-go 1.23.1
+go 1.23
 
 require (
 	github.com/gin-gonic/gin v1.10.0
