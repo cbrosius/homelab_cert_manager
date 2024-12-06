@@ -59,13 +59,6 @@ input[type="text"]::placeholder {
     color: var(--font-color-medium) !important;
 }
 
-/* DNS and IP input fields */
-.dns-entry input,
-.ip-entry input {
-    color: var(--font-color-main) !important;
-    background-color: var(--surface-color) !important;
-}
-
 /* Button colors */
 .btn-floating {
     background-color: var(--primary-color) !important;
@@ -88,6 +81,11 @@ nav {
 
 .nav-wrapper {
     background-color: var(--nav-color) !important;
+    position: relative;
+}
+
+.nav-wrapper .brand-logo {
+    color: var(--font-color-main);
 }
 
 /* Navigation text colors */
@@ -119,55 +117,12 @@ nav a {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Theme variables */
-:root {
-    --background-color: #ffffff;
-    --surface-color: #ffffff;
-    --nav-color: #26a69a;  /* Default Materialize color */
-    --font-color-main: rgba(0, 0, 0, 0.87);
-    --font-color-medium: rgba(0, 0, 0, 0.60);
-    --primary-color: #4CAF50;
-    --dropdown-bg: #ffffff;
-    --dropdown-text: #000000;
-    --dropdown-hover: #f1f1f1;
-}
-
-/* Dark theme */
-:root[theme='dark'] {
-    --background-color: #121212;
-    --surface-color: #242424;
-    --nav-color: #1a1a1a;  /* Darker nav for dark theme */
-    --font-color-main: rgba(255, 255, 255, 0.87);
-    --font-color-medium: rgba(255, 255, 255, 0.60);
-    --primary-color: #81C784;
-    --dropdown-bg: #333333;
-    --dropdown-text: #ffffff;
-    --dropdown-hover: #404040;
-}
-
-/* Update header styles */
+/* Navbar fixed styles */
 .navbar-fixed nav {
     background-color: var(--nav-color);
 }
 
-.nav-wrapper {
-    position: relative;
-    background-color: var(--nav-color);
-}
-
-.nav-wrapper .brand-logo {
-    color: var(--font-color-main);
-}
-
-#theme-switch {
-    color: var(--font-color-main);
-    padding: 0 15px;
-}
-
-#theme-switch:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
+/* Dropdown Structures */
 #dropdown1 {
     background-color: var(--dropdown-bg);
     color: var(--dropdown-text);
@@ -181,30 +136,60 @@ nav a {
     background-color: var(--dropdown-hover);
 }
 
-.dropdown-content li > a, 
-.dropdown-content li > span {
-    color: var(--dropdown-text);
-}
-
 /* Modal styling for dark theme */
-:root[theme='dark'] .modal {
+[data-theme='dark'] .modal {
     background-color: var(--surface-color);
     color: var(--font-color-main);
 }
 
-:root[theme='dark'] .modal .modal-footer {
+[data-theme='dark'] .modal .modal-footer {
     background-color: var(--surface-color);
 }
 
-:root[theme='dark'] .modal-close {
+[data-theme='dark'] .modal-close {
     color: var(--font-color-main);
 }
 
 /* Card styling for dark theme */
-:root[theme='dark'] .card {
+[data-theme='dark'] .card {
     background-color: var(--surface-color);
 }
 
-:root[theme='dark'] .card-title {
+[data-theme='dark'] .card-title {
     color: var(--font-color-main);
+}
+
+/* Custom Collapsible Header Styles */
+.custom-collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* Title Styles */
+.collapsible-title {
+    flex: 1;
+    text-align: left;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* Button Alignment */
+.right-align-btn {
+    /* Ensures the button does not shrink and maintains its size */
+    flex-shrink: 0;
+}
+
+/* Responsive Adjustments (Optional) */
+@media (max-width: 600px) {
+    .custom-collapsible-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .right-align-btn {
+        margin-top: 10px;
+        width: 100%;
+    }
 }

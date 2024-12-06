@@ -133,32 +133,36 @@
                     {{end}}
 
                     {{if .homelabCertificate}}
-                    <ul class="collapsible homelab-cert">
-                        <li>
-                            <div class="collapsible-header">
-                                <div style="display: flex;">
-                                    <i class="material-icons">verified_user</i>
-                                    <span style="margin-left: 8px;">HomeLAB Certificate Manager Certificate</span>
-                                </div>
-                                <div>
-                                    <button class="waves-effect waves-light btn toggle-view-btn">
-                                        <i class="material-icons left">visibility</i>
-                                        <span class="btn-text">View Certificate</span>
-                                    </button>
-                                </div>
-                           </div>
-                            <div class="collapsible-body">
-                                <p><strong>Issuer:</strong> {{.homelabCertificate.Issuer}}</p>
-                                <p><strong>Subject:</strong> {{.homelabCertificate.Subject}}</p>
-                                <p><strong>Validity:</strong> Not Before: {{.homelabCertificate.NotBefore}}, Not After: {{.homelabCertificate.NotAfter}}</p>
-                            </div>
-                        </li>
-                    </ul>
+                    <div class="row">
+                        <div class="col s12">
+                            <ul class="collapsible homelab-cert">
+                                <li>
+                                    <div class="collapsible-header">
+                                        <div style="display: flex;">
+                                            <i class="material-icons">verified_user</i>
+                                            <span style="margin-left: 8px;">HomeLab Certificate Manager Certificate</span>
+                                        </div>
+                                        <div>
+                                            <button class="waves-effect waves-light btn toggle-view-btn">
+                                                <i class="material-icons left">visibility</i>
+                                                <span class="btn-text">View Certificate</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="collapsible-body">
+                                        <p><strong>Issuer:</strong> {{.homelabCertificate.Issuer}}</p>
+                                        <p><strong>Subject:</strong> {{.homelabCertificate.Subject}}</p>
+                                        <p><strong>Validity:</strong> Not Before: {{.homelabCertificate.NotBefore}}, Not After: {{.homelabCertificate.NotAfter}}</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                     {{else if .selfSignedExists}}
                     <ul class="collapsible">
                         <li>
-                            <div class="collapsible-header">
-                                <div style="display: flex; align-items: center; flex-grow: 1;">
+                            <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <div style="display: flex; align-items: center; white-space: nowrap;">
                                     <i class="material-icons orange-text">warning</i>
                                     <span style="margin-left: 8px;">Self-Signed Certificate</span>
                                 </div>
@@ -188,6 +192,7 @@
                 </div>
             </div>
 
+            
             <!-- Certificates Section -->
             <div class="row">
                 <a href="/create-certificate-form" class="btn waves-effect waves-light col s12 m4 offset-m4">Create New Certificate</a>
