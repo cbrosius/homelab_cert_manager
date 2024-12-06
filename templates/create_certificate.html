@@ -4,14 +4,21 @@
     <meta charset="UTF-8">
     <title>Create Certificate</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('theme', 'dark');
+        }
+    </script>
 </head>
-<body class="{{.theme}}" data-theme="{{.theme}}">
+<body>
     {{ template "header.html" . }}
     <div class="container">
         <h1>Create Certificate</h1>
@@ -53,63 +60,9 @@
             </div>
         </form>
     </div>
+    
     <!-- Materialize JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            M.updateTextFields();
-        });
-
-        function addDnsEntry() {
-            const dnsList = document.getElementById('dnsList');
-            const newDns = document.createElement('input');
-            newDns.type = 'text';
-            newDns.name = 'dns_names[]';
-            newDns.className = 'validate';
-            newDns.placeholder = 'DNS Name';
-            dnsList.appendChild(newDns);
-        }
-
-        function addIpAddress() {
-            const ipList = document.getElementById('ipList');
-            const newIp = document.createElement('input');
-            newIp.type = 'text';
-            newIp.name = 'ip_addresses[]';
-            newIp.className = 'validate';
-            newIp.placeholder = 'IP Address';
-            ipList.appendChild(newIp);
-        }
-
-        function prefillValues() {
-            document.getElementById('common_name').value = 'example.com';
-            document.getElementById('validity_years').value = 1;
-
-            const dnsList = document.getElementById('dnsList');
-            dnsList.innerHTML = ''; // Clear current entries
-            const prefilledDns = ['example.com', 'www.example.com'];
-            prefilledDns.forEach(function(dns) {
-                const newDns = document.createElement('input');
-                newDns.type = 'text';
-                newDns.name = 'dns_names[]';
-                newDns.className = 'validate';
-                newDns.value = dns;
-                dnsList.appendChild(newDns);
-            });
-
-            const ipList = document.getElementById('ipList');
-            ipList.innerHTML = ''; // Clear current entries
-            const prefilledIps = ['192.168.1.1', '192.168.1.2'];
-            prefilledIps.forEach(function(ip) {
-                const newIp = document.createElement('input');
-                newIp.type = 'text';
-                newIp.name = 'ip_addresses[]';
-                newIp.className = 'validate';
-                newIp.value = ip;
-                ipList.appendChild(newIp);
-            });
-
-            M.updateTextFields();
-        }
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
+    <script src="/static/script.js"></script>
 </body>
 </html>
