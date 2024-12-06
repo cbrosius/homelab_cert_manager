@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>How-To Guides</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        // Initialize theme before page load
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.body.setAttribute('data-theme', theme);
+    </script>
+</head>
+<body class="{{.theme}}" data-theme="{{.theme}}">
+    {{ template "header.html" . }}
+    <div class="container">
+        <h1>How-To Guides</h1>
+        
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Creating a Root Certificate</span>
+                <ol>
+                    <li>Go to the home page</li>
+                    <li>Click on "Create Root Certificate"</li>
+                    <li>Fill in the required information:
+                        <ul>
+                            <li>Organization Name</li>
+                            <li>Common Name</li>
+                            <li>Country</li>
+                            <li>Validity Period</li>
+                        </ul>
+                    </li>
+                    <li>Click "Create" to generate your root certificate</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Creating Client/Server Certificates</h2>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Ensure you have created a root certificate first</li>
+                    <li>Go to the Certificates page</li>
+                    <li>Click "Create New Certificate"</li>
+                    <li>Fill in the certificate details:
+                        <ul>
+                            <li>Certificate Type (Client or Server)</li>
+                            <li>Common Name</li>
+                            <li>Organization</li>
+                            <li>Validity Period</li>
+                        </ul>
+                    </li>
+                    <li>Click "Create" to generate your certificate</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Managing Certificates</h2>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li>View certificate details by clicking the "View" button</li>
+                    <li>Download certificates using the "Download" button</li>
+                    <li>Remove certificates using the "Delete" button</li>
+                    <li>All certificates are stored securely in the data directory</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Materialize JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="/static/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Materialize components
+            M.updateTextFields();
+            
+            // Initialize theme
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(currentTheme);
+        });
+    </script>
+</body>
+</html> 

@@ -1,43 +1,120 @@
 /* styles.css */
+
+/* Theme variables */
+:root {
+    --background-color: #ffffff;
+    --surface-color: #ffffff;
+    --nav-color: #26a69a;  /* Default Materialize color */
+    --font-color-main: rgba(0, 0, 0, 0.87);
+    --font-color-medium: rgba(0, 0, 0, 0.60);
+    --primary-color: #4CAF50;
+    --dropdown-bg: #ffffff;
+    --dropdown-text: #000000;
+    --dropdown-hover: #f1f1f1;
+}
+
+/* Dark theme */
+[data-theme='dark'] {
+    --background-color: #121212;
+    --surface-color: #242424;
+    --nav-color: #1a1a1a;
+    --font-color-main: rgba(255, 255, 255, 0.87);
+    --font-color-medium: rgba(255, 255, 255, 0.60);
+    --primary-color: #81C784;
+    --dropdown-bg: #333333;
+    --dropdown-text: #ffffff;
+    --dropdown-hover: #404040;
+}
+
+/* Apply theme colors to body and main elements */
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
+    background-color: var(--background-color);
+    color: var(--font-color-main);
+}
+
+/* Card styles */
+.card {
+    background-color: var(--surface-color) !important;
+}
+
+.card-content {
+    color: var(--font-color-main) !important;
+}
+
+.card-title {
+    color: var(--font-color-main) !important;
+}
+
+/* Form elements */
+input[type="text"] {
+    color: var(--font-color-main) !important;
+    border-color: var(--font-color-medium) !important;
+}
+
+input[type="text"]::placeholder {
+    color: var(--font-color-medium) !important;
+}
+
+.input-field label {
+    color: var(--font-color-medium) !important;
+}
+
+/* DNS and IP input fields */
+.dns-entry input,
+.ip-entry input {
+    color: var(--font-color-main) !important;
+    background-color: var(--surface-color) !important;
+}
+
+/* Button colors */
+.btn-floating {
+    background-color: var(--primary-color) !important;
+}
+
+/* Modal styles */
+.modal {
+    background-color: var(--surface-color) !important;
+    color: var(--font-color-main) !important;
+}
+
+.modal .modal-footer {
+    background-color: var(--surface-color) !important;
+}
+
+/* Navigation styles */
+nav {
+    background-color: var(--nav-color) !important;
 }
 
 .nav-wrapper {
-    position: relative;
+    background-color: var(--nav-color) !important;
 }
 
-#profileButton {
-    background-color: #4CAF50;
-    color: white;
-    padding: 0px 20px;
-    border: none;
-    cursor: pointer;
+/* Navigation text colors */
+nav .brand-logo,
+nav ul a,
+nav a {
+    color: var(--font-color-main) !important;
 }
 
-#dropdown1 {
-    display: none;
-    position: relative;
-    top: -55px; /* Adjust this value to move the menu down */
-    right: 10px;
-    background-color: white;
-    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1;
+/* Dropdown styles */
+.dropdown-content {
+    background-color: var(--dropdown-bg) !important;
 }
 
-#dropdown1 a {
-    color: black;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
+.dropdown-content li > a {
+    color: var(--dropdown-text) !important;
 }
 
-#dropdown1 a:hover {
-    background-color: #f1f1f1;
+.dropdown-content li:hover {
+    background-color: var(--dropdown-hover) !important;
 }
 
-.hidden {
-    display: none;
+/* Theme switch button */
+#theme-switch {
+    color: var(--font-color-main) !important;
+}
+
+#theme-switch:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }

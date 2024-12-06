@@ -1,34 +1,50 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Zertifikatsliste</title>
+    <title>Certificate List</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Materialize JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/styles.css">
-    <script src="/static/script.js"></script>
-    <style>
-        .collapsible-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .collapsible-header .right {
-            display: flex;
-            gap: 10px;
-        }
-        .left-align {
-            text-align: left;
-        }
-    </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             M.AutoInit();
+
+            // Initialize all collapsibles
+            var collapsibles = document.querySelectorAll('.collapsible');
+            collapsibles.forEach(function(collapsible) {
+                var toggleBtn = collapsible.querySelector('.toggle-view-btn');
+                if (toggleBtn) {  // Only for collapsibles with view buttons
+                    var btnText = toggleBtn.querySelector('.btn-text');
+                    var btnIcon = toggleBtn.querySelector('.material-icons');
+
+                    collapsible.addEventListener('click', function(e) {
+                        setTimeout(function() {
+                            var isOpen = collapsible.querySelector('li').classList.contains('active');
+                            btnText.textContent = isOpen ? 'Hide Certificate' : 'View Certificate';
+                            btnIcon.textContent = isOpen ? 'visibility_off' : 'visibility';
+                        }, 100);
+                    });
+                }
+            });
+
+            // Auto-open root certificate collapsible if it has the create button
+            var rootCollapsible = document.querySelector('.collapsible:not(.root-cert):not(.homelab-cert)');
+            if (rootCollapsible && rootCollapsible.querySelector('a[href="/"]')) {
+                var instance = M.Collapsible.getInstance(rootCollapsible);
+                instance.open(0);
+            }
+
+            // Auto-open self-signed certificate warning if it exists
+            var selfSignedCollapsible = document.querySelector('.collapsible:has(button[onclick="recreateHomelabCert()"])');
+            if (selfSignedCollapsible) {
+                var instance = M.Collapsible.getInstance(selfSignedCollapsible);
+                instance.open(0);
+            }
         });
 
         function viewCertificate(certName) {
@@ -50,82 +66,182 @@
             document.getElementById(`viewButton-${certName}`).style.display = 'inline';
             document.getElementById(`hideButton-${certName}`).style.display = 'none';
         }
+        // Initialize theme before page load
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.body.setAttribute('data-theme', theme);
     </script>
 </head>
-<body>
-    {{ template "header.html" . }}
-    <div class="container">
-        <h1 class="center-align">Certificates</h1>
+<body class="{{.theme}}" data-theme="{{.theme}}">
+    <div class="certificate-page">
+        {{ template "header.html" . }}
+        <div class="container">
+            <h1 class="center-align">Certificates</h1>
 
-        <!-- Root Certificate Section -->
-        <div class="row">
-            <h4>Root Certificate</h4>
-            {{if .rootCertificate}}
-            <ul class="collapsible">
-                <li>
-                    <div class="collapsible-header">
-                        <div>
-                            <i class="material-icons">security</i>
-                            {{.rootCertificate.CommonName}}
-                        </div>
-                        <div class="right">
-                            <a href="/certificates/download/root-cert/{{.rootCertificate.Filename}}.pem" class="btn-small waves-effect waves-light">Download PEM</a>
-                            <form action="/certificates/delete/root-cert/{{.rootCertificate.Filename}}.pem" method="POST" style="display:inline;">
-                                <button class="btn-small red waves-effect waves-light" type="submit">Delete Root Certificate</button>
+            <!-- Root Certificate Section -->
+            <div class="row">
+                <div class="col s12">
+                    {{if .rootCertificate}}
+                    <ul class="collapsible root-cert">
+                        <li>
+                            <div class="collapsible-header">
+                                <div style="display: flex; align-items: center;">
+                                    <i class="material-icons">security</i>
+                                    <span style="margin-left: 8px;">HomeLAB Root CA Certificate</span>
+                                </div>
+                                <div>
+                                    <a href="/download/root-cert/HomeLab_Root_CA.pem" class="btn" style="margin-right: 10px;">
+                                        <i class="material-icons left">download</i>
+                                        <span class="btn-text">Download</span>
+                                    </a>
+                                    <button class="waves-effect waves-light btn toggle-view-btn">
+                                        <i class="material-icons left">visibility</i>
+                                        <span class="btn-text">View Certificate</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="collapsible-body">
+                                <p><strong>Issuer:</strong> {{.rootCertificate.Issuer}}</p>
+                                <p><strong>Subject:</strong> {{.rootCertificate.Subject}}</p>
+                                <p><strong>Validity:</strong> Not Before: {{.rootCertificate.NotBefore}}, Not After: {{.rootCertificate.NotAfter}}</p>
+                            </div>
+                        </li>
+                    </ul>
+                    {{else}}
+                    <ul class="collapsible">
+                        <li>
+                            <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center;">
+                                    <i class="material-icons orange-text">warning</i>
+                                    <span style="margin-left: 8px;">Root Certificate</span>
+                                </div>
+                                <div>
+                                    <a href="/" class="waves-effect waves-light btn orange">
+                                        <i class="material-icons left">add</i>
+                                        Create Root Certificate
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="collapsible-body">
+                                <div class="card-panel yellow lighten-4">
+                                    <i class="material-icons left">info</i>
+                                    <span>No root certificate found. Please create one to start issuing certificates.</span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                    {{end}}
+
+                    {{if .homelabCertificate}}
+                    <ul class="collapsible homelab-cert">
+                        <li>
+                            <div class="collapsible-header">
+                                <div style="display: flex;">
+                                    <i class="material-icons">verified_user</i>
+                                    <span style="margin-left: 8px;">HomeLAB Certificate Manager Certificate</span>
+                                </div>
+                                <div>
+                                    <button class="waves-effect waves-light btn toggle-view-btn">
+                                        <i class="material-icons left">visibility</i>
+                                        <span class="btn-text">View Certificate</span>
+                                    </button>
+                                </div>
+                           </div>
+                            <div class="collapsible-body">
+                                <p><strong>Issuer:</strong> {{.homelabCertificate.Issuer}}</p>
+                                <p><strong>Subject:</strong> {{.homelabCertificate.Subject}}</p>
+                                <p><strong>Validity:</strong> Not Before: {{.homelabCertificate.NotBefore}}, Not After: {{.homelabCertificate.NotAfter}}</p>
+                            </div>
+                        </li>
+                    </ul>
+                    {{else if .selfSignedExists}}
+                    <ul class="collapsible">
+                        <li>
+                            <div class="collapsible-header">
+                                <div style="display: flex; align-items: center; flex-grow: 1;">
+                                    <i class="material-icons orange-text">warning</i>
+                                    <span style="margin-left: 8px;">Self-Signed Certificate</span>
+                                </div>
+                                <div class="right">
+                                    <button onclick="recreateHomelabCert()" class="waves-effect waves-light btn orange">
+                                        <i class="material-icons left">autorenew</i>
+                                        Recreate with Homelab-RootCA
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="collapsible-body">
+                                <div class="card-panel yellow lighten-4">
+                                    <i class="material-icons left">info</i>
+                                    <span>This is a self-signed certificate. For better security, recreate it using your Homelab Root CA.</span>
+                                </div>
+                                <p><strong>Subject:</strong> HomeLab Certificate Manager</p>
+                                <p><strong>Type:</strong> Self-Signed Certificate</p>
+                            </div>
+                        </li>
+                    </ul>
+                    {{else}}
+                    <div class="card-panel yellow lighten-4">
+                        <i class="material-icons left">warning</i>
+                        <span>No certificate found. A self-signed certificate will be generated automatically when needed.</span>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+
+            <!-- Certificates Section -->
+            <div class="row">
+                <a href="/create-certificate-form" class="btn waves-effect waves-light col s12 m4 offset-m4">Create New Certificate</a>
+            </div>
+
+            <table class="highlight centered">
+                <thead>
+                    <tr>
+                        <th>Certificate</th>
+                        <th>Download PEM</th>
+                        <th>Download KEY</th>
+                        <th>Download PFX</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .certificates}}
+                    <tr>
+                        <td>{{.}}</td>
+                        <td><a href="/certificates/download/{{.}}.pem" class="btn-small waves-effect waves-light">Download PEM</a></td>
+                        <td><a href="/certificates/download/{{.}}.key" class="btn-small waves-effect waves-light">Download KEY</a></td>
+                        <td><a href="/certificates/download/{{.}}.pfx" class="btn-small waves-effect waves-light">Download PFX</a></td>
+                        <td>
+                            <button id="viewButton-{{.}}" class="btn-small waves-effect waves-light" onclick="viewCertificate('{{.}}')">View Certificate</button>
+                            <button id="hideButton-{{.}}" class="btn-small waves-effect waves-light red" onclick="hideCertificate('{{.}}')" style="display:none;">Hide Certificate</button>
+                            <form action="/certificates/delete/{{.}}.pem" method="POST" style="display:inline;">
+                                <button class="btn-small red waves-effect waves-light" type="submit">Delete</button>
                             </form>
-                        </div>
-                    </div>
-                    <div class="collapsible-body">
-                        <p><strong>Issuer:</strong> {{.rootCertificate.Issuer}}</p>
-                        <p><strong>Subject:</strong> {{.rootCertificate.Subject}}</p>
-                        <p><strong>Validity:</strong> Not Before: {{.rootCertificate.NotBefore}}, Not After: {{.rootCertificate.NotAfter}}</p>
-                    </div>
-                </li>
-            </ul>
-            {{else}}
-            <p>No root certificate found.</p>
-            {{end}}
+                        </td>
+                    </tr>
+                    <tr id="certRow-{{.}}" style="display:none;">
+                        <td colspan="5">
+                            <pre id="certContent-{{.}}" class="materialize-textarea left-align"></pre>
+                            <pre id="certDecodedContent-{{.}}" class="materialize-textarea left-align"></pre>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
         </div>
-
-        <!-- Certificates Section -->
-        <div class="row">
-            <a href="/create-certificate-form" class="btn waves-effect waves-light col s12 m4 offset-m4">Create New Certificate</a>
-        </div>
-
-        <table class="highlight centered">
-            <thead>
-                <tr>
-                    <th>Certificate</th>
-                    <th>Download PEM</th>
-                    <th>Download KEY</th>
-                    <th>Download PFX</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range .certificates}}
-                <tr>
-                    <td>{{.}}</td>
-                    <td><a href="/certificates/download/{{.}}.pem" class="btn-small waves-effect waves-light">Download PEM</a></td>
-                    <td><a href="/certificates/download/{{.}}.key" class="btn-small waves-effect waves-light">Download KEY</a></td>
-                    <td><a href="/certificates/download/{{.}}.pfx" class="btn-small waves-effect waves-light">Download PFX</a></td>
-                    <td>
-                        <button id="viewButton-{{.}}" class="btn-small waves-effect waves-light" onclick="viewCertificate('{{.}}')">View Certificate</button>
-                        <button id="hideButton-{{.}}" class="btn-small waves-effect waves-light red" onclick="hideCertificate('{{.}}')" style="display:none;">Hide Certificate</button>
-                        <form action="/certificates/delete/{{.}}.pem" method="POST" style="display:inline;">
-                            <button class="btn-small red waves-effect waves-light" type="submit">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                <tr id="certRow-{{.}}" style="display:none;">
-                    <td colspan="5">
-                        <pre id="certContent-{{.}}" class="materialize-textarea left-align"></pre>
-                        <pre id="certDecodedContent-{{.}}" class="materialize-textarea left-align"></pre>
-                    </td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
     </div>
-</body>
+
+    <!-- Materialize JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="/static/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Materialize components
+            M.updateTextFields();
+            
+            // Initialize theme
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(currentTheme);
+        });
+    </script></body>
 </html>

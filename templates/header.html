@@ -1,10 +1,18 @@
 <!-- header.html -->
-<header>
+<header class="certificate-page">
     <div class="navbar-fixed">
         <nav>
             <div class="nav-wrapper">
-                <a href="/certificates" class="brand-logo left">HomeLab Certificate Manager</a>
+                <a href="/certificates" class="brand-logo left" style="display: flex; align-items: center;">
+                    <img src="/static/favicon.ico" alt="Logo" style="height: 32px; margin-right: 10px; margin-left: 10px;">
+                    HomeLab Certificate Manager
+                </a>
                 <ul id="nav-mobile" class="right">
+                    <li>
+                        <a id="theme-switch" href="#" onclick="toggleTheme()" class="waves-effect waves-light">
+                            <i class="material-icons">dark_mode</i>
+                        </a>
+                    </li>
                     <li>
                         <a id="profileButton" class="dropdown-trigger" href="#!" data-target="dropdown1">
                             Admin
@@ -17,12 +25,13 @@
     </div>
 
     <!-- Dropdown Structure -->
-    <ul id="dropdown1" class="dropdown-content hidden">
-        <li><a href="/changePassword">Change Password</a></li>
-        <li><a href="/settings">Settings</a></li>
-        <li><a id="about-link" href="#aboutModal" class="modal-trigger">About</a></li>
+    <ul id="dropdown1" class="dropdown-content">
+        <li><a href="/changePassword" class="text-important">Change Password</a></li>
+        <li><a href="/settings" class="text-important">Settings</a></li>
+        <li><a href="/howto" class="text-important">How-To Guide</a></li>
+        <li><a id="about-link" href="#aboutModal" class="modal-trigger text-important">About</a></li>
         <li class="divider"></li>
-        <li><a href="/logout">Logout</a></li>
+        <li><a href="/logout" class="text-important">Logout</a></li>
     </ul>
 </header>
 
@@ -37,3 +46,31 @@
         <a href="#!" class="modal-close waves-effect waves-green btn-flat">Close</a>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize dropdowns
+    var dropdowns = document.querySelectorAll('.dropdown-trigger');
+    M.Dropdown.init(dropdowns, {
+        constrainWidth: false,
+        coverTrigger: false
+    });
+
+    // Initialize modals
+    var modals = document.querySelectorAll('.modal');
+    M.Modal.init(modals);
+
+    // Set initial theme icon
+    const theme = localStorage.getItem('theme') || 'light';
+    const icon = document.querySelector('#theme-switch i');
+    if (icon) {
+        icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+    }
+});
+
+function toggleTheme() {
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    applyTheme(newTheme);
+}
+</script>

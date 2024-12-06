@@ -1,3 +1,16 @@
 *.exe
 data/certs/*
 data/root-cert/*
+data/certmanager-cert/homelab_certificate_manager.key
+data/certmanager-cert/homelab_certificate_manager.pem
+static/script.js.bak
+static/styles.css.bak
+templates/cert_list.html.bak
+templates/create_certificate.html.bak
+templates/header.html.bak
+templates/index.html.bak
+templates/settings.html.bak
+go.mod.bak
+data/certmanager-cert/selfsigned.key
+data/certmanager-cert/selfsigned.pem
+static/styles.css.bak2

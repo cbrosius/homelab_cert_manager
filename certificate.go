@@ -63,6 +63,7 @@ func checkRootCertAndListCerts(c *gin.Context) {
 
 	var rootCertDetails map[string]interface{}
 	if rootCert != nil {
+		rootCertFile := "HomeLab_Root_CA.pem"
 		rootCertDetails = map[string]interface{}{
 			"CommonName": rootCert.Subject.CommonName,
 			"Issuer":     rootCert.Issuer,

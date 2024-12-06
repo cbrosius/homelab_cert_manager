@@ -5,43 +5,160 @@
     <title>Settings</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        // Initialize theme before page load
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.body.setAttribute('data-theme', theme);
+    </script>
 </head>
-<body>
+<body class="{{.theme}}" data-theme="{{.theme}}">
     {{ template "header.html" . }}
     <div class="container">
         <h1 class="center-align">Settings</h1>
         <div class="row">
-            <form class="col s12">
-                <div class="row">
-                    <div class="input-field col s6">
-                        <input id="setting1" type="text" class="validate">
-                        <label for="setting1">Setting 1</label>
-                    </div>
-                    <div class="input-field col s6">
-                        <input id="setting2" type="text" class="validate">
-                        <label for="setting2">Setting 2</label>
+            <div class="col s12">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title">Certificate Manager Certificate Settings</span>
+                        <form id="certManagerForm" onsubmit="submitCertManagerSettings(event)">
+                            <div class="row">
+                                <!-- DNS Names -->
+                                <div class="col s12">
+                                    <h6>DNS Name(s) of the Certificate Manager</h6>
+                                    <div class="input-field">
+                                        <div id="dns_list" class="{{.textColor}}">
+                                            <!-- Empty by default, will be populated by saved settings -->
+                                        </div>
+                                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addDnsField()">
+                                            <i class="material-icons">add</i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- IP Addresses -->
+                                <div class="col s12">
+                                    <h6>IP Address(es) of the Certificate Manager</h6>
+                                    <div class="input-field">
+                                        <div id="ip_list" class="{{.textColor}}">
+                                            <!-- Empty by default, will be populated by saved settings -->
+                                        </div>
+                                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addIpField()">
+                                            <i class="material-icons">add</i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-action">
+                                <button type="submit" class="waves-effect waves-light btn green">
+                                    <i class="material-icons left">save</i>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="input-field col s12">
-                        <textarea id="textarea1" class="materialize-textarea"></textarea>
-                        <label for="textarea1">Additional Settings</label>
-                    </div>
-                </div>
-                <button class="btn waves-effect waves-light" type="submit" name="action">Save
-                    <i class="material-icons right">save</i>
-                </button>
-            </form>
+            </div>
         </div>
     </div>
+    
     <!-- Materialize JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
     <!-- Custom JavaScript -->
     <script src="/static/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Materialize components
+            var elems = document.querySelectorAll('select');
+            M.FormSelect.init(elems);
+
+            // Initialize any existing values
+            const certManagerSettings = JSON.parse(`{{ .certManagerSettings | toJson }}`);
+            if (certManagerSettings) {
+                // Fill DNS names
+                if (certManagerSettings.DnsNames && certManagerSettings.DnsNames.length > 0) {
+                    certManagerSettings.DnsNames.forEach(dns => {
+                        if (dns !== "") {
+                            addDnsField(dns);
+                        }
+                    });
+                }
+                
+                // Fill IP addresses
+                if (certManagerSettings.IpAddresses && certManagerSettings.IpAddresses.length > 0) {
+                    certManagerSettings.IpAddresses.forEach(ip => {
+                        if (ip !== "") {
+                            addIpField(ip);
+                        }
+                    });
+                }
+            }
+        });
+
+        function addDnsField(value = '') {
+            const dnsList = document.getElementById('dns_list');
+            const entry = document.createElement('div');
+            entry.className = 'dns-entry';
+            entry.style.display = 'flex';
+            entry.style.alignItems = 'center';
+            entry.innerHTML = `
+                <input type="text" name="dns_names[]" class="validate" value="${value}" placeholder="e.g., certmanager.local" style="flex: 1;">
+                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px;">
+                    <i class="material-icons">remove</i>
+                </button>
+            `;
+            dnsList.appendChild(entry);
+        }
+
+        function addIpField(value = '') {
+            const ipList = document.getElementById('ip_list');
+            const entry = document.createElement('div');
+            entry.className = 'ip-entry';
+            entry.style.display = 'flex';
+            entry.style.alignItems = 'center';
+            entry.innerHTML = `
+                <input type="text" name="ip_addresses[]" class="validate" value="${value}" placeholder="e.g., 192.168.1.100" style="flex: 1;">
+                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px;">
+                    <i class="material-icons">remove</i>
+                </button>
+            `;
+            ipList.appendChild(entry);
+        }
+
+        function removeField(button) {
+            button.parentElement.remove();
+        }
+
+        function submitCertManagerSettings(event) {
+            event.preventDefault();
+            const dnsInputs = document.getElementsByName('dns_names[]');
+            const ipInputs = document.getElementsByName('ip_addresses[]');
+            
+            const data = {
+                dns_names: Array.from(dnsInputs).map(input => input.value).filter(v => v),
+                ip_addresses: Array.from(ipInputs).map(input => input.value).filter(v => v)
+            };
+
+            fetch('/settings/certmanager', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to save settings');
+                M.toast({html: 'Settings saved successfully', classes: 'green'});
+            })
+            .catch(error => {
+                M.toast({html: error.message, classes: 'red'});
+            });
+        }
+    </script>
 </body>
 </html>
