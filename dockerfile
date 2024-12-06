@@ -1,5 +1,5 @@
 # Start from the official Go image
-FROM golang:1.20-alpine
+FROM golang:alpine
 
 # update all
 RUN apk update && apk upgrade
