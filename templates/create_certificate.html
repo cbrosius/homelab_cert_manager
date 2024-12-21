@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Create Certificate</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
     <!-- Material Icons -->
@@ -22,7 +21,7 @@
     {{ template "header.html" . }}
     <div class="container">
         <h1>Create Certificate</h1>
-        <form action="/create-certificate" method="POST" class="col s12">
+        <form id="createCertificateForm" class="col s12" onsubmit="submitCreateCertificateForm(event)">
             <div class="row">
                 <div class="input-field col s12">
                     <input type="text" id="common_name" name="common_name" class="validate" required>
@@ -64,5 +63,98 @@
     <!-- Materialize JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
     <script src="/static/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            M.updateTextFields();
+        });
+
+        function addDnsEntry() {
+            const dnsList = document.getElementById('dnsList');
+            const newDns = document.createElement('input');
+            newDns.type = 'text';
+            newDns.name = 'dns_names[]';
+            newDns.className = 'validate';
+            newDns.placeholder = 'DNS Name';
+            dnsList.appendChild(newDns);
+        }
+
+        function addIpAddress() {
+            const ipList = document.getElementById('ipList');
+            const newIp = document.createElement('input');
+            newIp.type = 'text';
+            newIp.name = 'ip_addresses[]';
+            newIp.className = 'validate';
+            newIp.placeholder = 'IP Address';
+            ipList.appendChild(newIp);
+        }
+
+        function prefillValues() {
+            document.getElementById('common_name').value = 'example.com';
+            document.getElementById('validity_years').value = 1;
+
+            const dnsList = document.getElementById('dnsList');
+            dnsList.innerHTML = ''; // Clear current entries
+            const prefilledDns = ['example.com', 'www.example.com'];
+            prefilledDns.forEach(function(dns) {
+                const newDns = document.createElement('input');
+                newDns.type = 'text';
+                newDns.name = 'dns_names[]';
+                newDns.className = 'validate';
+                newDns.value = dns;
+                dnsList.appendChild(newDns);
+            });
+
+            const ipList = document.getElementById('ipList');
+            ipList.innerHTML = ''; // Clear current entries
+            const prefilledIps = ['192.168.1.1', '192.168.1.2'];
+            prefilledIps.forEach(function(ip) {
+                const newIp = document.createElement('input');
+                newIp.type = 'text';
+                newIp.name = 'ip_addresses[]';
+                newIp.className = 'validate';
+                newIp.value = ip;
+                ipList.appendChild(newIp);
+            });
+
+            M.updateTextFields();
+        }
+
+        function submitCreateCertificateForm(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+
+            fetch('/create-certificate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    if (confirm(data.error + " Do you want to overwrite it?")) {
+                        formData.set('overwrite', 'yes');
+                        fetch('/create-certificate', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.message) {
+                                window.location.href = data.redirect;
+                            } else {
+                                M.toast({html: 'Error creating certificate'});
+                            }
+                        });
+                    }
+                } else {
+                    window.location.href = data.redirect;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                M.toast({html: 'Error creating certificate'});
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -19,7 +18,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"software.sslmate.com/src/go-pkcs12"
 )
 
 func checkRootCertAndListCerts(c *gin.Context) {
@@ -138,20 +136,31 @@ func createCertificate(c *gin.Context) {
 
 	validityYears, err := strconv.Atoi(validityYearsStr)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid validity period: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid validity period"})
 		return
 	}
 
+	// Check if a certificate with the same common name already exists
+	certFilePath := "data/certs/" + commonName + ".pem"
+	if _, err := os.Stat(certFilePath); err == nil {
+		// Certificate already exists, prompt user for confirmation
+		overwrite := c.PostForm("overwrite")
+		if overwrite != "yes" {
+			c.JSON(http.StatusOK, gin.H{"error": "A certificate with the same common name already exists. Do you want to overwrite it?"})
+			return
+		}
+	}
+
+	// Generate private key and certificate
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error generating private key: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating private key"})
 		return
 	}
 
-	// Generate a random serial number
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error generating serial number: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating serial number"})
 		return
 	}
 
@@ -167,79 +176,53 @@ func createCertificate(c *gin.Context) {
 		BasicConstraintsValid: true,
 	}
 
-	// Append non-empty DNS names
 	for _, dns := range dnsNames {
 		if dns != "" {
 			certTemplate.DNSNames = append(certTemplate.DNSNames, dns)
 		}
 	}
 
-	// Append non-empty IP addresses
 	for _, ip := range ipAddresses {
 		if parsedIP := net.ParseIP(ip); parsedIP != nil {
 			certTemplate.IPAddresses = append(certTemplate.IPAddresses, parsedIP)
 		}
 	}
 
-	// Find root certificate and key
 	rootCert, rootKey, err := findRootCertAndKey()
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error finding root certificate or key: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding root certificate or key"})
 		return
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, rootCert, &privateKey.PublicKey, rootKey)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating certificate: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating certificate"})
 		return
 	}
 
-	// Save the certificate in PEM format
-	certFile, err := os.Create("data/certs/" + commonName + ".pem")
+	certFile, err := os.Create(certFilePath)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating certificate file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating certificate file"})
 		return
 	}
 	defer certFile.Close()
-	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	if err := pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error encoding certificate file"})
+		return
+	}
 
-	// Save the private key in PEM format
 	keyFile, err := os.Create("data/certs/" + commonName + ".key")
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating key file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating key file"})
 		return
 	}
 	defer keyFile.Close()
-	pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
-
-	// Create a .pfx file using Modern.Encode
-	privateKeyAsCrypto := crypto.PrivateKey(privateKey) // Convert to the appropriate interface
-	cert, err := x509.ParseCertificate(certBytes)       // Parse the raw certificate bytes
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error parsing certificate: %v", err)
+	if err := pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error encoding key file"})
 		return
 	}
 
-	pfxData, err := pkcs12.Modern.Encode(privateKeyAsCrypto, cert, []*x509.Certificate{rootCert}, "")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
-		return
-	}
-
-	pfxFile, err := os.Create("data/certs/" + commonName + ".pfx")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
-		return
-	}
-	defer pfxFile.Close()
-	_, err = pfxFile.Write(pfxData)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error writing .pfx file: %v", err)
-		return
-	}
-
-	// Redirect to the certificates list page after creation
-	c.Redirect(http.StatusSeeOther, "/certificates")
+	c.JSON(http.StatusOK, gin.H{"message": "Certificate created successfully", "redirect": "/certificates"})
 }
 
 func downloadCertificate(c *gin.Context) {
