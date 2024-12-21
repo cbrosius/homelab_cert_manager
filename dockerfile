@@ -19,8 +19,8 @@ COPY . .
 # create Volumes
 VOLUME [ "/app/data" ]
 
-# use Port 8080
-EXPOSE 8080
+# use Port 8443
+EXPOSE 8443
 
 # Build the Go app
 RUN go build -o homelab_cert_manager .
