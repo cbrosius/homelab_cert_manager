@@ -240,6 +240,11 @@ func downloadCertificate(c *gin.Context) {
 		return
 	}
 
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		c.String(http.StatusNotFound, "File not found")
+		return
+	}
+
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))

@@ -10,6 +10,28 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .collapsible-header .left-content {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .collapsible-header .spacer {
+            display: flex;
+            width: 100%;
+            flex-grow: 1;
+        }
+        .collapsible-header .right-content {
+            display: flex;
+            gap: 10px;
+            flex-grow: 1
+        }
+    </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             M.AutoInit();
@@ -85,20 +107,25 @@
                     <ul class="collapsible root-cert">
                         <li>
                             <div class="collapsible-header">
-                                <div style="display: flex; align-items: center;">
-                                    <i class="material-icons">security</i>
-                                    <span style="margin-left: 8px;">HomeLAB Root CA Certificate</span>
-                                </div>
-                                <div>
-                                    <a href="/download/root-cert/HomeLab_Root_CA.pem" class="btn" style="margin-right: 10px;">
-                                        <i class="material-icons left">download</i>
-                                        <span class="btn-text">Download</span>
-                                    </a>
-                                    <button class="waves-effect waves-light btn toggle-view-btn">
-                                        <i class="material-icons left">visibility</i>
-                                        <span class="btn-text">View Certificate</span>
-                                    </button>
-                                </div>
+                                
+                                    <div class="left-content">
+                                        <i class="material-icons">security</i>
+                                        <span style="margin-left: 8px; white-space: nowrap;">HomeLAB Root CA Certificate</span>
+                                    </div>
+                                    <div class="spacer"></div>
+                                    <div class="right-content">
+                                        <form action="/certificates/download/root-cert/HomeLab_Root_CA.pem" method="GET" style="margin-right: 10px;">
+                                            <button type="submit" class="btn blue">
+                                                <i class="material-icons left">download</i>
+                                                <span class="btn-text">Download</span>
+                                            </button>
+                                        </form>
+                                        <button class="waves-effect waves-light btn toggle-view-btn">
+                                            <i class="material-icons left">visibility</i>
+                                            <span class="btn-text">View Certificate</span>
+                                        </button>
+                                    </div>
+                                
                             </div>
                             <div class="collapsible-body">
                                 <p><strong>Issuer:</strong> {{.rootCertificate.Issuer}}</p>
@@ -138,10 +165,11 @@
                             <ul class="collapsible homelab-cert">
                                 <li>
                                     <div class="collapsible-header">
-                                        <div style="display: flex;">
+                                        <div class="left-content">
                                             <i class="material-icons">verified_user</i>
-                                            <span style="margin-left: 8px;">HomeLab Certificate Manager Certificate</span>
+                                            <span style="margin-left: 8px; white-space: nowrap;">HomeLab Certificate Manager Certificate</span>
                                         </div>
+                                        <div class="spacer"></div>
                                         <div>
                                             <button class="waves-effect waves-light btn toggle-view-btn">
                                                 <i class="material-icons left">visibility</i>
@@ -195,7 +223,7 @@
             
             <!-- Certificates Section -->
             <div class="row">
-                <a href="/create-certificate-form" class="btn waves-effect waves-light col s12 m4 offset-m4">Create New Certificate</a>
+                <a href="/create-certificate-form" class="btn waves-effect green white-text">Create New Certificate</a>
             </div>
 
             <table class="highlight centered">

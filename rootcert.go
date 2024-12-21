@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"net/http"
 	"os"
@@ -96,26 +95,6 @@ func createRootCertificate(c *gin.Context) {
 	pem.Encode(rootKeyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
 
 	c.Redirect(http.StatusSeeOther, "/certificates")
-}
-
-func downloadRootCertificate(c *gin.Context) {
-	fileName := c.Param("filename")
-	filePath := "./data/root-cert/" + fileName
-
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
-	switch {
-	case strings.HasSuffix(fileName, ".pem"):
-		c.Header("Content-Type", "application/x-pem-file")
-	case strings.HasSuffix(fileName, ".key"):
-		c.Header("Content-Type", "application/x-iwork-keynote-sffkey")
-	case strings.HasSuffix(fileName, ".pfx"):
-		c.Header("Content-Type", "application/x-pkcs12")
-	default:
-		c.Header("Content-Type", "application/octet-stream")
-	}
-	c.File(filePath)
 }
 
 func deleteRootCertificate(c *gin.Context) {

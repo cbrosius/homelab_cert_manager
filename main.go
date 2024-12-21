@@ -7,7 +7,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"html/template"
 	"log"
 	"math/big"
@@ -176,21 +175,26 @@ func main() {
 
 	r.GET("/", showHomePage)
 	r.GET("/certificates", checkRootCertAndListCerts) // Ensure this route calls the correct function
-	r.GET("/certificates/download/:filename", downloadCertificate)
 	r.GET("/certificates/view/:filename", viewCertificate)
 	r.POST("/certificates/delete/:filename", deleteCertificate)
 	r.POST("/create-certificate", createCertificate)
+	r.GET("/certificates/download/:filename", func(c *gin.Context) {
+		c.Params = append(c.Params, gin.Param{Key: "certType", Value: "certs"})
+		downloadCertificate(c)
+	})
 	r.POST("/create-root-certificate", createRootCertificate)
-	r.GET("/create-certificate-form", showCreateCertificateForm)                 // Route for certificate form
-	r.GET("/certificates/download/root-cert/:filename", downloadRootCertificate) // Route for downloading root certificate
-	r.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate)    // Route for deleting root certificate
-	r.GET("/settings", showSettingsPage)                                         // Route for settings page
-	r.POST("/settings", handleSettings)                                          // Route for saving settings
-	r.GET("/howto", showHowToPage)                                               // Add this new route
+	r.GET("/certificates/download/root-cert/:filename", func(c *gin.Context) {
+		c.Params = append(c.Params, gin.Param{Key: "certType", Value: "root-cert"})
+		downloadCertificate(c)
+	})
+	r.GET("/create-certificate-form", showCreateCertificateForm)              // Route for certificate form
+	r.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate) // Route for deleting root certificate
+	r.GET("/settings", showSettingsPage)                                      // Route for settings page
+	r.POST("/settings", handleSettings)                                       // Route for saving settings
+	r.GET("/howto", showHowToPage)                                            // Add this new route
 	r.POST("/recreate-homelab-cert", recreateHomelabCertificate)
 	r.GET("/settings/certmanager", handleCertManagerSettings)
 	r.POST("/settings/certmanager", handleCertManagerSettings)
-	r.GET("/download/root-cert/:filename", downloadRootCert)
 
 	// Determine which certificate to use
 	selfSignedCert := filepath.Join("data", "certmanager-cert", "selfsigned.pem")
@@ -364,17 +368,6 @@ func loadRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 	}
 
 	return rootCert, rootKey, nil
-}
-
-func downloadRootCert(c *gin.Context) {
-	filename := c.Param("filename")
-	filepath := fmt.Sprintf("data/root-cert/%s", filename)
-
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Header("Content-Type", "application/x-pem-file")
-	c.File(filepath)
 }
 
 func handleCertManagerSettings(c *gin.Context) {
