@@ -107,25 +107,24 @@
                     <ul class="collapsible root-cert">
                         <li>
                             <div class="collapsible-header">
-                                
                                     <div class="left-content">
                                         <i class="material-icons">security</i>
                                         <span style="margin-left: 8px; white-space: nowrap;">HomeLAB Root CA Certificate</span>
                                     </div>
                                     <div class="spacer"></div>
                                     <div class="right-content">
-                                        <form action="/certificates/download/root-cert/HomeLab_Root_CA.pem" method="GET" style="margin-right: 10px;">
-                                            <button type="submit" class="btn blue">
-                                                <i class="material-icons left">download</i>
-                                                <span class="btn-text">Download</span>
-                                            </button>
-                                        </form>
                                         <button class="waves-effect waves-light btn toggle-view-btn">
                                             <i class="material-icons left">visibility</i>
                                             <span class="btn-text">View Certificate</span>
                                         </button>
+                                        <div class="spacer"></div>
+                                        <form action="/certificates/download/root-cert/HomeLab_Root_CA.pem" method="GET" style="margin-right: 10px;">
+                                                <button type="submit" class="btn blue">
+                                                    <i class="material-icons left">download</i>
+                                                    <span class="btn-text">Download</span>
+                                                </button>
+                                        </form>
                                     </div>
-                                
                             </div>
                             <div class="collapsible-body">
                                 <p><strong>Issuer:</strong> {{.rootCertificate.Issuer}}</p>
@@ -159,7 +158,8 @@
                     </ul>
                     {{end}}
 
-                    {{if .homelabCertificate}}
+                <!-- HomeLAB Certificate Section -->
+                {{if .homelabCertificate}}
                     <div class="row">
                         <div class="col s12">
                             <ul class="collapsible homelab-cert">
@@ -174,6 +174,13 @@
                                             <button class="waves-effect waves-light btn toggle-view-btn">
                                                 <i class="material-icons left">visibility</i>
                                                 <span class="btn-text">View Certificate</span>
+                                            </button>
+                                        </div>
+                                        <div class="spacer"></div>
+                                        <div>
+                                            <button onclick="recreateHomelabCert()" class="waves-effect waves-light btn orange">
+                                                <i class="material-icons left">autorenew</i>
+                                                Recreate with Homelab-RootCA
                                             </button>
                                         </div>
                                     </div>
@@ -202,7 +209,7 @@
                                 </div>
                             </div>
                             <div class="collapsible-body">
-                                <div class="card-panel yellow lighten-4">
+                                <div class="card-panel yellow lighten-4" style="color: black;">
                                     <i class="material-icons left">info</i>
                                     <span>This is a self-signed certificate. For better security, recreate it using your Homelab Root CA.</span>
                                 </div>
@@ -212,7 +219,7 @@
                         </li>
                     </ul>
                     {{else}}
-                    <div class="card-panel yellow lighten-4">
+                    <div class="card-panel yellow lighten-4" style="color: black;">
                         <i class="material-icons left">warning</i>
                         <span>No certificate found. A self-signed certificate will be generated automatically when needed.</span>
                     </div>
@@ -230,31 +237,39 @@
                 <thead>
                     <tr>
                         <th>Certificate</th>
-                        <th>Download PEM</th>
-                        <th>Download KEY</th>
-                        <th>Download PFX</th>
+                        <th>Created</th>
+                        <th>Valid Until</th>
+                        <th>Subject Alternative Names</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{range .certificates}}
                     <tr>
-                        <td>{{.}}</td>
-                        <td><a href="/certificates/download/{{.}}.pem" class="btn-small waves-effect waves-light">Download PEM</a></td>
-                        <td><a href="/certificates/download/{{.}}.key" class="btn-small waves-effect waves-light">Download KEY</a></td>
-                        <td><a href="/certificates/download/{{.}}.pfx" class="btn-small waves-effect waves-light">Download PFX</a></td>
+                        <td><b>{{.Name}}</b></td>
+                        <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                        <td>{{.ValidUntil.Format "2006-01-02 15:04:05"}}</td>
+                        <td>{{range .SANs}}{{.}}<br>{{end}}</td>
                         <td>
-                            <button id="viewButton-{{.}}" class="btn-small waves-effect waves-light" onclick="viewCertificate('{{.}}')">View Certificate</button>
-                            <button id="hideButton-{{.}}" class="btn-small waves-effect waves-light red" onclick="hideCertificate('{{.}}')" style="display:none;">Hide Certificate</button>
-                            <form action="/certificates/delete/{{.}}.pem" method="POST" style="display:inline;">
-                                <button class="btn-small red waves-effect waves-light" type="submit">Delete</button>
+                            <button class="btn-small waves-effect waves-light dropdown-trigger blue" data-target="dropdown-{{.Name}}">
+                                <i class="material-icons">download</i>
+                            </button>
+                            <ul id="dropdown-{{.Name}}" class="dropdown-content">
+                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pem')">Download PEM</a></li>
+                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'key')">Download KEY</a></li>
+                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pfx')">Download PFX</a></li>
+                            </ul>
+                            <form id="delete-cert-form-{{.Name}}" action="/certificates/delete/{{.Name}}.pem" method="POST" style="display:inline;">
+                                <button type="button" class="btn-small red waves-effect waves-light" onclick="confirmDelete('{{.Name}}')">
+                                    <i class="material-icons">delete</i>
+                                </button>
                             </form>
                         </td>
                     </tr>
-                    <tr id="certRow-{{.}}" style="display:none;">
+                    <tr id="certRow-{{.Name}}" style="display:none;">
                         <td colspan="5">
-                            <pre id="certContent-{{.}}" class="materialize-textarea left-align"></pre>
-                            <pre id="certDecodedContent-{{.}}" class="materialize-textarea left-align"></pre>
+                            <pre id="certContent-{{.Name}}" class="materialize-textarea left-align"></pre>
+                            <pre id="certDecodedContent-{{.Name}}" class="materialize-textarea left-align"></pre>
                         </td>
                     </tr>
                     {{end}}
@@ -268,6 +283,8 @@
     <!-- Custom JavaScript -->
     <script src="/static/script.js"></script>
     <script>
+        M.AutoInit();
+
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Materialize components
             M.updateTextFields();
@@ -275,6 +292,25 @@
             // Initialize theme
             const currentTheme = localStorage.getItem('theme') || 'light';
             applyTheme(currentTheme);
+
+            // Initialize dropdowns
+            var dropdowns = document.querySelectorAll('.dropdown-trigger');
+            M.Dropdown.init(dropdowns, {
+                constrainWidth: false,
+                coverTrigger: false
+            });
         });
-    </script></body>
+
+        function downloadCertificate(certName, type) {
+            window.location.href = `/certificates/download/${certName}.${type}`;
+        }
+
+        function confirmDelete(certName) {
+            if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
+                document.getElementById('delete-cert-form-' + certName).submit();
+            }
+        }
+
+    </script>
+</body>
 </html>

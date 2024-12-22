@@ -20,6 +20,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func convertIPsToStrings(ips []net.IP) []string {
+	var ipStrings []string
+	for _, ip := range ips {
+		ipStrings = append(ipStrings, ip.String())
+	}
+	return ipStrings
+}
+
 func checkRootCertAndListCerts(c *gin.Context) {
 	log.Println("checkRootCertAndListCerts called")
 
@@ -51,11 +59,29 @@ func checkRootCertAndListCerts(c *gin.Context) {
 		return
 	}
 
-	certs := []string{}
+	type CertInfo struct {
+		Name       string
+		CreatedAt  time.Time
+		ValidUntil time.Time
+		SANs       []string
+	}
+
+	certs := []CertInfo{}
 	for _, file := range files {
 		if file.Type().IsRegular() && strings.HasSuffix(file.Name(), ".pem") {
 			name := strings.TrimSuffix(file.Name(), ".pem")
-			certs = append(certs, name)
+			cert, err := readCertificate(filepath.Join("./data/certs", file.Name()))
+			if err != nil {
+				log.Printf("Error reading certificate %s: %v", file.Name(), err)
+				continue
+			}
+			certInfo := CertInfo{
+				Name:       name,
+				CreatedAt:  cert.NotBefore,
+				ValidUntil: cert.NotAfter,
+				SANs:       append(cert.DNSNames, convertIPsToStrings(cert.IPAddresses)...),
+			}
+			certs = append(certs, certInfo)
 		}
 	}
 
