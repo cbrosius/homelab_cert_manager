@@ -28,10 +28,19 @@ func toJson(v interface{}) (string, error) {
 	return string(bytes), nil
 }
 
-type CertManagerSettings struct {
-	DnsNames    []string `json:"dns_names"`
-	IpAddresses []string `json:"ip_addresses"`
-}
+// type CertManagerSettings struct {
+// 	DnsNames    []string `json:"dns_names"`
+// 	IpAddresses []string `json:"ip_addresses"`
+// }
+
+// type generalCertOptions struct {
+// 	ValidityPeriod   int    `json:"validity_period"`
+// 	Organization     string `json:"organization"`
+// 	OrganizationUnit string `json:"organization_unit"`
+// 	Country          string `json:"country"`
+// 	State            string `json:"state"`
+// 	Location         string `json:"location"`
+// }
 
 func main() {
 	os.MkdirAll("data/certs", os.ModePerm)
@@ -190,11 +199,15 @@ func main() {
 	r.GET("/create-certificate-form", showCreateCertificateForm)              // Route for certificate form
 	r.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate) // Route for deleting root certificate
 	r.GET("/settings", showSettingsPage)                                      // Route for settings page
-	r.POST("/settings", handleSettings)                                       // Route for saving settings
-	r.GET("/howto", showHowToPage)                                            // Add this new route
+	// r.POST("/settings", handleSettings)                                       // Route for saving settings
+	r.GET("/howto", showHowToPage) // Add this new route
 	r.POST("/recreate-homelab-cert", recreateHomelabCertificate)
+
 	r.GET("/settings/certmanager", handleCertManagerSettings)
 	r.POST("/settings/certmanager", handleCertManagerSettings)
+
+	r.GET("/settings/generalcertoptions", handleGeneralCertOptions)
+	r.POST("/settings/generalcertoptions", handleGeneralCertOptions)
 
 	// Determine which certificate to use
 	selfSignedCert := filepath.Join("data", "certmanager-cert", "selfsigned.pem")
@@ -260,6 +273,14 @@ func showSettingsPage(c *gin.Context) {
 			"DnsNames":    viper.GetStringSlice("certificate_manager_certificate.dns_names"),
 			"IpAddresses": viper.GetStringSlice("certificate_manager_certificate.ip_addresses"),
 		},
+		"generalCertOptions": gin.H{
+			//	"ValidityPeriod":   viper.GetInt("general_cert_options.validity_period"),
+			"Organization":     viper.GetString("general_cert_options.organization"),
+			"OrganizationUnit": viper.GetString("general_cert_options.organization_unit"),
+			"Country":          viper.GetString("general_cert_options.country"),
+			"State":            viper.GetString("general_cert_options.state"),
+			"Location":         viper.GetString("general_cert_options.location"),
+		},
 	})
 }
 
@@ -267,25 +288,25 @@ func showHowToPage(c *gin.Context) {
 	renderTemplate(c, "howto.html", nil)
 }
 
-func handleSettings(c *gin.Context) {
-	var settings struct {
-		DnsNames    []string `json:"dns_names"`
-		IpAddresses []string `json:"ip_addresses"`
-	}
+// func handleSettings(c *gin.Context) {
+// 	var settings struct {
+// 		DnsNames    []string `json:"dns_names"`
+// 		IpAddresses []string `json:"ip_addresses"`
+// 	}
 
-	if err := c.BindJSON(&settings); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid settings format"})
-		return
-	}
+// 	if err := c.BindJSON(&settings); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid settings format"})
+// 		return
+// 	}
 
-	// Save certificate manager settings
-	if err := saveCertManagerSettings(settings.DnsNames, settings.IpAddresses); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save settings"})
-		return
-	}
+// 	// Save certificate manager settings
+// 	if err := saveCertManagerSettings(settings.DnsNames, settings.IpAddresses); err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save settings"})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Settings saved successfully"})
-}
+// 	c.JSON(http.StatusOK, gin.H{"message": "Settings saved successfully"})
+// }
 
 func loadRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 	// Read root certificate
@@ -314,6 +335,9 @@ func loadRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 func handleCertManagerSettings(c *gin.Context) {
+
+	log.Println("running handleCertManagerSettings ...")
+
 	if c.Request.Method == "GET" {
 		c.JSON(http.StatusOK, gin.H{
 			"dns_names":    viper.GetStringSlice("certificate_manager_certificate.dns_names"),
@@ -337,6 +361,51 @@ func handleCertManagerSettings(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, certSettings)
+}
+
+func handleGeneralCertOptions(c *gin.Context) {
+
+	log.Println("running handleGeneralCertOptions ...")
+
+	if c.Request.Method == "GET" {
+		c.JSON(http.StatusOK, gin.H{
+			// "validity_period":   viper.GetInt("general_cert_options.validity_period"),
+			"organization":      viper.GetString("general_cert_options.organization"),
+			"organization_unit": viper.GetString("general_cert_options.organization_unit"),
+			"country":           viper.GetString("general_cert_options.country"),
+			"state":             viper.GetString("general_cert_options.state"),
+			"location":          viper.GetString("general_cert_options.location"),
+		})
+		return
+	}
+
+	var generalCertOptions struct {
+		// ValidityPeriod   int    `json:"validity_period"`
+		Organization     string `json:"organization"`
+		OrganizationUnit string `json:"organization_unit"`
+		Country          string `json:"country"`
+		State            string `json:"state"`
+		Location         string `json:"location"`
+	}
+
+	if err := c.BindJSON(&generalCertOptions); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := saveGeneralCertOptions(
+		// generalCertOptions.ValidityPeriod,
+		generalCertOptions.Organization,
+		generalCertOptions.OrganizationUnit,
+		generalCertOptions.Country,
+		generalCertOptions.State,
+		generalCertOptions.Location,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, generalCertOptions)
 }
 
 func renderTemplate(c *gin.Context, templateName string, data gin.H) {

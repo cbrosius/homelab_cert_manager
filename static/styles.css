@@ -61,7 +61,12 @@ input[type="text"]::placeholder {
 
 /* Button colors */
 .btn-floating {
-    background-color: var(--primary-color) !important;
+    background-color: var(--primary-color);
+}
+
+button:disabled {
+    background-color: grey !important;
+    cursor: not-allowed !important;
 }
 
 /* Modal styles */

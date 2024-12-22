@@ -6,7 +6,6 @@
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Custom CSS -->
@@ -55,10 +54,83 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="row" style="margin-bottom: 20px;"></div>
                             <div class="card-action">
-                                <button type="submit" class="waves-effect waves-light btn green">
+                                <button id="saveCertificateManagerCertificateChangesButton" type="submit" class="waves-effect waves-light btn green" disabled>
                                     <i class="material-icons left">save</i>
                                     Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add spacing between the cards -->
+        <div class="row" style="margin-bottom: 20px;"></div>
+
+        <!-- New Card for General Certificate Options -->
+        <div class="row">
+            <div class="col s12">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title">General Certificate Options</span>
+                        <form id="generalCertOptionsForm" action="/settings/generalcertoptions" method="POST" onsubmit="submitGeneralCertOptions(event)">
+                            <div class="row">
+                                <!-- Validity Period -->
+                                <div class="col s12">
+                                    <h6>Validity Period (years)</h6>
+                                    <div class="input-field">
+                                        <input type="number" name="validity_period" class="validate" placeholder="e.g., 1" oninput="enableGeneralOptionsSaveButton()" required>
+                                    </div>
+                                </div>
+
+                                <!-- Organization -->
+                                <div class="col s12">
+                                    <h6>Organization</h6>
+                                    <div class="input-field">
+                                        <input type="text" name="organization" class="validate" placeholder="e.g., My Organization" oninput="enableGeneralOptionsSaveButton()">
+                                    </div>
+                                </div>
+
+                                <!-- State -->
+                                <div class="col s12">
+                                    <h6>State</h6>
+                                    <div class="input-field">
+                                        <input type="text" name="state" class="validate" placeholder="e.g., California" oninput="enableGeneralOptionsSaveButton()">
+                                    </div>
+                                </div>
+
+                                <!-- Location -->
+                                <div class="col s12">
+                                    <h6>Location</h6>
+                                    <div class="input-field">
+                                        <input type="text" name="location" class="validate" placeholder="e.g., San Francisco" oninput="enableGeneralOptionsSaveButton()">
+                                    </div>
+                                </div>
+
+                                <!-- Country -->
+                                <div class="col s12">
+                                    <h6>Country</h6>
+                                    <div class="input-field">
+                                        <input type="text" name="country" class="validate" placeholder="e.g., US" oninput="enableGeneralOptionsSaveButton()">
+                                    </div>
+                                </div>
+
+                                <!-- Organization Unit -->
+                                <div class="col s12">
+                                    <h6>Organization Unit</h6>
+                                    <div class="input-field">
+                                        <input type="text" name="organization_unit" class="validate" placeholder="e.g., IT Department" oninput="enableGeneralOptionsSaveButton()">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-action">
+                                <hr>
+                                <button id="saveGeneralOptionsButton" type="submit" class="waves-effect waves-light btn green" disabled>
+                                    <i class="material-icons left">save</i>
+                                    Save General Certificate Options
                                 </button>
                             </div>
                         </form>
@@ -69,7 +141,6 @@
     </div>
     
     <!-- Materialize JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
     <!-- Custom JavaScript -->
     <script src="/static/script.js"></script>
@@ -100,6 +171,20 @@
                     });
                 }
             }
+
+            // Initialize general certificate options
+            const generalCertOptions = JSON.parse(`{{ .generalCertOptions | toJson }}`);
+            if (generalCertOptions) {
+                // document.querySelector('input[name="validity_period"]').value = generalCertOptions.ValidityPeriod || '';
+                document.querySelector('input[name="organization"]').value = generalCertOptions.Organization || '';
+                document.querySelector('input[name="state"]').value = generalCertOptions.State || '';
+                document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
+                document.querySelector('input[name="country"]').value = generalCertOptions.Country || '';
+                document.querySelector('input[name="organization_unit"]').value = generalCertOptions.OrganizationUnit || '';
+            }
+
+            const saveButton = document.getElementById('saveCertificateManagerCertificateChangesButton');
+            saveButton.disabled = true;
         });
 
         function addDnsField(value = '') {
@@ -109,7 +194,7 @@
             entry.style.display = 'flex';
             entry.style.alignItems = 'center';
             entry.innerHTML = `
-                <input type="text" name="dns_names[]" class="validate" value="${value}" placeholder="e.g., certmanager.local" style="flex: 1;">
+                <input type="text" name="dns_names[]" class="validate" value="${value}" placeholder="e.g., certmanager.local" style="flex: 1;" oninput="enableCertManagerSaveButton()">
                 <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>
@@ -124,7 +209,7 @@
             entry.style.display = 'flex';
             entry.style.alignItems = 'center';
             entry.innerHTML = `
-                <input type="text" name="ip_addresses[]" class="validate" value="${value}" placeholder="e.g., 192.168.1.100" style="flex: 1;">
+                <input type="text" name="ip_addresses[]" class="validate" value="${value}" placeholder="e.g., 192.168.1.100" style="flex: 1;" oninput="enableCertManagerSaveButton()">
                 <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>
@@ -134,6 +219,17 @@
 
         function removeField(button) {
             button.parentElement.remove();
+            enableCertManagerSaveButton();
+        }
+
+        function enableCertManagerSaveButton() {
+            const saveButton = document.getElementById('saveCertificateManagerCertificateChangesButton');
+            saveButton.disabled = false;
+        }
+
+        function enableGeneralOptionsSaveButton() {
+            const saveButton = document.getElementById('saveGeneralOptionsButton');
+            saveButton.disabled = false;
         }
 
         function submitCertManagerSettings(event) {
@@ -156,6 +252,39 @@
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
                 M.toast({html: 'Settings saved successfully', classes: 'green'});
+                const saveButton = document.getElementById('saveCertificateManagerCertificateChangesButton');
+                saveButton.disabled = true;
+            })
+            .catch(error => {
+                M.toast({html: error.message, classes: 'red'});
+            });
+        }
+
+        function submitGeneralCertOptions(event) {
+            event.preventDefault();
+            const form = event.target;
+
+            const data = {
+                // validity_period: form.validity_period.value,
+                organization: form.organization.value,
+                state: form.state.value,
+                location: form.location.value,
+                country: form.country.value,
+                organization_unit: form.organization_unit.value
+            };
+
+            fetch('/settings/generalcertoptions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to save settings');
+                M.toast({html: 'Settings saved successfully', classes: 'green'});
+                const saveButton = document.getElementById('saveGeneralOptionsButton');
+                saveButton.disabled = true;
             })
             .catch(error => {
                 M.toast({html: error.message, classes: 'red'});
