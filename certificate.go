@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 func convertIPsToStrings(ips []net.IP) []string {
@@ -395,4 +396,81 @@ func readCertificate(filePath string) (*x509.Certificate, error) {
 	}
 
 	return cert, nil
+}
+
+func recreateHomelabCertificate(c *gin.Context) {
+	// First check if root certificate exists
+	rootCert, rootKey, err := loadRootCertAndKey()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Root certificate not found"})
+		return
+	}
+
+	// Generate new key pair
+	certKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate private key"})
+		return
+	}
+
+	// Create certificate template
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(time.Now().Unix()),
+		Subject: pkix.Name{
+			CommonName: "HomeLab Certificate Manager",
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	// Load DNS names and IP addresses from settings
+	settingsDnsNames := viper.GetStringSlice("certificate_manager_certificate.dns_names")
+	log.Printf("Loaded DNS Names: %v", settingsDnsNames)
+	// Append DNS names from settings
+	for _, dns := range settingsDnsNames {
+		if dns != "" {
+			template.DNSNames = append(template.DNSNames, dns)
+		}
+	}
+
+	// Append IP addresses from settings
+	settingsIpAddresses := viper.GetStringSlice("certificate_manager_certificate.ip_addresses")
+	log.Printf("Loaded IP Addresses: %v", settingsIpAddresses)
+	for _, ip := range settingsIpAddresses {
+		if parsedIP := net.ParseIP(ip); parsedIP != nil {
+			template.IPAddresses = append(template.IPAddresses, parsedIP)
+		} else {
+			log.Printf("Invalid IP address: %s", ip)
+		}
+	}
+
+	// Create certificate signed by root CA
+	certBytes, err := x509.CreateCertificate(rand.Reader, &template, rootCert, &certKey.PublicKey, rootKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create certificate"})
+		return
+	}
+
+	// Save new private key
+	keyFile, err := os.Create("data/certmanager-cert/homelab_certificate_manager.key")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save private key"})
+		return
+	}
+	defer keyFile.Close()
+	pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(certKey)})
+
+	// Save new certificate
+	certFile, err := os.Create("data/certmanager-cert/homelab_certificate_manager.pem")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save certificate"})
+		return
+	}
+	defer certFile.Close()
+	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Certificate recreated successfully"})
 }

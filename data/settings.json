@@ -1,6 +1,11 @@
 {
   "certificate_manager_certificate": {
-    "dns_names": [],
-    "ip_addresses": []
+    "dns_names": [
+      "certmanager.local",
+      "localhost"
+    ],
+    "ip_addresses": [
+      "127.0.0.1"
+    ]
   }
 }

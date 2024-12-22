@@ -2,5 +2,4 @@
 *.bak
 *.key
 *.pem
-data/certs/*
-data/root-cert/*
+data/*

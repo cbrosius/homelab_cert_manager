@@ -149,7 +149,7 @@
                                 </div>
                             </div>
                             <div class="collapsible-body">
-                                <div class="card-panel yellow lighten-4">
+                                <div class="card-panel yellow lighten-4" style="color: black;">
                                     <i class="material-icons left">info</i>
                                     <span>No root certificate found. Please create one to start issuing certificates.</span>
                                 </div>
@@ -230,51 +230,62 @@
             
             <!-- Certificates Section -->
             <div class="row">
-                <a href="/create-certificate-form" class="btn waves-effect green white-text">Create New Certificate</a>
-            </div>
+                <div class="col s12">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="row" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="card-title">HomeLAB Certificates</span>
+                                <a href="/create-certificate-form" class="btn waves-effect green white-text">Create New Certificate</a>
+                            </div>
+                    
+                            <hr>
 
-            <table class="highlight centered">
-                <thead>
-                    <tr>
-                        <th>Certificate</th>
-                        <th>Created</th>
-                        <th>Valid Until</th>
-                        <th>Subject Alternative Names</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .certificates}}
-                    <tr>
-                        <td><b>{{.Name}}</b></td>
-                        <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
-                        <td>{{.ValidUntil.Format "2006-01-02 15:04:05"}}</td>
-                        <td>{{range .SANs}}{{.}}<br>{{end}}</td>
-                        <td>
-                            <button class="btn-small waves-effect waves-light dropdown-trigger blue" data-target="dropdown-{{.Name}}">
-                                <i class="material-icons">download</i>
-                            </button>
-                            <ul id="dropdown-{{.Name}}" class="dropdown-content">
-                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pem')">Download PEM</a></li>
-                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'key')">Download KEY</a></li>
-                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pfx')">Download PFX</a></li>
-                            </ul>
-                            <form id="delete-cert-form-{{.Name}}" action="/certificates/delete/{{.Name}}.pem" method="POST" style="display:inline;">
-                                <button type="button" class="btn-small red waves-effect waves-light" onclick="confirmDelete('{{.Name}}')">
-                                    <i class="material-icons">delete</i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    <tr id="certRow-{{.Name}}" style="display:none;">
-                        <td colspan="5">
-                            <pre id="certContent-{{.Name}}" class="materialize-textarea left-align"></pre>
-                            <pre id="certDecodedContent-{{.Name}}" class="materialize-textarea left-align"></pre>
-                        </td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
+                            <table class="highlight centered">
+                                <thead>
+                                    <tr>
+                                        <th>Certificate</th>
+                                        <th>Created</th>
+                                        <th>Valid Until</th>
+                                        <th>Subject Alternative Names</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{range .certificates}}
+                                    <tr>
+                                        <td><b>{{.Name}}</b></td>
+                                        <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                                        <td>{{.ValidUntil.Format "2006-01-02 15:04:05"}}</td>
+                                        <td>{{range .SANs}}{{.}}<br>{{end}}</td>
+                                        <td>
+                                            <button class="btn-small waves-effect waves-light dropdown-trigger blue" data-target="dropdown-{{.Name}}">
+                                                <i class="material-icons">download</i>
+                                            </button>
+                                            <ul id="dropdown-{{.Name}}" class="dropdown-content">
+                                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pem')">Download PEM</a></li>
+                                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'key')">Download KEY</a></li>
+                                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pfx')">Download PFX</a></li>
+                                            </ul>
+                                            <form id="delete-cert-form-{{.Name}}" action="/certificates/delete/{{.Name}}.pem" method="POST" style="display:inline;">
+                                                <button type="button" class="btn-small red waves-effect waves-light" onclick="confirmDelete('{{.Name}}')">
+                                                    <i class="material-icons">delete</i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <tr id="certRow-{{.Name}}" style="display:none;">
+                                        <td colspan="5">
+                                            <pre id="certContent-{{.Name}}" class="materialize-textarea left-align"></pre>
+                                            <pre id="certDecodedContent-{{.Name}}" class="materialize-textarea left-align"></pre>
+                                        </td>
+                                    </tr>
+                                    {{end}}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

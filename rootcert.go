@@ -74,9 +74,8 @@ func createRootCertificate(c *gin.Context) {
 
 	os.MkdirAll("data/root-cert", os.ModePerm)
 
-	sanitizedCommonName := strings.ReplaceAll(commonName, " ", "_")
-	rootCertFilename := "data/root-cert/" + sanitizedCommonName + ".pem"
-	rootKeyFilename := "data/root-cert/" + sanitizedCommonName + ".key"
+	rootCertFilename := "data/root-cert/HomeLab_Root_CA.pem"
+	rootKeyFilename := "data/root-cert/HomeLab_Root_CA.key"
 
 	rootCertFile, err := os.Create(rootCertFilename)
 	if err != nil {

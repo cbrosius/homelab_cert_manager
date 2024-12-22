@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/spf13/viper"
 )
 
@@ -30,6 +32,16 @@ func initSettings() error {
 }
 
 func saveCertManagerSettings(dnsNames []string, ipAddresses []string) error {
+	// Strip leading and trailing spaces from DNS names
+	for i, dns := range dnsNames {
+		dnsNames[i] = strings.TrimSpace(dns)
+	}
+
+	// Strip leading and trailing spaces from IP addresses
+	for i, ip := range ipAddresses {
+		ipAddresses[i] = strings.TrimSpace(ip)
+	}
+
 	viper.Set("certificate_manager_certificate.dns_names", dnsNames)
 	viper.Set("certificate_manager_certificate.ip_addresses", ipAddresses)
 	return viper.WriteConfig()
