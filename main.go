@@ -48,10 +48,10 @@ func main() {
 	os.MkdirAll("data/certmanager-cert", os.ModePerm)
 	os.MkdirAll("data", os.ModePerm)
 
-	// Initialize settings
-	if err := initSettings(); err != nil {
-		log.Fatalf("Failed to initialize settings: %v", err)
-	}
+	// // Initialize settings
+	// if err := initSettings(); err != nil {
+	// 	log.Fatalf("Failed to initialize settings: %v", err)
+	// }
 
 	// First check if any .pem file exists in the certmanager-cert directory
 	certManagerCertExists := false
@@ -186,7 +186,6 @@ func main() {
 	r.GET("/certificates", checkRootCertAndListCerts) // Ensure this route calls the correct function
 	r.GET("/certificates/view/:filename", viewCertificate)
 	r.POST("/certificates/delete/:filename", deleteCertificate)
-	r.POST("/create-certificate", createCertificate)
 	r.GET("/certificates/download/:filename", func(c *gin.Context) {
 		c.Params = append(c.Params, gin.Param{Key: "certType", Value: "certs"})
 		downloadCertificate(c)
@@ -196,7 +195,9 @@ func main() {
 		c.Params = append(c.Params, gin.Param{Key: "certType", Value: "root-cert"})
 		downloadCertificate(c)
 	})
-	r.GET("/create-certificate-form", showCreateCertificateForm)              // Route for certificate form
+	r.GET("/create-certificate-form", showCreateCertificateForm) // Route for certificate form
+	r.POST("/create-certificate", createCertificate)
+
 	r.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate) // Route for deleting root certificate
 	r.GET("/settings", showSettingsPage)                                      // Route for settings page
 	// r.POST("/settings", handleSettings)                                       // Route for saving settings
@@ -264,7 +265,17 @@ func showHomePage(c *gin.Context) {
 }
 
 func showCreateCertificateForm(c *gin.Context) {
-	renderTemplate(c, "create_certificate.html", nil)
+	generalCertOptions := gin.H{
+		"ValidityPeriod":   viper.GetString("general_cert_options.validity_period"),
+		"Organization":     viper.GetString("general_cert_options.organization"),
+		"OrganizationUnit": viper.GetString("general_cert_options.organization_unit"),
+		"Country":          viper.GetString("general_cert_options.country"),
+		"State":            viper.GetString("general_cert_options.state"),
+		"Location":         viper.GetString("general_cert_options.location"),
+	}
+	renderTemplate(c, "create_certificate.html", gin.H{
+		"generalCertOptions": generalCertOptions,
+	})
 }
 
 func showSettingsPage(c *gin.Context) {

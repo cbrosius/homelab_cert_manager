@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 func convertIPsToStrings(ips []net.IP) []string {
@@ -156,19 +158,33 @@ func findRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 func createCertificate(c *gin.Context) {
-	commonName := c.PostForm("common_name")
-	dnsNames := c.PostFormArray("dns_names[]")
-	ipAddresses := c.PostFormArray("ip_addresses[]")
-	validityYearsStr := c.PostForm("validity_years")
+	log.Printf("createCertificate ...")
+	var form struct {
+		CommonName       string   `form:"common_name" binding:"required"`
+		ValidityYears    string   `form:"validity_years" binding:"required"`
+		Organization     string   `form:"organization"`
+		OrganizationUnit string   `form:"organization_unit"`
+		Country          string   `form:"country"`
+		State            string   `form:"state"`
+		Location         string   `form:"location"`
+		DnsNames         []string `form:"dns"`
+		IpAddresses      []string `form:"ip_addresses"`
+		Overwrite        string   `form:"overwrite"`
+	}
 
-	validityYears, err := strconv.Atoi(validityYearsStr)
+	if err := c.ShouldBind(&form); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	validityYears, err := strconv.Atoi(form.ValidityYears)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid validity period"})
 		return
 	}
 
 	// Check if a certificate with the same common name already exists
-	certFilePath := "data/certs/" + commonName + ".pem"
+	certFilePath := "data/certs/" + form.CommonName + ".pem"
 	if _, err := os.Stat(certFilePath); err == nil {
 		// Certificate already exists, prompt user for confirmation
 		overwrite := c.PostForm("overwrite")
@@ -178,23 +194,22 @@ func createCertificate(c *gin.Context) {
 		}
 	}
 
-	// Generate private key and certificate
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating private key"})
-		return
-	}
-
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating serial number"})
 		return
 	}
 
+	// Create new certificate template
 	certTemplate := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName: commonName,
+			CommonName:         form.CommonName,
+			Organization:       []string{form.Organization},
+			OrganizationalUnit: []string{form.OrganizationUnit},
+			Country:            []string{form.Country},
+			Province:           []string{form.State},
+			Locality:           []string{form.Location},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(validityYears, 0, 0),
@@ -203,13 +218,32 @@ func createCertificate(c *gin.Context) {
 		BasicConstraintsValid: true,
 	}
 
-	for _, dns := range dnsNames {
+	// Generate private key and certificate
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating private key"})
+		return
+	}
+
+	// certTemplate := &x509.Certificate{
+	// 	SerialNumber: serialNumber,
+	// 	Subject: pkix.Name{
+	// 		CommonName: commonName,
+	// 	},
+	// 	NotBefore:             time.Now(),
+	// 	NotAfter:              time.Now().AddDate(validityYears, 0, 0),
+	// 	KeyUsage:              x509.KeyUsageDigitalSignature,
+	// 	ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	// 	BasicConstraintsValid: true,
+	// }
+
+	for _, dns := range form.DnsNames {
 		if dns != "" {
 			certTemplate.DNSNames = append(certTemplate.DNSNames, dns)
 		}
 	}
 
-	for _, ip := range ipAddresses {
+	for _, ip := range form.IpAddresses {
 		if parsedIP := net.ParseIP(ip); parsedIP != nil {
 			certTemplate.IPAddresses = append(certTemplate.IPAddresses, parsedIP)
 		}
@@ -238,7 +272,7 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	keyFile, err := os.Create("data/certs/" + commonName + ".key")
+	keyFile, err := os.Create("data/certs/" + form.CommonName + ".key")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating key file"})
 		return
@@ -246,6 +280,32 @@ func createCertificate(c *gin.Context) {
 	defer keyFile.Close()
 	if err := pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error encoding key file"})
+		return
+	}
+
+	// Create a .pfx file using Modern.Encode
+	privateKeyAsCrypto := crypto.PrivateKey(privateKey) // Convert to the appropriate interface
+	cert, err := x509.ParseCertificate(certBytes)       // Parse the raw certificate bytes
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error parsing certificate: %v", err)
+		return
+	}
+
+	pfxData, err := pkcs12.Modern.Encode(privateKeyAsCrypto, cert, []*x509.Certificate{rootCert}, "")
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
+		return
+	}
+
+	pfxFile, err := os.Create("data/certs/" + form.CommonName + ".pfx")
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
+		return
+	}
+	defer pfxFile.Close()
+	_, err = pfxFile.Write(pfxData)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error writing .pfx file: %v", err)
 		return
 	}
 
