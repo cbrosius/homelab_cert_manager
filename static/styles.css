@@ -11,6 +11,8 @@
     --dropdown-bg: #ffffff;
     --dropdown-text: #000000;
     --dropdown-hover: #f1f1f1;
+    --input-bg-color: #cccccc; /* Light background color */
+    --input-font-color: #000000; /* Dark text color */
 }
 
 /* Dark theme */
@@ -24,6 +26,18 @@
     --dropdown-bg: #333333;
     --dropdown-text: #ffffff;
     --dropdown-hover: #404040;
+    --input-bg-color: #333333; /* Dark background color */
+    --input-font-color: #ffffff; /* Light text color */
+}
+
+/* Input field styles */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea {
+    background-color: var(--input-bg-color) !important;
+    color: var(--input-font-color) !important;
 }
 
 /* Apply theme colors to body and main elements */
