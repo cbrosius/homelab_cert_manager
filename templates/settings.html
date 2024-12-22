@@ -77,61 +77,39 @@
                     <div class="card-content">
                         <span class="card-title">General Certificate Options</span>
                         <form id="generalCertOptionsForm" action="/settings/generalcertoptions" method="POST" onsubmit="submitGeneralCertOptions(event)">
+                            <!-- Form fields for General Cert Options -->
                             <div class="row">
-                                <!-- Validity Period -->
-                                <div class="col s12">
-                                    <h6>Validity Period (years)</h6>
-                                    <div class="input-field">
-                                        <input type="number" name="validity_period" class="validate" placeholder="e.g., 1" oninput="enableGeneralOptionsSaveButton()" required>
-                                    </div>
+                                <div class="input-field col s12">
+                                    <input type="text" id="validity_period" name="validity_period" class="validate" oninput="enableGeneralOptionsSaveButton()" required>
+                                    <label for="validity_period" class="active">Validity Period (Years)</label>
                                 </div>
-
-                                <!-- Organization -->
-                                <div class="col s12">
-                                    <h6>Organization</h6>
-                                    <div class="input-field">
-                                        <input type="text" name="organization" class="validate" placeholder="e.g., My Organization" oninput="enableGeneralOptionsSaveButton()">
-                                    </div>
+                                <div class="input-field col s12">
+                                    <input type="text" id="organization" name="organization" class="validate" oninput="enableGeneralOptionsSaveButton()">
+                                    <label for="organization" class="active">Organization</label>
                                 </div>
-
-                                <!-- State -->
-                                <div class="col s12">
-                                    <h6>State</h6>
-                                    <div class="input-field">
-                                        <input type="text" name="state" class="validate" placeholder="e.g., California" oninput="enableGeneralOptionsSaveButton()">
-                                    </div>
+                                <div class="input-field col s12">
+                                    <input type="text" id="organization_unit" name="organization_unit" class="validate" oninput="enableGeneralOptionsSaveButton()">
+                                    <label for="organization_unit" class="active">Organization Unit</label>
                                 </div>
-
-                                <!-- Location -->
-                                <div class="col s12">
-                                    <h6>Location</h6>
-                                    <div class="input-field">
-                                        <input type="text" name="location" class="validate" placeholder="e.g., San Francisco" oninput="enableGeneralOptionsSaveButton()">
-                                    </div>
+                                <div class="input-field col s12">
+                                    <input type="text" id="country" name="country" class="validate" oninput="enableGeneralOptionsSaveButton()">
+                                    <label for="country" class="active">Country</label>
                                 </div>
-
-                                <!-- Country -->
-                                <div class="col s12">
-                                    <h6>Country</h6>
-                                    <div class="input-field">
-                                        <input type="text" name="country" class="validate" placeholder="e.g., US" oninput="enableGeneralOptionsSaveButton()">
-                                    </div>
+                                <div class="input-field col s12">
+                                    <input type="text" id="state" name="state" class="validate" oninput="enableGeneralOptionsSaveButton()">
+                                    <label for="state" class="active">State</label>
                                 </div>
-
-                                <!-- Organization Unit -->
-                                <div class="col s12">
-                                    <h6>Organization Unit</h6>
-                                    <div class="input-field">
-                                        <input type="text" name="organization_unit" class="validate" placeholder="e.g., IT Department" oninput="enableGeneralOptionsSaveButton()">
-                                    </div>
+                                <div class="input-field col s12">
+                                    <input type="text" id="location" name="location" class="validate" oninput="enableGeneralOptionsSaveButton()">
+                                    <label for="location" class="active">Location</label>
                                 </div>
                             </div>
                             <div class="card-action">
-                                <hr>
-                                <button id="saveGeneralOptionsButton" type="submit" class="waves-effect waves-light btn green" disabled>
-                                    <i class="material-icons left">save</i>
-                                    Save General Certificate Options
-                                </button>
+                            <div class="row" style="margin-bottom: 20px;"></div>
+                            <button id="saveGeneralOptionsButton" type="submit" class="waves-effect waves-light btn green" disabled>
+                                <i class="material-icons left">save</i>
+                                Save General Certificate Options
+                            </button>
                             </div>
                         </form>
                     </div>
@@ -175,12 +153,12 @@
             // Initialize general certificate options
             const generalCertOptions = JSON.parse(`{{ .generalCertOptions | toJson }}`);
             if (generalCertOptions) {
-                // document.querySelector('input[name="validity_period"]').value = generalCertOptions.ValidityPeriod || '';
+                document.querySelector('input[name="validity_period"]').value = generalCertOptions.ValidityPeriod || '';
                 document.querySelector('input[name="organization"]').value = generalCertOptions.Organization || '';
+                document.querySelector('input[name="organization_unit"]').value = generalCertOptions.OrganizationUnit || '';
+                document.querySelector('input[name="country"]').value = generalCertOptions.Country || '';
                 document.querySelector('input[name="state"]').value = generalCertOptions.State || '';
                 document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
-                document.querySelector('input[name="country"]').value = generalCertOptions.Country || '';
-                document.querySelector('input[name="organization_unit"]').value = generalCertOptions.OrganizationUnit || '';
             }
 
             const saveButton = document.getElementById('saveCertificateManagerCertificateChangesButton');
@@ -265,12 +243,12 @@
             const form = event.target;
 
             const data = {
-                // validity_period: form.validity_period.value,
+                validity_period: form.validity_period.value,
                 organization: form.organization.value,
+                organization_unit: form.organization_unit.value,
+                country: form.country.value,
                 state: form.state.value,
                 location: form.location.value,
-                country: form.country.value,
-                organization_unit: form.organization_unit.value
             };
 
             fetch('/settings/generalcertoptions', {
@@ -290,6 +268,10 @@
                 M.toast({html: error.message, classes: 'red'});
             });
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            M.updateTextFields();
+        });
     </script>
 </body>
 </html>

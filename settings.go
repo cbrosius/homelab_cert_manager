@@ -14,12 +14,12 @@ type Settings struct {
 	} `mapstructure:"certificate_manager_certificate"`
 
 	GeneralCertOptions struct {
-		// ValidityPeriod   int    `mapstructure:"validity_period"`
+		ValidityPeriod   string `mapstructure:"validity_period"`
 		Organization     string `mapstructure:"organization"`
+		OrganizationUnit string `mapstructure:"organization_unit"`
+		Country          string `mapstructure:"country"`
 		State            string `mapstructure:"state"`
 		Location         string `mapstructure:"location"`
-		Country          string `mapstructure:"country"`
-		OrganizationUnit string `mapstructure:"organization_unit"`
 	} `mapstructure:"general_cert_options"`
 }
 
@@ -33,12 +33,12 @@ func initSettings() error {
 	viper.SetDefault("certificate_manager_certificate.dns_names", []string{})
 	viper.SetDefault("certificate_manager_certificate.ip_addresses", []string{})
 
-	//viper.SetDefault("general_cert_options.validity_period", 1)
+	viper.SetDefault("general_cert_options.validity_period", "1")
 	viper.SetDefault("general_cert_options.organization", "")
+	viper.SetDefault("general_cert_options.organization_unit", "")
+	viper.SetDefault("general_cert_options.country", "")
 	viper.SetDefault("general_cert_options.state", "")
 	viper.SetDefault("general_cert_options.location", "")
-	viper.SetDefault("general_cert_options.country", "")
-	viper.SetDefault("general_cert_options.organization_unit", "")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -66,9 +66,9 @@ func saveCertManagerSettings(dnsNames []string, ipAddresses []string) error {
 	return viper.WriteConfig()
 }
 
-func saveGeneralCertOptions(organization, state, location, country, organizationUnit string) error {
+func saveGeneralCertOptions(validityPeriod, organization, organizationUnit, country, state, location string) error {
 	log.Println("running saveGeneralCertOptions ...")
-	// viper.Set("general_cert_options.validity_period", validityPeriod)
+	viper.Set("general_cert_options.validity_period", strings.TrimSpace(validityPeriod))
 	viper.Set("general_cert_options.organization", strings.TrimSpace(organization))
 	viper.Set("general_cert_options.organization_unit", strings.TrimSpace(organizationUnit))
 	viper.Set("general_cert_options.country", strings.TrimSpace(country))

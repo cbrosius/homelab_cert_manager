@@ -447,6 +447,13 @@ func recreateHomelabCertificate(c *gin.Context) {
 		}
 	}
 
+	// Load organization details from settings
+	template.Subject.Organization = []string{viper.GetString("general_cert_options.organization")}
+	template.Subject.OrganizationalUnit = []string{viper.GetString("general_cert_options.organization_unit")}
+	template.Subject.Country = []string{viper.GetString("general_cert_options.country")}
+	template.Subject.Province = []string{viper.GetString("general_cert_options.state")}
+	template.Subject.Locality = []string{viper.GetString("general_cert_options.location")}
+
 	// Create certificate signed by root CA
 	certBytes, err := x509.CreateCertificate(rand.Reader, &template, rootCert, &certKey.PublicKey, rootKey)
 	if err != nil {

@@ -1,0 +1,19 @@
+{
+  "certificate_manager_certificate": {
+    "dns_names": [
+      "certmanager.local",
+      "localhost"
+    ],
+    "ip_addresses": [
+      "127.0.0.1"
+    ]
+  },
+  "general_cert_options": {
+    "country": "germany",
+    "location": "VW",
+    "organization": "HomeLAB",
+    "organization_unit": "private",
+    "state": "RLP",
+    "validity_period": "1"
+  }
+}

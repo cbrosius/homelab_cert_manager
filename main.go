@@ -274,7 +274,7 @@ func showSettingsPage(c *gin.Context) {
 			"IpAddresses": viper.GetStringSlice("certificate_manager_certificate.ip_addresses"),
 		},
 		"generalCertOptions": gin.H{
-			//	"ValidityPeriod":   viper.GetInt("general_cert_options.validity_period"),
+			"ValidityPeriod":   viper.GetString("general_cert_options.validity_period"),
 			"Organization":     viper.GetString("general_cert_options.organization"),
 			"OrganizationUnit": viper.GetString("general_cert_options.organization_unit"),
 			"Country":          viper.GetString("general_cert_options.country"),
@@ -364,12 +364,11 @@ func handleCertManagerSettings(c *gin.Context) {
 }
 
 func handleGeneralCertOptions(c *gin.Context) {
-
 	log.Println("running handleGeneralCertOptions ...")
 
 	if c.Request.Method == "GET" {
 		c.JSON(http.StatusOK, gin.H{
-			// "validity_period":   viper.GetInt("general_cert_options.validity_period"),
+			"validity_period":   viper.GetString("general_cert_options.validity_period"),
 			"organization":      viper.GetString("general_cert_options.organization"),
 			"organization_unit": viper.GetString("general_cert_options.organization_unit"),
 			"country":           viper.GetString("general_cert_options.country"),
@@ -380,7 +379,7 @@ func handleGeneralCertOptions(c *gin.Context) {
 	}
 
 	var generalCertOptions struct {
-		// ValidityPeriod   int    `json:"validity_period"`
+		ValidityPeriod   string `json:"validity_period"`
 		Organization     string `json:"organization"`
 		OrganizationUnit string `json:"organization_unit"`
 		Country          string `json:"country"`
@@ -394,7 +393,7 @@ func handleGeneralCertOptions(c *gin.Context) {
 	}
 
 	if err := saveGeneralCertOptions(
-		// generalCertOptions.ValidityPeriod,
+		generalCertOptions.ValidityPeriod,
 		generalCertOptions.Organization,
 		generalCertOptions.OrganizationUnit,
 		generalCertOptions.Country,
