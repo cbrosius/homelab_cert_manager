@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (themeSwitch) {
         themeSwitch.addEventListener('click', function(e) {
             e.preventDefault();
-            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const currentTheme = document.documentElement.getAttribute('theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             applyTheme(newTheme);
         });
@@ -63,32 +63,42 @@ function recreateHomelabCert() {
     }
 }
 
-function applyTheme(theme) {
-    // Validate theme value
-    const validThemes = ['light', 'dark'];
-    if (!validThemes.includes(theme)) {
-        theme = 'light'; // Default to light if invalid
-    }
-    
-    // Apply theme to document
-    document.documentElement.setAttribute('data-theme', theme);
-    document.body.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-    
-    // Update theme switch icon if it exists
-    const themeSwitch = document.getElementById('theme-switch');
-    if (themeSwitch) {
-        const icon = themeSwitch.querySelector('i');
-        if (icon) {
-            icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+function applyTheme(theme){
+    // Change Theme Setting with a Switch
+    const currentTheme = localStorage.getItem('theme');
+    const switchElem = document.querySelector('#theme-switch');
+
+    const setTheme = (isDark) => {
+        if (isDark) {
+            switchElem.classList.add('is-dark');
+            switchElem.querySelector('i').innerText = 'light_mode';
+            switchElem.title = 'Switch to light mode';
+        }
+        else {
+            switchElem.classList.remove('is-dark');
+            switchElem.querySelector('i').innerText = 'dark_mode';
+            switchElem.title = 'Switch to dark mode';
         }
     }
-    
-    // Force reload styles
-    document.body.style.display = 'none';
-    document.body.offsetHeight; // Trigger reflow
-    document.body.style.display = '';
 
-    // Update Materialize components
-    M.updateTextFields();
+    if (switchElem) {
+        // Load
+        if (currentTheme) setTheme(true);
+        // Change
+        switchElem.addEventListener('click', e => {
+            e.preventDefault();
+            if (!switchElem.classList.contains('is-dark')) {
+            // Dark Theme
+            document.documentElement.setAttribute('theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+            setTheme(true);
+            }
+            else {
+            // Light Theme
+            document.documentElement.removeAttribute('theme');
+            localStorage.removeItem('theme');
+            setTheme(false);
+            }
+        });
+    }
 }
