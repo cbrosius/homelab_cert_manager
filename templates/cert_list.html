@@ -5,7 +5,7 @@
     <title>Certificate List</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
+    <link rel="stylesheet" href="/static/materialize/materialize.css">
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Custom CSS -->
@@ -99,7 +99,6 @@
         {{ template "header.html" . }}
         <div class="container">
             <h1 class="center-align">Certificates</h1>
-
             <!-- Root Certificate Section -->
             <div class="row">
                 <div class="col s12">
@@ -239,15 +238,16 @@
                             </div>
                     
                             <hr>
-
-                            <table class="highlight centered">
+                            <div class="search-container">
+                                <input type="text" id="searchInput" placeholder="Search for certificates..." onkeyup="filterTable()">
+                            </div>
+                            <table id="certTable" class="highlight centered">
                                 <thead>
                                     <tr>
-                                        <th>Certificate</th>
-                                        <th>Created</th>
-                                        <th>Valid Until</th>
-                                        <th>Subject Alternative Names</th>
-                                        <th>Actions</th>
+                                        <th onclick="sortTable(0)">Certificate<i class="material-icons">arrow_drop_down</i></th>
+                                        <th onclick="sortTable(1)">Created<i class="material-icons">arrow_drop_down</i></th>
+                                        <th onclick="sortTable(2)">Valid Until<i class="material-icons">arrow_drop_down</i></th>
+                                        <th onclick="sortTable(3)">Subject Alternative Names<i class="material-icons">arrow_drop_down</i></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -290,7 +290,7 @@
     </div>
 
     <!-- Materialize JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
+    <script src="/static/materialize/materialize.js"></script>
     <!-- Custom JavaScript -->
     <script src="/static/script.js"></script>
     <script>
@@ -298,7 +298,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Materialize components
-            M.updateTextFields();
+            // M.updateTextFields();
             
             // Initialize theme
             const currentTheme = localStorage.getItem('theme') || 'light';
@@ -322,6 +322,99 @@
             }
         }
 
-    </script>
+        function sortTable(columnIndex) {
+    const table = document.getElementById("certTable");
+    if (!table || !table.tBodies.length) {
+        console.error("Tabelle oder tbody nicht gefunden.");
+        return;
+    }
+
+    const tbody = table.tBodies[0];
+    const rowsArray = Array.from(tbody.rows);
+
+    let ascending = table.getAttribute("data-sort-direction") !== "asc";
+
+    rowsArray.sort((a, b) => {
+        // Sicherstellen, dass die Zellen existieren, bevor darauf zugegriffen wird
+        const cellA = a.cells[columnIndex];
+        const cellB = b.cells[columnIndex];
+
+        const valueA = cellA ? cellA.textContent.trim().toLowerCase() : "";
+        const valueB = cellB ? cellB.textContent.trim().toLowerCase() : "";
+
+        if (valueA < valueB) {
+            return ascending ? -1 : 1;
+        }
+        if (valueA > valueB) {
+            return ascending ? 1 : -1;
+        }
+        return 0;
+    });
+
+    rowsArray.forEach(row => tbody.appendChild(row));
+
+    table.setAttribute("data-sort-direction", ascending ? "asc" : "desc");
+
+    updateSortIcons(columnIndex, ascending);
+}
+
+function updateSortIcons(sortedColumnIndex, ascending) {
+    const thElements = document.querySelectorAll("#certTable thead th");
+
+    thElements.forEach((th, index) => {
+        const icon = th.querySelector("i.material-icons");
+        if (icon) {
+            icon.textContent = "arrow_drop_down"; // Reset icons
+            if (index === sortedColumnIndex) {
+                icon.textContent = ascending ? "arrow_drop_up" : "arrow_drop_down"; // Update for sorted column
+            }
+        }
+    });
+}
+
+        function filterTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input ? input.value.toLowerCase() : "";
+            const table = document.getElementById("certTable");
+            const rows = table ? table.getElementsByTagName("tr") : [];
+
+            if (!table || !input) {
+                console.error("Tabelle oder Suchfeld nicht gefunden.");
+                return;
+            }
+
+            for (let i = 1; i < rows.length; i++) { // Überspringe Kopfzeile
+                const cells = rows[i].getElementsByTagName("td");
+                
+                // Verbergen oder zeigen spezifischer Zeilen (primär Datensätze, die Leerer Zustand haben)
+                if (cells.length < 4) {
+                    // Macht deine speziellen versteckten Zeilen weiterhin unsichtbar
+                    rows[i].style.display = "none";
+                    continue;
+                }
+                
+                let rowContainsFilter = false;
+
+                // Alle Zeilen mit tatsächlichen Zertifikatsdaten wieder anzeigen, wenn der Filter leer ist
+                if (!filter) {
+                    rows[i].style.display = "";
+                    continue;
+                }
+
+                // Suche nur in der 1. und 4. Spalte (0 und 3)
+                [0, 3].forEach(index => {
+                    const cell = cells[index];
+                    if (cell && cell.textContent.toLowerCase().includes(filter)) {
+                        rowContainsFilter = true;
+                    }
+                });
+
+                // Zeilen basierend auf Filter zeigen oder ausblenden
+                rows[i].style.display = rowContainsFilter ? "" : "none";
+            }
+        }
+
+
+</script>
 </body>
 </html>

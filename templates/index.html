@@ -5,7 +5,7 @@
     <title>HomeLab Certificate Manager</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css">
+    <link rel="stylesheet" href="/static/materialize/materialize.css"
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Custom CSS -->
@@ -131,13 +131,13 @@
     </div>
     
     <!-- Materialize JavaScript --> 
-    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
+    <script src="/static/materialize/materialize.js"></script>
     <!-- Custom JavaScript --> 
     <script src="/static/script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Materialize components
-            M.updateTextFields();
+            // M.updateTextFields();
             
             // Initialize theme
             const currentTheme = localStorage.getItem('theme') || 'light';
@@ -149,7 +149,7 @@
             fields.forEach(id => {
                 document.getElementById(id).value = '';
             });
-            M.updateTextFields();
+            // M.updateTextFields();
         }
 
         function prefillForm() {
@@ -167,7 +167,7 @@
             Object.keys(defaultValues).forEach(id => {
                 document.getElementById(id).value = defaultValues[id];
             });
-            M.updateTextFields();
+            // M.updateTextFields();
         }
     </script>
 </body>

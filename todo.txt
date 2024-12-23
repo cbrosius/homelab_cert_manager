@@ -1,8 +1,22 @@
+Features:
 - implement versioning for the sources
-- add a site-menu with settings
 - secure the access to the service with a password
 - add more description how to use the service
-- add good defaults for certificates
 - add screenshots and better descriptions to the README.md
-- add a changelog
+- move recreateHomelabCertificate to Settings-Page (Show a link to settings when a self-Signed Certificate is used)
+- überprüfung auf korrekte Eingaben für alle Eingabefelder in allen Formularen
+- Create Certificate Button erst verfügbar wenn alle vorraussetzungen erfüllt Signed
+    - Fehlende Infos irgendwo anzeigen, damit man weiß warum es noch nicht geht
+- Certificate-Tabelle nach allen Spalten sortierbar machen
+- Automatischer Dockerservice-Neustart falls notwendig
+
+Bugs:
+- Button-Ausrichtung RootCA Collapsible
+- Button-Ausrichtung Homelab certificate_manager_certificate Collapsible
+- Homelab certificate_manager_certificate Collapsible soll im Default nicht ausgeklappt sein
+- Download-Menü soll unter dem Button aufgehen, nicht direkt darüber
+- Admin-Menü soll unter dem Button aufgehen, nicht direkt darüber
+- IP-Adressen werden bei der Zertifikats-Erstellung nicht übernommen
+- Nicht verwendeten Code wieder entfernen
+
 

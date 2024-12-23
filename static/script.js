@@ -88,7 +88,7 @@ function applyTheme(theme) {
     document.body.style.display = 'none';
     document.body.offsetHeight; // Trigger reflow
     document.body.style.display = '';
-    
+
     // Update Materialize components
     M.updateTextFields();
 }
