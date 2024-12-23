@@ -19,8 +19,7 @@
     {{ template "header.html" . }}
     <div class="container">
         <h1>How-To Guides</h1>
-        
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-content">
                 <span class="card-title">Creating a Root Certificate</span>
                 <ol>
@@ -40,38 +39,38 @@
         </div>
 
         <div class="card mb-4">
-            <div class="card-header">
-                <h2>Creating Client/Server Certificates</h2>
-            </div>
-            <div class="card-body">
-                <ol>
-                    <li>Ensure you have created a root certificate first</li>
-                    <li>Go to the Certificates page</li>
-                    <li>Click "Create New Certificate"</li>
-                    <li>Fill in the certificate details:
-                        <ul>
-                            <li>Certificate Type (Client or Server)</li>
-                            <li>Common Name</li>
-                            <li>Organization</li>
-                            <li>Validity Period</li>
-                        </ul>
-                    </li>
-                    <li>Click "Create" to generate your certificate</li>
-                </ol>
+            <div class="card-content">
+                <span class="card-title">Creating Client/Server Certificates</span>
+                <div class="card-body">
+                    <ol>
+                        <li>Ensure you have created a root certificate first</li>
+                        <li>Go to the Certificates page</li>
+                        <li>Click "Create New Certificate"</li>
+                        <li>Fill in the certificate details:
+                            <ul>
+                                <li>Certificate Type (Client or Server)</li>
+                                <li>Common Name</li>
+                                <li>Organization</li>
+                                <li>Validity Period</li>
+                            </ul>
+                        </li>
+                        <li>Click "Create" to generate your certificate</li>
+                    </ol>
+                </div>
             </div>
         </div>
 
         <div class="card mb-4">
-            <div class="card-header">
-                <h2>Managing Certificates</h2>
-            </div>
-            <div class="card-body">
-                <ul>
-                    <li>View certificate details by clicking the "View" button</li>
-                    <li>Download certificates using the "Download" button</li>
-                    <li>Remove certificates using the "Delete" button</li>
-                    <li>All certificates are stored securely in the data directory</li>
-                </ul>
+            <div class="card-content">
+                <span class="card-title">Managing Certificates</span>
+                <div class="card-body">
+                    <ul>
+                        <li>View certificate details by clicking the "View" button</li>
+                        <li>Download certificates using the "Download" button</li>
+                        <li>Remove certificates using the "Delete" button</li>
+                        <li>All certificates are stored securely in the data directory</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>

@@ -47,18 +47,18 @@ function recreateHomelabCert() {
         })
         .then(response => {
             if (response.ok) {
-                M.toast({html: 'Certificate recreated successfully. Please restart the server.'});
+                new M.Toast({text: 'Certificate recreated successfully. Please restart the server.'});
                 // Reload the page after a short delay to allow the toast to be visible
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
             } else {
-                M.toast({html: 'Failed to recreate certificate'});
+                new M.Toast({text: 'Failed to recreate certificate'});
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            M.toast({html: 'Error recreating certificate'});
+            new M.Toast({text: 'Error recreating certificate'});
         });
     }
 }

@@ -224,12 +224,12 @@
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
-                M.toast({html: 'Settings saved successfully', classes: 'green'});
+                new M.Toast({text:'Settings saved successfully'});
                 const saveButton = document.getElementById('saveandRecreateHomelabCert');
                 saveButton.disabled = true;
             })
             .catch(error => {
-                M.toast({html: error.message, classes: 'red'});
+                new M.Toast({text: error.message, classes: 'red'});
             });
             recreateHomelabCert();
         }
@@ -256,12 +256,12 @@
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
-                M.toast({html: 'Settings saved successfully', classes: 'green'});
+                new M.Toast({text: 'Settings saved successfully', classes: 'green'});
                 const saveButton = document.getElementById('saveGeneralOptionsButton');
                 saveButton.disabled = true;
             })
             .catch(error => {
-                M.toast({html: error.message, classes: 'red'});
+                new M.Toast({text: error.message, classes: 'red'});
             });
         }
 

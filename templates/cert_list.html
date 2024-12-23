@@ -79,7 +79,7 @@
                     document.getElementById(`hideButton-${certName}`).style.display = 'inline';
                 })
                 .catch(error => {
-                    M.toast({html: 'Error fetching certificate: ' + error, classes: 'red darken-1'});
+                    new M.Toast({text: 'Error fetching certificate: ' + error, classes: 'red darken-1'});
                 });
         }
 

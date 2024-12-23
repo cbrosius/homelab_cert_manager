@@ -11,5 +11,4 @@ Features:
 
 Bugs:
 - Settings-Buttons sollen nach speichern wieder automatisch deaktiviert werden, ohne Page-Refresh oder automatischer Page-Refresh
-- Toasts funktionieren nicht
 
