@@ -28,30 +28,11 @@ func toJson(v interface{}) (string, error) {
 	return string(bytes), nil
 }
 
-// type CertManagerSettings struct {
-// 	DnsNames    []string `json:"dns_names"`
-// 	IpAddresses []string `json:"ip_addresses"`
-// }
-
-// type generalCertOptions struct {
-// 	ValidityPeriod   int    `json:"validity_period"`
-// 	Organization     string `json:"organization"`
-// 	OrganizationUnit string `json:"organization_unit"`
-// 	Country          string `json:"country"`
-// 	State            string `json:"state"`
-// 	Location         string `json:"location"`
-// }
-
 func main() {
 	os.MkdirAll("data/certs", os.ModePerm)
 	os.MkdirAll("data/root-cert", os.ModePerm)
 	os.MkdirAll("data/certmanager-cert", os.ModePerm)
 	os.MkdirAll("data", os.ModePerm)
-
-	// // Initialize settings
-	// if err := initSettings(); err != nil {
-	// 	log.Fatalf("Failed to initialize settings: %v", err)
-	// }
 
 	// First check if any .pem file exists in the certmanager-cert directory
 	certManagerCertExists := false
@@ -298,26 +279,6 @@ func showSettingsPage(c *gin.Context) {
 func showHowToPage(c *gin.Context) {
 	renderTemplate(c, "howto.html", nil)
 }
-
-// func handleSettings(c *gin.Context) {
-// 	var settings struct {
-// 		DnsNames    []string `json:"dns_names"`
-// 		IpAddresses []string `json:"ip_addresses"`
-// 	}
-
-// 	if err := c.BindJSON(&settings); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid settings format"})
-// 		return
-// 	}
-
-// 	// Save certificate manager settings
-// 	if err := saveCertManagerSettings(settings.DnsNames, settings.IpAddresses); err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save settings"})
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, gin.H{"message": "Settings saved successfully"})
-// }
 
 func loadRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 	// Read root certificate

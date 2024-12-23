@@ -168,7 +168,7 @@ func createCertificate(c *gin.Context) {
 		State            string   `form:"state"`
 		Location         string   `form:"location"`
 		DnsNames         []string `form:"dns"`
-		IpAddresses      []string `form:"ip_addresses"`
+		IpAddresses      []string `form:"ip"`
 		Overwrite        string   `form:"overwrite"`
 	}
 
@@ -225,29 +225,19 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	// certTemplate := &x509.Certificate{
-	// 	SerialNumber: serialNumber,
-	// 	Subject: pkix.Name{
-	// 		CommonName: commonName,
-	// 	},
-	// 	NotBefore:             time.Now(),
-	// 	NotAfter:              time.Now().AddDate(validityYears, 0, 0),
-	// 	KeyUsage:              x509.KeyUsageDigitalSignature,
-	// 	ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-	// 	BasicConstraintsValid: true,
-	// }
-
 	for _, dns := range form.DnsNames {
 		if dns != "" {
 			certTemplate.DNSNames = append(certTemplate.DNSNames, dns)
 		}
 	}
+	log.Printf("DNS-Names: %v", certTemplate.DNSNames)
 
 	for _, ip := range form.IpAddresses {
 		if parsedIP := net.ParseIP(ip); parsedIP != nil {
 			certTemplate.IPAddresses = append(certTemplate.IPAddresses, parsedIP)
 		}
 	}
+	log.Printf("IP Addresses: %v", certTemplate.IPAddresses)
 
 	rootCert, rootKey, err := findRootCertAndKey()
 	if err != nil {

@@ -3,7 +3,6 @@ Features:
 - secure the access to the service with a password
 - add more description how to use the service
 - add screenshots and better descriptions to the README.md
-- move recreateHomelabCertificate to Settings-Page (Show a link to settings when a self-Signed Certificate is used)
 - überprüfung auf korrekte Eingaben für alle Eingabefelder in allen Formularen
 - Create Certificate Button erst verfügbar wenn alle vorraussetzungen erfüllt Signed
     - Fehlende Infos irgendwo anzeigen, damit man weiß warum es noch nicht geht
@@ -11,12 +10,6 @@ Features:
 - Automatischer Dockerservice-Neustart falls notwendig
 
 Bugs:
-- Button-Ausrichtung RootCA Collapsible
-- Button-Ausrichtung Homelab certificate_manager_certificate Collapsible
-- Homelab certificate_manager_certificate Collapsible soll im Default nicht ausgeklappt sein
-- Download-Menü soll unter dem Button aufgehen, nicht direkt darüber
-- Admin-Menü soll unter dem Button aufgehen, nicht direkt darüber
-- IP-Adressen werden bei der Zertifikats-Erstellung nicht übernommen
-- Nicht verwendeten Code wieder entfernen
-
+- Settings-Buttons sollen nach speichern wieder automatisch deaktiviert werden, ohne Page-Refresh oder automatischer Page-Refresh
+- Toasts funktionieren nicht
 
