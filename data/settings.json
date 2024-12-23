@@ -9,7 +9,7 @@
     ]
   },
   "general_cert_options": {
-    "country": "german",
+    "country": "germany",
     "location": "VW",
     "organization": "HomeLAB",
     "organization_unit": "private",

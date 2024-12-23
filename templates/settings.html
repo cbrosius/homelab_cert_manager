@@ -13,7 +13,7 @@
     <script>
         const theme = localStorage.getItem('theme');
         if (theme) document.documentElement.setAttribute('theme', theme);
-      </script>
+    </script>
 </head>
 <body class="{{.theme}}" theme="{{.theme}}">
     {{ template "header.html" . }}
@@ -52,10 +52,10 @@
                                 </div>
                             </div>
                             <div class="row" style="margin-bottom: 20px;"></div>
-                            <div class="card-action">
-                                <button id="saveCertificateManagerCertificateChangesButton" type="submit" class="waves-effect waves-light btn green" disabled>
-                                    <i class="material-icons left" style="margin-right: 8px;">save</i>
-                                    Save Certificate Manager Certificate Defaults
+                            <div>
+                                <button id="saveAndRecreateHomelabCert" type="button" class="waves-effect waves-light btn orange" onclick="recreateHomelabCertButtonClick()" disabled>
+                                    <i class="material-icons left" style="margin-right: 8px";>autorenew</i>
+                                    Recreate HomeLAB Certificate Manager Certificate with this settings
                                 </button>
                             </div>
                         </form>
@@ -154,7 +154,7 @@
                 document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
             }
 
-            const saveButton = document.getElementById('saveCertificateManagerCertificateChangesButton');
+            const saveButton = document.getElementById('saveandRecreateHomelabCert');
             saveButton.disabled = true;
         });
 
@@ -196,7 +196,7 @@
         }
 
         function enableCertManagerSaveButton() {
-            const saveButton = document.getElementById('saveCertificateManagerCertificateChangesButton');
+            const saveButton = document.getElementById('saveAndRecreateHomelabCert');
             saveButton.disabled = false;
         }
 
@@ -205,8 +205,8 @@
             saveButton.disabled = false;
         }
 
-        function submitCertManagerSettings(event) {
-            event.preventDefault();
+        function recreateHomelabCertButtonClick() {
+
             const dnsInputs = document.getElementsByName('dns_names[]');
             const ipInputs = document.getElementsByName('ip_addresses[]');
             
@@ -225,12 +225,13 @@
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
                 M.toast({html: 'Settings saved successfully', classes: 'green'});
-                const saveButton = document.getElementById('saveCertificateManagerCertificateChangesButton');
+                const saveButton = document.getElementById('saveandRecreateHomelabCert');
                 saveButton.disabled = true;
             })
             .catch(error => {
                 M.toast({html: error.message, classes: 'red'});
             });
+            recreateHomelabCert();
         }
 
         function submitGeneralCertOptions(event) {

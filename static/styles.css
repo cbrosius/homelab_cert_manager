@@ -178,20 +178,19 @@ nav a {
     color: var(--font-color-main);
 }
 
-/* Custom Collapsible Header Styles */
-.custom-collapsible-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-
 /* Title Styles */
 .collapsible-title {
     flex: 1;
     text-align: left;
     font-weight: bold;
     font-size: 1.1em;
+}
+
+.collapsible-header::after {
+    content: "▾";
+    text-align: right;
+    margin-right: 0.25rem;
+    width: 5px;
 }
 
 /* Button Alignment */

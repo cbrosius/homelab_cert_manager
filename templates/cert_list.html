@@ -62,7 +62,7 @@
             }
 
             // Auto-open self-signed certificate warning if it exists
-            var selfSignedCollapsible = document.querySelector('.collapsible:has(button[onclick="recreateHomelabCert()"])');
+            var selfSignedCollapsible = document.querySelector('.self-signed');
             if (selfSignedCollapsible) {
                 var instance = M.Collapsible.getInstance(selfSignedCollapsible);
                 instance.open(0);
@@ -112,17 +112,17 @@
                                     </div>
                                     <div class="spacer"></div>
                                     <div class="right-content">
+                                        <form action="/certificates/download/root-cert/HomeLab_Root_CA.pem" method="GET" style="margin-right: 10px;">
+                                            <button type="submit" class="btn blue">
+                                                <i class="material-icons left">download</i>
+                                                <span class="btn-text">Download</span>
+                                            </button>
+                                        </form>
+                                        <div class="spacer"></div>
                                         <button class="waves-effect waves-light btn toggle-view-btn">
                                             <i class="material-icons left">visibility</i>
                                             <span class="btn-text">View Certificate</span>
                                         </button>
-                                        <div class="spacer"></div>
-                                        <form action="/certificates/download/root-cert/HomeLab_Root_CA.pem" method="GET" style="margin-right: 10px;">
-                                                <button type="submit" class="btn blue">
-                                                    <i class="material-icons left">download</i>
-                                                    <span class="btn-text">Download</span>
-                                                </button>
-                                        </form>
                                     </div>
                             </div>
                             <div class="collapsible-body">
@@ -175,13 +175,6 @@
                                                 <span class="btn-text">View Certificate</span>
                                             </button>
                                         </div>
-                                        <div class="spacer"></div>
-                                        <div>
-                                            <button onclick="recreateHomelabCert()" class="waves-effect waves-light btn orange">
-                                                <i class="material-icons left">autorenew</i>
-                                                Recreate with Homelab-RootCA
-                                            </button>
-                                        </div>
                                     </div>
                                     <div class="collapsible-body">
                                         <p><strong>Issuer:</strong> {{.homelabCertificate.Issuer}}</p>
@@ -193,26 +186,25 @@
                         </div>
                     </div>
                     {{else if .selfSignedExists}}
-                    <ul class="collapsible">
+                    <ul class="collapsible self-signed">
                         <li>
                             <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                 <div style="display: flex; align-items: center; white-space: nowrap;">
                                     <i class="material-icons orange-text">warning</i>
                                     <span style="margin-left: 8px;">Self-Signed Certificate</span>
                                 </div>
-                                <div class="right">
-                                    <button onclick="recreateHomelabCert()" class="waves-effect waves-light btn orange">
-                                        <i class="material-icons left">autorenew</i>
-                                        Recreate with Homelab-RootCA
-                                    </button>
-                                </div>
                             </div>
                             <div class="collapsible-body">
-                                <div class="card-panel yellow lighten-4" style="color: black;">
+                                <div class="card-panel yellow lighten-4" style="color: black; display: flex; align-items: center;">
                                     <i class="material-icons left">info</i>
-                                    <span>This is a self-signed certificate. For better security, recreate it using your Homelab Root CA.</span>
-                                </div>
-                                <p><strong>Subject:</strong> HomeLab Certificate Manager</p>
+                                    <span style="margin-left: 8px;">
+                                        This is a self-signed certificate. For better security, recreate it using your Homelab Root CA Certificate.
+                                    </span>
+                                    <a href="/settings" class="btn waves-effect waves-light orange white-text right-content" style="margin-left: auto;">
+                                        <i class="material-icons left">settings</i>
+                                        Go to Settings
+                                    </a>
+                                </div>                                <p><strong>Subject:</strong> HomeLab Certificate Manager</p>
                                 <p><strong>Type:</strong> Self-Signed Certificate</p>
                             </div>
                         </li>
@@ -220,7 +212,7 @@
                     {{else}}
                     <div class="card-panel yellow lighten-4" style="color: black;">
                         <i class="material-icons left">warning</i>
-                        <span>No certificate found. A self-signed certificate will be generated automatically when needed.</span>
+                        <span>No certificate found. A self-signed certificate will be generated automatically when service is restarted.</span>
                     </div>
                     {{end}}
                 </div>
@@ -290,32 +282,32 @@
     </div>
 
 <script>
-        M.AutoInit();
+    M.AutoInit();
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize theme
-            const currentTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(currentTheme);
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize theme
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        applyTheme(currentTheme);
 
-            // Initialize dropdowns
-            var dropdowns = document.querySelectorAll('.dropdown-trigger');
-            M.Dropdown.init(dropdowns, {
-                constrainWidth: false,
-                coverTrigger: false
-            });
+        // Initialize dropdowns
+        var dropdowns = document.querySelectorAll('.dropdown-trigger');
+        M.Dropdown.init(dropdowns, {
+            constrainWidth: false,
+            coverTrigger: false
         });
+    });
 
-        function downloadCertificate(certName, type) {
-            window.location.href = `/certificates/download/${certName}.${type}`;
+    function downloadCertificate(certName, type) {
+        window.location.href = `/certificates/download/${certName}.${type}`;
+    }
+
+    function confirmDelete(certName) {
+        if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
+            document.getElementById('delete-cert-form-' + certName).submit();
         }
+    }
 
-        function confirmDelete(certName) {
-            if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
-                document.getElementById('delete-cert-form-' + certName).submit();
-            }
-        }
-
-        function sortTable(columnIndex) {
+    function sortTable(columnIndex) {
     const table = document.getElementById("certTable");
     if (!table || !table.tBodies.length) {
         console.error("Tabelle oder tbody nicht gefunden.");
@@ -365,48 +357,47 @@ function updateSortIcons(sortedColumnIndex, ascending) {
     });
 }
 
-        function filterTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input ? input.value.toLowerCase() : "";
-            const table = document.getElementById("certTable");
-            const rows = table ? table.getElementsByTagName("tr") : [];
+function filterTable() {
+    const input = document.getElementById("searchInput");
+    const filter = input ? input.value.toLowerCase() : "";
+    const table = document.getElementById("certTable");
+    const rows = table ? table.getElementsByTagName("tr") : [];
 
-            if (!table || !input) {
-                console.error("Tabelle oder Suchfeld nicht gefunden.");
-                return;
-            }
+    if (!table || !input) {
+        console.error("Tabelle oder Suchfeld nicht gefunden.");
+        return;
+    }
 
-            for (let i = 1; i < rows.length; i++) { // Überspringe Kopfzeile
-                const cells = rows[i].getElementsByTagName("td");
-                
-                // Verbergen oder zeigen spezifischer Zeilen (primär Datensätze, die Leerer Zustand haben)
-                if (cells.length < 4) {
-                    // Macht deine speziellen versteckten Zeilen weiterhin unsichtbar
-                    rows[i].style.display = "none";
-                    continue;
-                }
-                
-                let rowContainsFilter = false;
+    for (let i = 1; i < rows.length; i++) { // Überspringe Kopfzeile
+        const cells = rows[i].getElementsByTagName("td");
+        
+        // Verbergen oder zeigen spezifischer Zeilen (primär Datensätze, die Leerer Zustand haben)
+        if (cells.length < 4) {
+            // Macht deine speziellen versteckten Zeilen weiterhin unsichtbar
+            rows[i].style.display = "none";
+            continue;
+        }
+        
+        let rowContainsFilter = false;
 
-                // Alle Zeilen mit tatsächlichen Zertifikatsdaten wieder anzeigen, wenn der Filter leer ist
-                if (!filter) {
-                    rows[i].style.display = "";
-                    continue;
-                }
-
-                // Suche nur in der 1. und 4. Spalte (0 und 3)
-                [0, 3].forEach(index => {
-                    const cell = cells[index];
-                    if (cell && cell.textContent.toLowerCase().includes(filter)) {
-                        rowContainsFilter = true;
-                    }
-                });
-
-                // Zeilen basierend auf Filter zeigen oder ausblenden
-                rows[i].style.display = rowContainsFilter ? "" : "none";
-            }
+        // Alle Zeilen mit tatsächlichen Zertifikatsdaten wieder anzeigen, wenn der Filter leer ist
+        if (!filter) {
+            rows[i].style.display = "";
+            continue;
         }
 
+        // Suche nur in der 1. und 4. Spalte (0 und 3)
+        [0, 3].forEach(index => {
+            const cell = cells[index];
+            if (cell && cell.textContent.toLowerCase().includes(filter)) {
+                rowContainsFilter = true;
+            }
+        });
+
+        // Zeilen basierend auf Filter zeigen oder ausblenden
+        rows[i].style.display = rowContainsFilter ? "" : "none";
+    }
+}
 
 </script>
     <!-- Materialize JavaScript -->
