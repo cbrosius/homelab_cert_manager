@@ -254,7 +254,7 @@
 
             const dnsInputs = document.getElementsByName('dns_names[]');
             const ipInputs = document.getElementsByName('ip_addresses[]');
-            
+            const button = document.getElementById('saveandRecreateHomelabCert');
             const data = {
                 dns_names: Array.from(dnsInputs).map(input => input.value).filter(v => v),
                 ip_addresses: Array.from(ipInputs).map(input => input.value).filter(v => v)
@@ -269,12 +269,17 @@
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
-                new M.Toast({text:'Settings saved successfully'});
+                showToast('Settings saved successfully', 'green', button);
+                // new M.Toast({text:'Settings saved successfully'});
                 const saveButton = document.getElementById('saveandRecreateHomelabCert');
                 saveButton.disabled = true;
+                setTimeout(() => {
+                        location.reload();
+                    }, 2000); // Wait 2 seconds before refreshing the page
             })
             .catch(error => {
-                new M.Toast({text: error.message, classes: 'red'});
+                // new M.Toast({text: error.message, classes: 'red'});
+                showToast(error.message, 'red', button);
             });
             recreateHomelabCert();
         }
@@ -282,7 +287,7 @@
         function submitGeneralCertOptions(event) {
             event.preventDefault();
             const form = event.target;
-
+            const button = document.getElementById('saveGeneralOptionsButton');
             const data = {
                 validity_period: form.validity_period.value,
                 organization: form.organization.value,
@@ -301,12 +306,14 @@
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
-                new M.Toast({text: 'Settings saved successfully', classes: 'green'});
+                showToast('Settings saved successfully', 'green', button);
+                // new M.Toast({text: 'Settings saved successfully', classes: 'green'});
                 const saveButton = document.getElementById('saveGeneralOptionsButton');
                 saveButton.disabled = true;
             })
             .catch(error => {
-                new M.Toast({text: error.message, classes: 'red'});
+                // new M.Toast({text: error.message, classes: 'red'});
+                showToast(error.message, 'red', button);
             });
         }
 
