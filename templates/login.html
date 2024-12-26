@@ -11,22 +11,42 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/styles.css">
     <script>
-        // Initialize theme before page load
         const theme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('theme', theme);
-        // document.body.setAttribute('theme', theme);
     </script>
+    <style>
+        .nowrap-title {
+            white-space: nowrap;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .card-content {
+            background: url('/static/Homelab Certification Authority.png') no-repeat center center;
+            background-size: cover;
+            padding: 50px;
+            border-radius: 20px;
+        }
+        .center-button {
+            display: flex;
+            justify-content: center;
+        }
+        .input-field {
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="row" style="margin-top: 100px;">
+        <div class="center-align">
+            <h2 class="nowrap-title">HomeLAB Certificate Manager</h2>
+        </div>
+        <div class="row" style="margin-top: 50px;">
             <div class="col s12 m6 offset-m3">
-                <div class="card">
+                <div class="card login-card">
                     <div class="card-content">
-                        <span class="card-title">Login</span>
-                        {{if .error}}
-                            <div class="red-text">{{index .error 0}}</div>
-                        {{end}}
                         <form action="/login" method="POST">
                             <div class="input-field">
                                 <input id="username" name="username" type="text" class="validate" required>
@@ -36,17 +56,21 @@
                                 <input id="password" name="password" type="password" class="validate" required>
                                 <label for="password">Password</label>
                             </div>
-                            <button class="btn waves-effect waves-light" type="submit">
-                                Login
-                                <i class="material-icons right">send</i>
-                            </button>
+                            <div class="center-button">
+                                <button class="btn waves-effect waves-light" type="submit">
+                                    Login
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
+                {{if .error}}
+                <div class="red-text center-align">{{.error}}</div>
+                {{end}}
             </div>
         </div>
     </div>
     <!-- Materialize JavaScript -->
     <script src="/static/materialize/materialize.js"></script>
 </body>
-</html> 
+</html>

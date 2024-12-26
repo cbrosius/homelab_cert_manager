@@ -16,8 +16,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/sessions"
 	"github.com/spf13/viper"
 )
+
+// create variable for session handling (login/logout)
+var store = sessions.NewCookieStore([]byte("secret-key"))
 
 // toJson converts a Go data structure to a JSON string
 func toJson(v interface{}) (string, error) {
@@ -163,34 +167,41 @@ func main() {
 	// Load templates with the function map
 	r.LoadHTMLGlob("templates/*")
 
-	r.GET("/", showHomePage)
-	r.GET("/certificates", checkRootCertAndListCerts) // Ensure this route calls the correct function
-	r.GET("/certificates/view/:filename", viewCertificate)
-	r.POST("/certificates/delete/:filename", deleteCertificate)
-	r.GET("/certificates/download/:filename", func(c *gin.Context) {
-		c.Params = append(c.Params, gin.Param{Key: "certType", Value: "certs"})
-		downloadCertificate(c)
-	})
-	r.POST("/create-root-certificate", createRootCertificate)
-	r.GET("/certificates/download/root-cert/:filename", func(c *gin.Context) {
-		c.Params = append(c.Params, gin.Param{Key: "certType", Value: "root-cert"})
-		downloadCertificate(c)
-	})
-	r.GET("/create-certificate-form", showCreateCertificateForm) // Route for certificate form
-	r.POST("/create-certificate", createCertificate)
+	r.GET("/login", showLoginPage)
+	r.POST("/login", handleLogin)
+	r.GET("/logout", handleLogout)
 
-	r.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate) // Route for deleting root certificate
-	r.GET("/settings", showSettingsPage)                                      // Route for settings page
-	// r.POST("/settings", handleSettings)                                       // Route for saving settings
-	r.GET("/howto", showHowToPage) // Add this new route
-	r.POST("/recreate-homelab-cert", recreateHomelabCertificate)
+	authorized := r.Group("/")
+	authorized.Use(AuthRequired)
+	{
+		authorized.GET("/", showHomePage)
+		authorized.GET("/certificates", checkRootCertAndListCerts) // Ensure this route calls the correct function
+		authorized.GET("/certificates/view/:filename", viewCertificate)
+		authorized.POST("/certificates/delete/:filename", deleteCertificate)
+		authorized.GET("/certificates/download/:filename", func(c *gin.Context) {
+			c.Params = append(c.Params, gin.Param{Key: "certType", Value: "certs"})
+			downloadCertificate(c)
+		})
+		authorized.POST("/create-root-certificate", createRootCertificate)
+		authorized.GET("/certificates/download/root-cert/:filename", func(c *gin.Context) {
+			c.Params = append(c.Params, gin.Param{Key: "certType", Value: "root-cert"})
+			downloadCertificate(c)
+		})
+		authorized.GET("/create-certificate-form", showCreateCertificateForm) // Route for certificate form
+		authorized.POST("/create-certificate", createCertificate)
 
-	r.GET("/settings/certmanager", handleCertManagerSettings)
-	r.POST("/settings/certmanager", handleCertManagerSettings)
+		authorized.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate) // Route for deleting root certificate
+		authorized.GET("/settings", showSettingsPage)                                      // Route for settings page
+		// r.POST("/settings", handleSettings)                                       // Route for saving settings
+		authorized.GET("/howto", showHowToPage) // Add this new route
+		authorized.POST("/recreate-homelab-cert", recreateHomelabCertificate)
 
-	r.GET("/settings/generalcertoptions", handleGeneralCertOptions)
-	r.POST("/settings/generalcertoptions", handleGeneralCertOptions)
+		authorized.GET("/settings/certmanager", handleCertManagerSettings)
+		authorized.POST("/settings/certmanager", handleCertManagerSettings)
 
+		authorized.GET("/settings/generalcertoptions", handleGeneralCertOptions)
+		authorized.POST("/settings/generalcertoptions", handleGeneralCertOptions)
+	}
 	// Determine which certificate to use
 	selfSignedCert := filepath.Join("data", "certmanager-cert", "selfsigned.pem")
 	selfSignedKey := filepath.Join("data", "certmanager-cert", "selfsigned.key")
@@ -384,4 +395,40 @@ func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 		data = gin.H{}
 	}
 	c.HTML(http.StatusOK, templateName, data)
+}
+
+func showLoginPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "login.html", nil)
+}
+
+func handleLogin(c *gin.Context) {
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+
+	// Replace with your own authentication logic
+	if username == "admin" && password == "password" {
+		session, _ := store.Get(c.Request, "session")
+		session.Values["authenticated"] = true
+		session.Save(c.Request, c.Writer)
+		c.Redirect(http.StatusSeeOther, "/certificates")
+	} else {
+		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "Invalid credentials"})
+	}
+}
+
+func handleLogout(c *gin.Context) {
+	session, _ := store.Get(c.Request, "session")
+	session.Values["authenticated"] = false
+	session.Save(c.Request, c.Writer)
+	c.Redirect(http.StatusSeeOther, "/login")
+}
+
+func AuthRequired(c *gin.Context) {
+	session, _ := store.Get(c.Request, "session")
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		c.Redirect(http.StatusSeeOther, "/login")
+		c.Abort()
+		return
+	}
+	c.Next()
 }
