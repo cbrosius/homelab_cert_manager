@@ -21,32 +21,23 @@
                     </li>
                 </ul>
             </div>
+            {{ if .defaultPassword }}
+            <div class="warning-banner" style="padding: 10px; text-align: center; line-height: 1.5em;">
+                Warning: The default password is being used. Please change it in the <a href="/settings" class="text-important">settings</a>.
+            </div>
+            {{ end }}
         </nav>
     </div>
 
     <!-- Dropdown Structure -->
     <ul id="dropdown1" class="dropdown-content">
         <li><a href="/certificates" class="text-important">Certificate List</a></li>
-        <li><a href="/changePassword" class="text-important">Change Password</a></li>
         <li><a href="/settings" class="text-important">Settings</a></li>
         <li><a href="/howto" class="text-important">How-To Guide</a></li>
-        <li><a id="about-link" href="#aboutModal" class="modal-trigger text-important">About</a></li>
         <li class="divider"></li>
         <li><a href="/logout" class="text-important">Logout</a></li>
     </ul>
 </header>
-
-<!-- Modal Structure -->
-<div id="aboutModal" class="modal">
-    <div class="modal-content">
-        <h4>About HomeLab Certificate Manager</h4>
-        <img src="/static/Homelab Certification Authority.png" alt="Homelab Certification Authority" class="responsive-img">
-        <p>This application helps you manage certificates for your homelab environment...</p>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Close</a>
-    </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -56,10 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
         constrainWidth: false,
         coverTrigger: false
     });
-
-    // Initialize modals
-    var modals = document.querySelectorAll('.modal');
-    M.Modal.init(modals);
 
     // Set initial theme icon
     const theme = localStorage.getItem('theme') || 'light';

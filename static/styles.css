@@ -199,6 +199,21 @@ nav a {
     flex-shrink: 0;
 }
 
+.toast-custom {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translate(0, -100%);
+}
+
+.warning-banner {
+    background-color: #fa7489; /* Light red background */
+    color: #000000; /* Dark red text */
+    padding: 10px;
+    text-align: center;
+    line-height: 1.5em;
+}
+
 /* Responsive Adjustments (Optional) */
 @media (max-width: 600px) {
     .custom-collapsible-header {

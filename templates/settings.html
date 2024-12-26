@@ -113,6 +113,36 @@
                 </div>
             </div>
         </div>
+
+        <!-- Add spacing between the cards -->
+        <div class="row" style="margin-bottom: 20px;"></div>
+
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Change Password</span>
+                <form id="changePasswordForm" onsubmit="changePassword(event)">
+                    <div class="input-field col s12">
+                        <input id="old_password" name="old_password" type="password" class="validate" required>
+                        <label for="old_password">Old Password</label>
+                    </div>
+                    <div class="row" style="margin-bottom: 20px;"></div>
+                    <div class="input-field col s12">
+                        <input id="new_password" name="new_password" type="password" class="validate" required>
+                        <label for="new_password">New Password</label>
+                    </div>
+                    <div class="row" style="margin-bottom: 20px;"></div>
+                    <div class="input-field col s12">
+                        <input id="confirm_password" name="confirm_password" type="password" class="validate" required>
+                        <label for="confirm_password">Confirm New Password</label>
+                    </div>
+                    <div class="row" style="margin-bottom: 20px;"></div>
+                    <button id="changePasswordButton" class="btn waves-effect waves-light" type="submit">
+                        <i class="material-icons left" style="margin-right: 8px;">lock_reset</i> 
+                        Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -153,6 +183,21 @@
                 document.querySelector('input[name="state"]').value = generalCertOptions.State || '';
                 document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
             }
+
+            // Initialize change password form
+            const newPassword = document.getElementById('new_password');
+            const confirmPassword = document.getElementById('confirm_password');
+            const changePasswordButton = document.getElementById('changePasswordButton');
+
+            function validatePasswords() {
+                if (newPassword.value && confirmPassword.value) {
+                    changePasswordButton.disabled = false;
+                } else {
+                    changePasswordButton.disabled = true;
+                }
+            }
+            newPassword.addEventListener('input', validatePasswords);
+            confirmPassword.addEventListener('input', validatePasswords);
 
             const saveButton = document.getElementById('saveandRecreateHomelabCert');
             saveButton.disabled = true;
@@ -265,7 +310,62 @@
             });
         }
 
+        function changePassword(event) {
+            event.preventDefault();
+            const form = document.getElementById('changePasswordForm');
+            const oldPassword = form.old_password.value;
+            const newPassword = form.new_password.value;
+            const confirmPassword = form.confirm_password.value;
+            const button = document.getElementById('changePasswordButton');
+
+            if (newPassword !== confirmPassword) {
+                showToast('New passwords do not match', 'red', button);
+                return;
+            }
+
+            fetch('/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    old_password: oldPassword,
+                    new_password: newPassword
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Password changed successfully', 'green', button);
+                    form.reset();
+                    changePasswordButton.disabled = true;
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000); // Wait 2 seconds before refreshing the page
+                } else {
+                    showToast(data.message, 'red', button);
+                }
+            })
+            .catch(error => {
+                showToast('Error changing password', 'red', button);
+            });
+        }
         
+        function showToast(message, classes, button) {
+            const toast = document.createElement('div');
+            toast.className = `toast-custom ${classes}`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+
+            const rect = button.getBoundingClientRect();
+            toast.style.top = `${rect.top + window.scrollY}px`;
+            toast.style.left = `${rect.left + window.scrollX}px`;
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
     </script>
     <!-- Materialize JavaScript -->
     <script src="/static/materialize/materialize.js"></script>

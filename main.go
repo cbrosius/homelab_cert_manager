@@ -3,8 +3,10 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha512"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"html/template"
@@ -19,6 +21,10 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/spf13/viper"
 )
+
+type Config struct {
+	Password string `json:"password"`
+}
 
 // create variable for session handling (login/logout)
 var store = sessions.NewCookieStore([]byte("secret-key"))
@@ -37,6 +43,17 @@ func main() {
 	os.MkdirAll("data/root-cert", os.ModePerm)
 	os.MkdirAll("data/certmanager-cert", os.ModePerm)
 	os.MkdirAll("data", os.ModePerm)
+
+	// Load configuration
+	config, conf_error := loadConfig()
+	if conf_error != nil {
+		log.Fatalf("Error loading configuration: %v", conf_error)
+	}
+
+	// Initialize settings
+	if conf_error := initSettings(); conf_error != nil {
+		log.Fatalf("Failed to initialize settings: %v", conf_error)
+	}
 
 	// First check if any .pem file exists in the certmanager-cert directory
 	certManagerCertExists := false
@@ -141,21 +158,6 @@ func main() {
 		log.Println("Root certificate not found.")
 	}
 
-	// Initialize Viper for settings management
-	viper.SetConfigName("settings")
-	viper.SetConfigType("json")
-	viper.AddConfigPath("data")
-
-	// Read the config file if it exists
-	if err := viper.ReadInConfig(); err != nil {
-		log.Println("No existing settings file found. A new one will be created.")
-	}
-
-	// Initialize settings
-	if err := initSettings(); err != nil {
-		log.Fatalf("Failed to initialize settings: %v", err)
-	}
-
 	r := gin.Default()
 	r.Static("/static", "./static") // Konfiguration, um statische Dateien zu bedienen
 
@@ -168,7 +170,9 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/login", showLoginPage)
-	r.POST("/login", handleLogin)
+	r.POST("/login", func(c *gin.Context) {
+		handleLogin(c, config)
+	})
 	r.GET("/logout", handleLogout)
 
 	authorized := r.Group("/")
@@ -201,6 +205,10 @@ func main() {
 
 		authorized.GET("/settings/generalcertoptions", handleGeneralCertOptions)
 		authorized.POST("/settings/generalcertoptions", handleGeneralCertOptions)
+
+		r.POST("/change-password", func(c *gin.Context) {
+			changePassword(c, config)
+		})
 	}
 	// Determine which certificate to use
 	selfSignedCert := filepath.Join("data", "certmanager-cert", "selfsigned.pem")
@@ -271,7 +279,8 @@ func showCreateCertificateForm(c *gin.Context) {
 }
 
 func showSettingsPage(c *gin.Context) {
-	renderTemplate(c, "settings.html", gin.H{
+	isDefaultPassword := viper.GetString("password") == hashPassword("admin")
+	c.HTML(http.StatusOK, "settings.html", gin.H{
 		"certManagerSettings": gin.H{
 			"DnsNames":    viper.GetStringSlice("certificate_manager_certificate.dns_names"),
 			"IpAddresses": viper.GetStringSlice("certificate_manager_certificate.ip_addresses"),
@@ -284,11 +293,13 @@ func showSettingsPage(c *gin.Context) {
 			"State":            viper.GetString("general_cert_options.state"),
 			"Location":         viper.GetString("general_cert_options.location"),
 		},
+		"defaultPassword": isDefaultPassword,
 	})
 }
 
 func showHowToPage(c *gin.Context) {
-	renderTemplate(c, "howto.html", nil)
+	isDefaultPassword := viper.GetString("password") == hashPassword("admin")
+	c.HTML(http.StatusOK, "howto.html", gin.H{"defaultPassword": isDefaultPassword})
 }
 
 func loadRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
@@ -401,12 +412,12 @@ func showLoginPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "login.html", nil)
 }
 
-func handleLogin(c *gin.Context) {
+func handleLogin(c *gin.Context, config *Config) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	// Replace with your own authentication logic
-	if username == "admin" && password == "password" {
+	// Hash the provided password and compare it with the stored hash
+	if username == "admin" && hashPassword(password) == config.Password {
 		session, _ := store.Get(c.Request, "session")
 		session.Values["authenticated"] = true
 		session.Save(c.Request, c.Writer)
@@ -431,4 +442,72 @@ func AuthRequired(c *gin.Context) {
 		return
 	}
 	c.Next()
+}
+
+func loadConfig() (*Config, error) {
+	viper.SetConfigName("settings")
+	viper.SetConfigType("json")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("data")
+
+	var config Config
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			config.Password = hashPassword("admin")
+			if saveErr := saveConfig(&config); saveErr != nil {
+				return nil, saveErr
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		if err := viper.Unmarshal(&config); err != nil {
+			return nil, err
+		}
+		if config.Password == "" {
+			config.Password = hashPassword("admin")
+			if saveErr := saveConfig(&config); saveErr != nil {
+				return nil, saveErr
+			}
+		}
+	}
+	return &config, nil
+}
+
+func saveConfig(config *Config) error {
+	viper.Set("password", config.Password)
+	return viper.WriteConfigAs("data/settings.json")
+}
+
+func changePassword(c *gin.Context, config *Config) {
+	var req struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+		return
+	}
+
+	// Hash the provided old password and compare it with the stored hash
+	if hashPassword(req.OldPassword) != config.Password {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Old password is incorrect"})
+		return
+	}
+
+	// Hash the new password before saving it
+	config.Password = hashPassword(req.NewPassword)
+	if err := saveConfig(config); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to save new password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Password changed successfully"})
+}
+
+func hashPassword(password string) string {
+	hash := sha512.New()
+	hash.Write([]byte(password))
+	return hex.EncodeToString(hash.Sum(nil))
 }
