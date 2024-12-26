@@ -1,14 +1,11 @@
 Features:
 - implement versioning for the sources
-- secure the access to the service with a password
 - add more description how to use the service
 - add screenshots and better descriptions to the README.md
 - überprüfung auf korrekte Eingaben für alle Eingabefelder in allen Formularen
 - Create Certificate Button erst verfügbar wenn alle vorraussetzungen erfüllt Signed
     - Fehlende Infos irgendwo anzeigen, damit man weiß warum es noch nicht geht
-- Certificate-Tabelle nach allen Spalten sortierbar machen
 - Automatischer Dockerservice-Neustart falls notwendig
 
 Bugs:
-- Settings-Buttons sollen nach speichern wieder automatisch deaktiviert werden, ohne Page-Refresh oder automatischer Page-Refresh
 

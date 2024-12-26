@@ -111,7 +111,8 @@ nav {
 nav .brand-logo,
 nav ul a,
 nav a {
-    color: var(--font-color-main) !important;
+   /* color: var(--font-color-main) !important; */
+   color: blue;
 }
 
 /* Dropdown styles */
