@@ -19,7 +19,7 @@ Then your internal sites show secure connections in all modern browsers.
 - **Search/Filter:** Easily search and filter certificates in the table.
 - **Settings Page:** Configure certificate defaults and other settings.
 
-## Screenshot
+## Screenshots
 ![Screenshot](static/screenshot.png)
 
 ## Getting Started
@@ -27,3 +27,13 @@ Then your internal sites show secure connections in all modern browsers.
 To use Homelab Cert Manager, just download and install the Docker-Image from the github-repo (ghcr.io/cbrosius/homelab_cert_manager/homelab_cert_manager:latest)
 
 As an alternative you can clone the repo and compile the project by yourself locally.
+
+When Homelab Cert Manager has started, got to https://<IP-Of-HomeLAB Cert Manager>:8443 or https://<IP-Of-DockerHost>: and whatever port is used when running as docker-container.
+
+Use admin/admin as Username/Password
+
+- Create HomeLAB Root Certificate
+- add new HomeLAB Root Certificate to trusted Root-Certificates on your local machine
+- (optional) replace self-signed HomeLAB Cert Manager Certificate with a signed one
+- start creating certificates for your services
+- configure/use the new certificates for your services
