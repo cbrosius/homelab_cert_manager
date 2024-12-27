@@ -3,4 +3,4 @@
 *.key
 *.pem
 data/*
-data/settings.json
+!data/settings.json
