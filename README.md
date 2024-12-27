@@ -15,6 +15,12 @@ Then your internal sites show secure connections in all modern browsers.
 
 - **Internal Certificate Management:** Generate and manage internal SSL/TLS certificates.
 - **Ease of Use:** Simple configuration and operation.
+- **Dark/Light Mode:** Toggle between dark and light themes.
+- **Search/Filter:** Easily search and filter certificates in the table.
+- **Settings Page:** Configure certificate defaults and other settings.
+
+## Screenshot
+![Screenshot](static/screenshot.png)
 
 ## Getting Started
 
