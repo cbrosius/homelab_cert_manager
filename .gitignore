@@ -2,5 +2,6 @@
 *.bak
 *.key
 *.pem
+*.json
 data/*
 !data/settings.json
