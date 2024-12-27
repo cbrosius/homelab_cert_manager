@@ -215,6 +215,16 @@ nav a {
     line-height: 1.5em;
 }
 
+/* Disabled button styles */
+button:disabled,
+.btn:disabled,
+a.btn[disabled] {
+    background-color: grey !important;
+    color: rgb(180, 180, 180) !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
 /* Responsive Adjustments (Optional) */
 @media (max-width: 600px) {
     .custom-collapsible-header {

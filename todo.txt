@@ -6,6 +6,7 @@ Features:
 - Create Certificate Button erst verfügbar wenn alle vorraussetzungen erfüllt Signed
     - Fehlende Infos irgendwo anzeigen, damit man weiß warum es noch nicht geht
 - Automatischer Dockerservice-Neustart falls notwendig
+- Icons lokal bereitstellen
 
 Bugs:
 

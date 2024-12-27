@@ -135,24 +135,24 @@
                     {{else}}
                     <ul class="collapsible">
                         <li>
-                            <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                 <div style="display: flex; align-items: center;">
                                     <i class="material-icons orange-text">warning</i>
                                     <span style="margin-left: 8px;">Root Certificate</span>
                                 </div>
-                                <div>
-                                    <a href="/" class="waves-effect waves-light btn orange">
-                                        <i class="material-icons left">add</i>
+                            </div>
+                            <div class="collapsible-body">
+                                <div class="card-panel yellow lighten-4" style="color: black; display: flex; align-items: center;">
+                                    <i class="material-icons left">info</i>
+                                    <span style="margin-left: 8px;">
+                                        No root certificate found. Please create one to start issuing certificates.
+                                    </span>
+                                    <a href="/" class="btn waves-effect waves-light orange white-text right-content" style="margin-left: auto;">
+                                        <i class="material-icons left" style="margin-right: 8px">add_moderator</i>
                                         Create Root Certificate
                                     </a>
                                 </div>
-                            </div>
-                            <div class="collapsible-body">
-                                <div class="card-panel yellow lighten-4" style="color: black;">
-                                    <i class="material-icons left">info</i>
-                                    <span>No root certificate found. Please create one to start issuing certificates.</span>
-                                </div>
-                            </div>
+                        </div>
                         </li>
                     </ul>
                     {{end}}
@@ -200,13 +200,15 @@
                                 <div class="card-panel yellow lighten-4" style="color: black; display: flex; align-items: center;">
                                     <i class="material-icons left">info</i>
                                     <span style="margin-left: 8px;">
-                                        This is a self-signed certificate. For better security, recreate it using your Homelab Root CA Certificate.
+                                        This is a self-signed certificate. <br>
+                                        Recreate it using your Homelab Root CA Certificate.
                                     </span>
-                                    <a href="/settings" class="btn waves-effect waves-light orange white-text right-content" style="margin-left: auto;">
+                                    <a href="/settings" class="btn waves-effect waves-light orange white-text right-content" id="goSettingsBtn" {{if not .rootCertificate}}disabled{{end}} style="margin-left: auto;">
                                         <i class="material-icons left">settings</i>
                                         Go to Settings
                                     </a>
-                                </div>                                <p><strong>Subject:</strong> HomeLab Certificate Manager</p>
+                                </div>                                
+                                <p><strong>Subject:</strong> HomeLab Certificate Manager</p>
                                 <p><strong>Type:</strong> Self-Signed Certificate</p>
                             </div>
                         </li>
@@ -228,7 +230,7 @@
                         <div class="card-content">
                             <div class="row" style="display: flex; justify-content: space-between; align-items: center;">
                                 <span class="card-title">HomeLAB Certificates</span>
-                                <a href="/create-certificate-form" class="btn waves-effect green white-text">Create New Certificate</a>
+                                <a href="/create-certificate-form" class="btn waves-effect green white-text" {{if not .rootCertificate}}disabled{{end}}>Create New Certificate</a>
                             </div>
                     
                             <hr>
