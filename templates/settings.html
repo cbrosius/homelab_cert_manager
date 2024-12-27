@@ -100,7 +100,10 @@
                                     <input type="text" id="location" name="location" class="validate" oninput="enableGeneralOptionsSaveButton()">
                                     <label for="location" class="active">Location</label>
                                 </div>
-                            </div>
+                                <div class="input-field col s12">
+                                    <input type="email" id="email" name="email" class="validate" oninput="enableGeneralOptionsSaveButton()">
+                                    <label for="email" class="active">Email</label>
+                                </div>                            </div>
                             <div class="card-action">
                             <div class="row" style="margin-bottom: 20px;"></div>
                             <button id="saveGeneralOptionsButton" type="submit" class="waves-effect waves-light btn green" disabled>
@@ -182,6 +185,7 @@
                 document.querySelector('input[name="country"]').value = generalCertOptions.Country || '';
                 document.querySelector('input[name="state"]').value = generalCertOptions.State || '';
                 document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
+                document.querySelector('input[name="email"]').value = generalCertOptions.Email || '';
             }
 
             // Initialize change password form
@@ -295,6 +299,7 @@
                 country: form.country.value,
                 state: form.state.value,
                 location: form.location.value,
+                email: form.email.value,
             };
 
             fetch('/settings/generalcertoptions', {

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 func createRootCertificate(c *gin.Context) {
@@ -92,6 +93,18 @@ func createRootCertificate(c *gin.Context) {
 	}
 	defer rootKeyFile.Close()
 	pem.Encode(rootKeyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
+
+	// Save optional fields to settings.json
+	viper.Set("general_cert_options.organization", strings.TrimSpace(organization))
+	viper.Set("general_cert_options.organization_unit", strings.TrimSpace(organizationalUnit))
+	viper.Set("general_cert_options.country", strings.TrimSpace(country))
+	viper.Set("general_cert_options.state", strings.TrimSpace(state))
+	viper.Set("general_cert_options.location", strings.TrimSpace(locality))
+	viper.Set("general_cert_options.email", strings.TrimSpace(email))
+	if err := viper.WriteConfig(); err != nil {
+		c.String(http.StatusInternalServerError, "Error saving settings: %v", err)
+		return
+	}
 
 	c.Redirect(http.StatusSeeOther, "/certificates")
 }

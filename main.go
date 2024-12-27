@@ -272,6 +272,7 @@ func showCreateCertificateForm(c *gin.Context) {
 		"Country":          viper.GetString("general_cert_options.country"),
 		"State":            viper.GetString("general_cert_options.state"),
 		"Location":         viper.GetString("general_cert_options.location"),
+		"Email":            viper.GetString("general_cert_options.email"),
 	}
 	renderTemplate(c, "create_certificate.html", gin.H{
 		"generalCertOptions": generalCertOptions,
@@ -292,6 +293,7 @@ func showSettingsPage(c *gin.Context) {
 			"Country":          viper.GetString("general_cert_options.country"),
 			"State":            viper.GetString("general_cert_options.state"),
 			"Location":         viper.GetString("general_cert_options.location"),
+			"Email":            viper.GetString("general_cert_options.email"),
 		},
 		"defaultPassword": isDefaultPassword,
 	})
@@ -379,6 +381,7 @@ func handleGeneralCertOptions(c *gin.Context) {
 		Country          string `json:"country"`
 		State            string `json:"state"`
 		Location         string `json:"location"`
+		Email            string `json:"email"`
 	}
 
 	if err := c.BindJSON(&generalCertOptions); err != nil {
@@ -393,6 +396,7 @@ func handleGeneralCertOptions(c *gin.Context) {
 		generalCertOptions.Country,
 		generalCertOptions.State,
 		generalCertOptions.Location,
+		generalCertOptions.Email,
 	); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -170,6 +170,7 @@ func createCertificate(c *gin.Context) {
 		Country          string   `form:"country"`
 		State            string   `form:"state"`
 		Location         string   `form:"location"`
+		Email            string   `form:"email"`
 		DnsNames         []string `form:"dns"`
 		IpAddresses      []string `form:"ip"`
 		Overwrite        string   `form:"overwrite"`
@@ -213,6 +214,12 @@ func createCertificate(c *gin.Context) {
 			Country:            []string{form.Country},
 			Province:           []string{form.State},
 			Locality:           []string{form.Location},
+			ExtraNames: []pkix.AttributeTypeAndValue{
+				{
+					Type:  []int{1, 2, 840, 113549, 1, 9, 1},
+					Value: form.Email,
+				},
+			},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(validityYears, 0, 0),

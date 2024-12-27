@@ -20,6 +20,7 @@ type Settings struct {
 		Country          string `mapstructure:"country"`
 		State            string `mapstructure:"state"`
 		Location         string `mapstructure:"location"`
+		Email            string `mapstructure:"email"`
 	} `mapstructure:"general_cert_options"`
 }
 
@@ -33,12 +34,13 @@ func initSettings() error {
 	viper.SetDefault("certificate_manager_certificate.dns_names", []string{})
 	viper.SetDefault("certificate_manager_certificate.ip_addresses", []string{})
 
-	viper.SetDefault("general_cert_options.validity_period", "1")
+	viper.SetDefault("general_cert_options.validity_period", "10")
 	viper.SetDefault("general_cert_options.organization", "")
 	viper.SetDefault("general_cert_options.organization_unit", "")
 	viper.SetDefault("general_cert_options.country", "")
 	viper.SetDefault("general_cert_options.state", "")
 	viper.SetDefault("general_cert_options.location", "")
+	viper.SetDefault("general_cert_options.email", "")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -66,7 +68,7 @@ func saveCertManagerSettings(dnsNames []string, ipAddresses []string) error {
 	return viper.WriteConfig()
 }
 
-func saveGeneralCertOptions(validityPeriod, organization, organizationUnit, country, state, location string) error {
+func saveGeneralCertOptions(validityPeriod, organization, organizationUnit, country, state, location, email string) error {
 	log.Println("running saveGeneralCertOptions ...")
 	viper.Set("general_cert_options.validity_period", strings.TrimSpace(validityPeriod))
 	viper.Set("general_cert_options.organization", strings.TrimSpace(organization))
@@ -74,5 +76,6 @@ func saveGeneralCertOptions(validityPeriod, organization, organizationUnit, coun
 	viper.Set("general_cert_options.country", strings.TrimSpace(country))
 	viper.Set("general_cert_options.state", strings.TrimSpace(state))
 	viper.Set("general_cert_options.location", strings.TrimSpace(location))
+	viper.Set("general_cert_options.email", strings.TrimSpace(email))
 	return viper.WriteConfig()
 }

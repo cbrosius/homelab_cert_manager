@@ -73,7 +73,12 @@
                 <div class="input-field col s12">
                     <input type="text" id="location" name="location" class="validate" oninput="enableCreateCertButton()">
                     <label for="location" class="active">Location</label>
-                </div>            </div>
+                </div>
+                <div class="input-field col s12">
+                    <input type="text" id="email" name="email" class="validate" required>
+                    <label for="email" class="active">Email</label>
+                </div>
+            </div>
             <div class="row" style="margin-bottom: 20px;"></div>
             <div class="row">
                 <button id="createCertButton" type="submit" class="waves-effect waves-light btn green" disabled>
@@ -101,6 +106,7 @@
                 document.querySelector('input[name="country"]').value = generalCertOptions.Country || '';
                 document.querySelector('input[name="state"]').value = generalCertOptions.State || '';
                 document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
+                document.querySelector('input[name="email"]').value = generalCertOptions.Email || '';
             }
         });
 
