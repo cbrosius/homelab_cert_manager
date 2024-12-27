@@ -7,6 +7,8 @@ This tool can generate a Homlab Root-Certificate and additional certificates for
 
 All you need to do is import and trust the generated Root-Certificate once to your PC and generate a new certificate for each of your services.
 
+This certificates can then be used, to configure SSL for or replace the selfsigned cert of your HomeLAB services.
+
 Then your internal sites show secure connections in all modern browsers.
 
 ## Features
