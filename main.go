@@ -197,7 +197,6 @@ func main() {
 		authorized.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate) // Route for deleting root certificate
 		authorized.GET("/settings", showSettingsPage)                                      // Route for settings page
 		// r.POST("/settings", handleSettings)                                       // Route for saving settings
-		authorized.GET("/howto", showHowToPage) // Add this new route
 		authorized.POST("/recreate-homelab-cert", recreateHomelabCertificate)
 
 		authorized.GET("/settings/certmanager", handleCertManagerSettings)
@@ -297,11 +296,6 @@ func showSettingsPage(c *gin.Context) {
 		},
 		"defaultPassword": isDefaultPassword,
 	})
-}
-
-func showHowToPage(c *gin.Context) {
-	isDefaultPassword := viper.GetString("password") == hashPassword("admin")
-	c.HTML(http.StatusOK, "howto.html", gin.H{"defaultPassword": isDefaultPassword})
 }
 
 func loadRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {

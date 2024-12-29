@@ -9,7 +9,7 @@ All you need to do is import and trust the generated Root-Certificate once to yo
 
 This certificates can then be used, to configure SSL for or replace the selfsigned cert of your HomeLAB services.
 
-Then your internal sites show secure connections in all modern browsers.
+Then your internal sites show secure connections (without warnings) in all modern browsers.
 
 ## Features
 
@@ -30,7 +30,7 @@ As an alternative you can clone the repo and compile the project by yourself loc
 
 When Homelab Cert Manager has started, got to https://<IP-Of-HomeLAB Cert Manager>:8443 or https://<IP-Of-DockerHost>: and whatever port is used when running as docker-container.
 
-Use admin/admin as Username/Password
+Use admin/admin as initial Username/Password
 
 - Create HomeLAB Root Certificate
 - add new HomeLAB Root Certificate to trusted Root-Certificates on your local machine
