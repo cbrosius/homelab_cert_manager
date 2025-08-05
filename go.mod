@@ -8,6 +8,8 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/spf13/viper v1.19.0
+	github.com/utrack/gin-csrf v0.0.0-20190424104817-40fb8d2c8fca
+	golang.org/x/crypto v0.40.0
 	software.sslmate.com/src/go-pkcs12 v0.5.0
 )
 
@@ -46,10 +48,8 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/utrack/gin-csrf v0.0.0-20190424104817-40fb8d2c8fca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.12.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
