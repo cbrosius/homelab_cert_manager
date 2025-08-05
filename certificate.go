@@ -386,16 +386,14 @@ func viewCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
 	var filePath string
 
-	// Special case for homelab certificate manager certificate
-	if fileName == "homelab_certificate_manager.pem" {
-		filePath = "data/certmanager-cert/" + fileName
-	} else {
-		filePath = "./data/certs/" + fileName
-	}
+	// Clean the filename to prevent path traversal
+	cleanFileName := filepath.Base(fileName)
 
-	if !isValidFileName(fileName) {
-		c.String(http.StatusBadRequest, "Invalid file name")
-		return
+	// Special case for homelab certificate manager certificate
+	if cleanFileName == "homelab_certificate_manager.pem" {
+		filePath = filepath.Join("data", "certmanager-cert", cleanFileName)
+	} else {
+		filePath = filepath.Join("data", "certs", cleanFileName)
 	}
 
 	// Check if the file exists
@@ -432,11 +430,6 @@ func viewCertificate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"decoded": decoded,
 	})
-}
-
-func isValidFileName(fileName string) bool {
-	// Implement validation logic here
-	return !strings.Contains(fileName, "..")
 }
 
 func readCertificate(filePath string) (*x509.Certificate, error) {
