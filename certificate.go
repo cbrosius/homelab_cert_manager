@@ -467,8 +467,13 @@ func recreateHomelabCertificate(c *gin.Context) {
 	}
 
 	// Create certificate template
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate serial number"})
+		return
+	}
 	template := x509.Certificate{
-		SerialNumber: big.NewInt(time.Now().Unix()),
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: "HomeLab Certificate Manager",
 		},
