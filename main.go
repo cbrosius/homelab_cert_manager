@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"html/template"
 	"log"
 	"math/big"
@@ -27,7 +28,7 @@ type Config struct {
 }
 
 // create variable for session handling (login/logout)
-var store = sessions.NewCookieStore([]byte("secret-key"))
+var store *sessions.CookieStore
 
 // toJson converts a Go data structure to a JSON string
 func toJson(v interface{}) (string, error) {
@@ -469,6 +470,23 @@ func loadConfig() (*Config, error) {
 			}
 		}
 	}
+
+	// Handle session key
+	sessionKey := viper.GetString("session_key")
+	if sessionKey == "" {
+		key := make([]byte, 64)
+		_, err := rand.Read(key)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate session key: %v", err)
+		}
+		sessionKey = hex.EncodeToString(key)
+		viper.Set("session_key", sessionKey)
+		if err := viper.WriteConfig(); err != nil {
+			return nil, fmt.Errorf("failed to save session key: %v", err)
+		}
+	}
+	store = sessions.NewCookieStore([]byte(sessionKey))
+
 	return &config, nil
 }
 
@@ -508,4 +526,51 @@ func hashPassword(password string) string {
 	hash := sha512.New()
 	hash.Write([]byte(password))
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func loadConfig() (*Config, error) {
+	viper.SetConfigName("settings")
+	viper.SetConfigType("json")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("data")
+
+	var config Config
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			config.Password = hashPassword("admin")
+			if saveErr := saveConfig(&config); saveErr != nil {
+				return nil, saveErr
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		if err := viper.Unmarshal(&config); err != nil {
+			return nil, err
+		}
+		if config.Password == "" {
+			config.Password = hashPassword("admin")
+			if saveErr := saveConfig(&config); saveErr != nil {
+				return nil, saveErr
+			}
+		}
+	}
+
+	// Handle session key
+	sessionKey := viper.GetString("session_key")
+	if sessionKey == "" {
+		key := make([]byte, 64)
+		_, err := rand.Read(key)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate session key: %v", err)
+		}
+		sessionKey = hex.EncodeToString(key)
+		viper.Set("session_key", sessionKey)
+		if err := viper.WriteConfig(); err != nil {
+			return nil, fmt.Errorf("failed to save session key: %v", err)
+		}
+	}
+	store = sessions.NewCookieStore([]byte(sessionKey))
+
+	return &config, nil
 }
