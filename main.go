@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha512"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
@@ -21,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Config struct {
@@ -280,7 +280,7 @@ func showCreateCertificateForm(c *gin.Context) {
 }
 
 func showSettingsPage(c *gin.Context) {
-	isDefaultPassword := viper.GetString("password") == hashPassword("admin")
+	isDefaultPassword := checkPasswordHash("admin", viper.GetString("password"))
 	c.HTML(http.StatusOK, "settings.html", gin.H{
 		"certManagerSettings": gin.H{
 			"DnsNames":    viper.GetStringSlice("certificate_manager_certificate.dns_names"),
@@ -416,7 +416,7 @@ func handleLogin(c *gin.Context, config *Config) {
 	password := c.PostForm("password")
 
 	// Hash the provided password and compare it with the stored hash
-	if username == "admin" && hashPassword(password) == config.Password {
+	if username == "admin" && checkPasswordHash(password, config.Password) {
 		session, _ := store.Get(c.Request, "session")
 		session.Values["authenticated"] = true
 		session.Save(c.Request, c.Writer)
@@ -452,7 +452,11 @@ func loadConfig() (*Config, error) {
 	var config Config
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			config.Password = hashPassword("admin")
+			hashedPassword, err := hashPassword("admin")
+			if err != nil {
+				return nil, err
+			}
+			config.Password = hashedPassword
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
 			}
@@ -464,7 +468,11 @@ func loadConfig() (*Config, error) {
 			return nil, err
 		}
 		if config.Password == "" {
-			config.Password = hashPassword("admin")
+			hashedPassword, err := hashPassword("admin")
+			if err != nil {
+				return nil, err
+			}
+			config.Password = hashedPassword
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
 			}
@@ -507,13 +515,18 @@ func changePassword(c *gin.Context, config *Config) {
 	}
 
 	// Hash the provided old password and compare it with the stored hash
-	if hashPassword(req.OldPassword) != config.Password {
+	if !checkPasswordHash(req.OldPassword, config.Password) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Old password is incorrect"})
 		return
 	}
 
 	// Hash the new password before saving it
-	config.Password = hashPassword(req.NewPassword)
+	hashedPassword, err := hashPassword(req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to hash new password"})
+		return
+	}
+	config.Password = hashedPassword
 	if err := saveConfig(config); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to save new password"})
 		return
@@ -522,10 +535,14 @@ func changePassword(c *gin.Context, config *Config) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Password changed successfully"})
 }
 
-func hashPassword(password string) string {
-	hash := sha512.New()
-	hash.Write([]byte(password))
-	return hex.EncodeToString(hash.Sum(nil))
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
 
 func loadConfig() (*Config, error) {
@@ -537,7 +554,11 @@ func loadConfig() (*Config, error) {
 	var config Config
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			config.Password = hashPassword("admin")
+			hashedPassword, err := hashPassword("admin")
+			if err != nil {
+				return nil, err
+			}
+			config.Password = hashedPassword
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
 			}
@@ -549,7 +570,11 @@ func loadConfig() (*Config, error) {
 			return nil, err
 		}
 		if config.Password == "" {
-			config.Password = hashPassword("admin")
+			hashedPassword, err := hashPassword("admin")
+			if err != nil {
+				return nil, err
+			}
+			config.Password = hashedPassword
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
 			}
