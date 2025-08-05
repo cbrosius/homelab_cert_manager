@@ -20,9 +20,11 @@ import (
 	csrf "github.com/utrack/gin-csrf"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/sessions"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/gin-contrib/sessions"
+	cookiestore "github.com/gin-contrib/sessions/cookie"
 )
 
 type Config struct {
@@ -30,7 +32,7 @@ type Config struct {
 }
 
 // create variable for session handling (login/logout)
-var store *sessions.CookieStore
+var store sessions.Store
 
 // toJson converts a Go data structure to a JSON string
 func toJson(v interface{}) (string, error) {
@@ -507,7 +509,7 @@ func loadConfig() (*Config, error) {
 			return nil, fmt.Errorf("failed to save session key: %v", err)
 		}
 	}
-	store = sessions.NewCookieStore([]byte(sessionKey))
+	store = cookiestore.NewStore([]byte(sessionKey))
 
 	return &config, nil
 }

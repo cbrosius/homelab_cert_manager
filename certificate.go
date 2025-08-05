@@ -104,7 +104,11 @@ func checkRootCertAndListCerts(c *gin.Context) {
 		log.Printf("No root certificate found.")
 	}
 
-	isDefaultPassword := viper.GetString("password") == hashPassword("admin")
+	hashedPassword, err := hashPassword("admin")
+	if err != nil {
+		log.Printf("Error hashing password: %v", err)
+	}
+	isDefaultPassword := viper.GetString("password") == hashedPassword
 
 	c.HTML(http.StatusOK, "cert_list.html", gin.H{
 		"defaultPassword":    isDefaultPassword,
