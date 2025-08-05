@@ -3,12 +3,12 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha512"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"html/template"
 	"log"
 	"math/big"
@@ -17,14 +17,9 @@ import (
 	"path/filepath"
 	"time"
 
-	csrf "github.com/utrack/gin-csrf"
-
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/sessions"
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/bcrypt"
-
-	"github.com/gin-contrib/sessions"
-	cookiestore "github.com/gin-contrib/sessions/cookie"
 )
 
 type Config struct {
@@ -32,7 +27,7 @@ type Config struct {
 }
 
 // create variable for session handling (login/logout)
-var store sessions.Store
+var store = sessions.NewCookieStore([]byte("secret-key"))
 
 // toJson converts a Go data structure to a JSON string
 func toJson(v interface{}) (string, error) {
@@ -173,14 +168,6 @@ func main() {
 
 	// Load templates with the function map
 	r.LoadHTMLGlob("templates/*")
-	r.Use(sessions.Sessions("session", store))
-	r.Use(csrf.Middleware(csrf.Options{
-		Secret: viper.GetString("session_key"),
-		ErrorFunc: func(c *gin.Context) {
-			c.String(400, "CSRF token mismatch")
-			c.Abort()
-		},
-	}))
 
 	r.GET("/login", showLoginPage)
 	r.POST("/login", func(c *gin.Context) {
@@ -216,7 +203,7 @@ func main() {
 		authorized.POST("/settings/certmanager", handleCertManagerSettings)
 
 		authorized.GET("/settings/generalcertoptions", handleGeneralCertOptions)
-		authorized.POST("settings/generalcertoptions", handleGeneralCertOptions)
+		authorized.POST("/settings/generalcertoptions", handleGeneralCertOptions)
 
 		r.POST("/change-password", func(c *gin.Context) {
 			changePassword(c, config)
@@ -288,12 +275,11 @@ func showCreateCertificateForm(c *gin.Context) {
 	}
 	renderTemplate(c, "create_certificate.html", gin.H{
 		"generalCertOptions": generalCertOptions,
-		"csrf_token":         csrf.GetToken(c),
 	})
 }
 
 func showSettingsPage(c *gin.Context) {
-	isDefaultPassword := checkPasswordHash("admin", viper.GetString("password"))
+	isDefaultPassword := viper.GetString("password") == hashPassword("admin")
 	c.HTML(http.StatusOK, "settings.html", gin.H{
 		"certManagerSettings": gin.H{
 			"DnsNames":    viper.GetStringSlice("certificate_manager_certificate.dns_names"),
@@ -309,7 +295,6 @@ func showSettingsPage(c *gin.Context) {
 			"Email":            viper.GetString("general_cert_options.email"),
 		},
 		"defaultPassword": isDefaultPassword,
-		"csrf_token":      csrf.GetToken(c),
 	})
 }
 
@@ -422,9 +407,7 @@ func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 }
 
 func showLoginPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "login.html", gin.H{
-		"csrf_token": csrf.GetToken(c),
-	})
+	c.HTML(http.StatusOK, "login.html", nil)
 }
 
 func handleLogin(c *gin.Context, config *Config) {
@@ -432,7 +415,7 @@ func handleLogin(c *gin.Context, config *Config) {
 	password := c.PostForm("password")
 
 	// Hash the provided password and compare it with the stored hash
-	if username == "admin" && checkPasswordHash(password, config.Password) {
+	if username == "admin" && hashPassword(password) == config.Password {
 		session, _ := store.Get(c.Request, "session")
 		session.Values["authenticated"] = true
 		session.Save(c.Request, c.Writer)
@@ -468,11 +451,7 @@ func loadConfig() (*Config, error) {
 	var config Config
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			hashedPassword, err := hashPassword("admin")
-			if err != nil {
-				return nil, err
-			}
-			config.Password = hashedPassword
+			config.Password = hashPassword("admin")
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
 			}
@@ -484,33 +463,12 @@ func loadConfig() (*Config, error) {
 			return nil, err
 		}
 		if config.Password == "" {
-			hashedPassword, err := hashPassword("admin")
-			if err != nil {
-				return nil, err
-			}
-			config.Password = hashedPassword
+			config.Password = hashPassword("admin")
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
 			}
 		}
 	}
-
-	// Handle session key
-	sessionKey := viper.GetString("session_key")
-	if sessionKey == "" {
-		key := make([]byte, 64)
-		_, err := rand.Read(key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate session key: %v", err)
-		}
-		sessionKey = hex.EncodeToString(key)
-		viper.Set("session_key", sessionKey)
-		if err := viper.WriteConfig(); err != nil {
-			return nil, fmt.Errorf("failed to save session key: %v", err)
-		}
-	}
-	store = cookiestore.NewStore([]byte(sessionKey))
-
 	return &config, nil
 }
 
@@ -531,18 +489,13 @@ func changePassword(c *gin.Context, config *Config) {
 	}
 
 	// Hash the provided old password and compare it with the stored hash
-	if !checkPasswordHash(req.OldPassword, config.Password) {
+	if hashPassword(req.OldPassword) != config.Password {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Old password is incorrect"})
 		return
 	}
 
 	// Hash the new password before saving it
-	hashedPassword, err := hashPassword(req.NewPassword)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to hash new password"})
-		return
-	}
-	config.Password = hashedPassword
+	config.Password = hashPassword(req.NewPassword)
 	if err := saveConfig(config); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to save new password"})
 		return
@@ -551,12 +504,8 @@ func changePassword(c *gin.Context, config *Config) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Password changed successfully"})
 }
 
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
-}
-
-func checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+func hashPassword(password string) string {
+	hash := sha512.New()
+	hash.Write([]byte(password))
+	return hex.EncodeToString(hash.Sum(nil))
 }

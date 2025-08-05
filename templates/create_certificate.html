@@ -22,7 +22,6 @@
     <div class="container">
         <h1 class="center-align">Create Certificate</h1>
         <form id="createCertificateForm" action="/create_certificate" method="POST" onsubmit="submitCreateCertificateForm(event)">
-            <input type="hidden" name="csrf_token" value="{{.csrf_token}}">
             <div class="row">
                 <div class="input-field col s12">
                     <input type="text" id="common_name" name="common_name" class="validate" required>

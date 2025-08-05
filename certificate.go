@@ -104,11 +104,7 @@ func checkRootCertAndListCerts(c *gin.Context) {
 		log.Printf("No root certificate found.")
 	}
 
-	hashedPassword, err := hashPassword("admin")
-	if err != nil {
-		log.Printf("Error hashing password: %v", err)
-	}
-	isDefaultPassword := viper.GetString("password") == hashedPassword
+	isDefaultPassword := viper.GetString("password") == hashPassword("admin")
 
 	c.HTML(http.StatusOK, "cert_list.html", gin.H{
 		"defaultPassword":    isDefaultPassword,
@@ -390,14 +386,16 @@ func viewCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
 	var filePath string
 
-	// Clean the filename to prevent path traversal
-	cleanFileName := filepath.Base(fileName)
-
 	// Special case for homelab certificate manager certificate
-	if cleanFileName == "homelab_certificate_manager.pem" {
-		filePath = filepath.Join("data", "certmanager-cert", cleanFileName)
+	if fileName == "homelab_certificate_manager.pem" {
+		filePath = "data/certmanager-cert/" + fileName
 	} else {
-		filePath = filepath.Join("data", "certs", cleanFileName)
+		filePath = "./data/certs/" + fileName
+	}
+
+	if !isValidFileName(fileName) {
+		c.String(http.StatusBadRequest, "Invalid file name")
+		return
 	}
 
 	// Check if the file exists
@@ -436,6 +434,11 @@ func viewCertificate(c *gin.Context) {
 	})
 }
 
+func isValidFileName(fileName string) bool {
+	// Implement validation logic here
+	return !strings.Contains(fileName, "..")
+}
+
 func readCertificate(filePath string) (*x509.Certificate, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -471,13 +474,8 @@ func recreateHomelabCertificate(c *gin.Context) {
 	}
 
 	// Create certificate template
-	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate serial number"})
-		return
-	}
 	template := x509.Certificate{
-		SerialNumber: serialNumber,
+		SerialNumber: big.NewInt(time.Now().Unix()),
 		Subject: pkix.Name{
 			CommonName: "HomeLab Certificate Manager",
 		},
