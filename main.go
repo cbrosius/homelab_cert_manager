@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"time"
 
+	csrf "github.com/utrack/gin-csrf"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 	"github.com/spf13/viper"
@@ -169,6 +171,14 @@ func main() {
 
 	// Load templates with the function map
 	r.LoadHTMLGlob("templates/*")
+	r.Use(sessions.Sessions("session", store))
+	r.Use(csrf.Middleware(csrf.Options{
+		Secret: viper.GetString("session_key"),
+		ErrorFunc: func(c *gin.Context) {
+			c.String(400, "CSRF token mismatch")
+			c.Abort()
+		},
+	}))
 
 	r.GET("/login", showLoginPage)
 	r.POST("/login", func(c *gin.Context) {
@@ -204,7 +214,7 @@ func main() {
 		authorized.POST("/settings/certmanager", handleCertManagerSettings)
 
 		authorized.GET("/settings/generalcertoptions", handleGeneralCertOptions)
-		authorized.POST("/settings/generalcertoptions", handleGeneralCertOptions)
+		authorized.POST("settings/generalcertoptions", handleGeneralCertOptions)
 
 		r.POST("/change-password", func(c *gin.Context) {
 			changePassword(c, config)
@@ -276,6 +286,7 @@ func showCreateCertificateForm(c *gin.Context) {
 	}
 	renderTemplate(c, "create_certificate.html", gin.H{
 		"generalCertOptions": generalCertOptions,
+		"csrf_token":         csrf.GetToken(c),
 	})
 }
 
@@ -296,6 +307,7 @@ func showSettingsPage(c *gin.Context) {
 			"Email":            viper.GetString("general_cert_options.email"),
 		},
 		"defaultPassword": isDefaultPassword,
+		"csrf_token":      csrf.GetToken(c),
 	})
 }
 
@@ -408,7 +420,9 @@ func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 }
 
 func showLoginPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "login.html", nil)
+	c.HTML(http.StatusOK, "login.html", gin.H{
+		"csrf_token": csrf.GetToken(c),
+	})
 }
 
 func handleLogin(c *gin.Context, config *Config) {
@@ -543,59 +557,4 @@ func hashPassword(password string) (string, error) {
 func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
-}
-
-func loadConfig() (*Config, error) {
-	viper.SetConfigName("settings")
-	viper.SetConfigType("json")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("data")
-
-	var config Config
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			hashedPassword, err := hashPassword("admin")
-			if err != nil {
-				return nil, err
-			}
-			config.Password = hashedPassword
-			if saveErr := saveConfig(&config); saveErr != nil {
-				return nil, saveErr
-			}
-		} else {
-			return nil, err
-		}
-	} else {
-		if err := viper.Unmarshal(&config); err != nil {
-			return nil, err
-		}
-		if config.Password == "" {
-			hashedPassword, err := hashPassword("admin")
-			if err != nil {
-				return nil, err
-			}
-			config.Password = hashedPassword
-			if saveErr := saveConfig(&config); saveErr != nil {
-				return nil, saveErr
-			}
-		}
-	}
-
-	// Handle session key
-	sessionKey := viper.GetString("session_key")
-	if sessionKey == "" {
-		key := make([]byte, 64)
-		_, err := rand.Read(key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate session key: %v", err)
-		}
-		sessionKey = hex.EncodeToString(key)
-		viper.Set("session_key", sessionKey)
-		if err := viper.WriteConfig(); err != nil {
-			return nil, fmt.Errorf("failed to save session key: %v", err)
-		}
-	}
-	store = sessions.NewCookieStore([]byte(sessionKey))
-
-	return &config, nil
 }

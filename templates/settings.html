@@ -25,6 +25,7 @@
                     <div class="card-content">
                         <span class="card-title">Certificate Manager Certificate Defaults</span>
                         <form id="certManagerForm" onsubmit="submitCertManagerSettings(event)">
+                            <input type="hidden" name="csrf_token" value="{{.csrf_token}}">
                             <div class="row">
                                 <!-- DNS Names -->
                                 <div class="col s12">
@@ -74,6 +75,7 @@
                     <div class="card-content">
                         <span class="card-title">General Certificate Defaults</span>
                         <form id="generalCertOptionsForm" action="/settings/generalcertoptions" method="POST" onsubmit="submitGeneralCertOptions(event)">
+                            <input type="hidden" name="csrf_token" value="{{.csrf_token}}">
                             <!-- Form fields for General Cert Options -->
                             <div class="row">
                                 <div class="input-field col s12">
@@ -124,6 +126,7 @@
             <div class="card-content">
                 <span class="card-title">Change Password</span>
                 <form id="changePasswordForm" onsubmit="changePassword(event)">
+                    <input type="hidden" name="csrf_token" value="{{.csrf_token}}">
                     <div class="input-field col s12">
                         <input id="old_password" name="old_password" type="password" class="validate" required>
                         <label for="old_password">Old Password</label>
