@@ -5,3 +5,4 @@
 *.json
 data/*
 !data/settings.json
+gemini.md

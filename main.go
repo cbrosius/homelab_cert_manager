@@ -181,6 +181,7 @@ func main() {
 
 	authorized := r.Group("/")
 	authorized.Use(AuthRequired)
+	authorized.Use(CheckPasswordChange(config))
 	{
 		authorized.GET("/", showHomePage)
 		authorized.GET("/certificates", checkRootCertAndListCerts) // Ensure this route calls the correct function
@@ -209,37 +210,9 @@ func main() {
 		authorized.GET("/settings/generalcertoptions", handleGeneralCertOptions)
 		authorized.POST("/settings/generalcertoptions", handleGeneralCertOptions)
 
-		r.POST("/change-password", func(c *gin.Context) {
+		authorized.POST("/change-password", func(c *gin.Context) {
 			changePassword(c, config)
 		})
-
-		// This group requires the password to be changed if it's the default
-		passwordChangeRequired := authorized.Group("/")
-		passwordChangeRequired.Use(CheckPasswordChange(config))
-		{
-			passwordChangeRequired.GET("/", showHomePage)
-			passwordChangeRequired.GET("/certificates", checkRootCertAndListCerts)
-			passwordChangeRequired.GET("/certificates/view/:filename", viewCertificate)
-			passwordChangeRequired.POST("/certificates/delete/:filename", deleteCertificate)
-			passwordChangeRequired.GET("/certificates/download/:filename", func(c *gin.Context) {
-				c.Params = append(c.Params, gin.Param{Key: "certType", Value: "certs"})
-				downloadCertificate(c)
-			})
-			passwordChangeRequired.POST("/create-root-certificate", createRootCertificate)
-			passwordChangeRequired.GET("/certificates/download/root-cert/:filename", func(c *gin.Context) {
-				c.Params = append(c.Params, gin.Param{Key: "certType", Value: "root-cert"})
-				downloadCertificate(c)
-			})
-			passwordChangeRequired.GET("/create-certificate-form", showCreateCertificateForm)
-			passwordChangeRequired.POST("/create-certificate", createCertificate)
-			passwordChangeRequired.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate)
-			passwordChangeRequired.GET("/settings", showSettingsPage)
-			passwordChangeRequired.POST("/recreate-homelab-cert", recreateHomelabCertificate)
-			passwordChangeRequired.GET("/settings/certmanager", handleCertManagerSettings)
-			passwordChangeRequired.POST("/settings/certmanager", handleCertManagerSettings)
-			passwordChangeRequired.GET("/settings/generalcertoptions", handleGeneralCertOptions)
-			passwordChangeRequired.POST("/settings/generalcertoptions", handleGeneralCertOptions)
-		}
 
 		authorized.GET("/change-password", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "change_password.html", gin.H{"MustChangePassword": config.MustChangePassword})
