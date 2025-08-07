@@ -15,19 +15,23 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Config struct {
-	Password string `json:"password"`
+	Password           string `json:"password"`
+	SessionKey         string `json:"session_key"`
+	MustChangePassword bool   `json:"must_change_password"`
 }
 
 // create variable for session handling (login/logout)
-var store = sessions.NewCookieStore([]byte("secret-key"))
+var store *sessions.CookieStore
 
 // toJson converts a Go data structure to a JSON string
 func toJson(v interface{}) (string, error) {
@@ -208,6 +212,38 @@ func main() {
 		r.POST("/change-password", func(c *gin.Context) {
 			changePassword(c, config)
 		})
+
+		// This group requires the password to be changed if it's the default
+		passwordChangeRequired := authorized.Group("/")
+		passwordChangeRequired.Use(CheckPasswordChange(config))
+		{
+			passwordChangeRequired.GET("/", showHomePage)
+			passwordChangeRequired.GET("/certificates", checkRootCertAndListCerts)
+			passwordChangeRequired.GET("/certificates/view/:filename", viewCertificate)
+			passwordChangeRequired.POST("/certificates/delete/:filename", deleteCertificate)
+			passwordChangeRequired.GET("/certificates/download/:filename", func(c *gin.Context) {
+				c.Params = append(c.Params, gin.Param{Key: "certType", Value: "certs"})
+				downloadCertificate(c)
+			})
+			passwordChangeRequired.POST("/create-root-certificate", createRootCertificate)
+			passwordChangeRequired.GET("/certificates/download/root-cert/:filename", func(c *gin.Context) {
+				c.Params = append(c.Params, gin.Param{Key: "certType", Value: "root-cert"})
+				downloadCertificate(c)
+			})
+			passwordChangeRequired.GET("/create-certificate-form", showCreateCertificateForm)
+			passwordChangeRequired.POST("/create-certificate", createCertificate)
+			passwordChangeRequired.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate)
+			passwordChangeRequired.GET("/settings", showSettingsPage)
+			passwordChangeRequired.POST("/recreate-homelab-cert", recreateHomelabCertificate)
+			passwordChangeRequired.GET("/settings/certmanager", handleCertManagerSettings)
+			passwordChangeRequired.POST("/settings/certmanager", handleCertManagerSettings)
+			passwordChangeRequired.GET("/settings/generalcertoptions", handleGeneralCertOptions)
+			passwordChangeRequired.POST("/settings/generalcertoptions", handleGeneralCertOptions)
+		}
+
+		authorized.GET("/change-password", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "change_password.html", gin.H{"MustChangePassword": config.MustChangePassword})
+		})
 	}
 	// Determine which certificate to use
 	selfSignedCert := filepath.Join("data", "certmanager-cert", "selfsigned.pem")
@@ -279,7 +315,7 @@ func showCreateCertificateForm(c *gin.Context) {
 }
 
 func showSettingsPage(c *gin.Context) {
-	isDefaultPassword := viper.GetString("password") == hashPassword("admin")
+	isDefaultPassword := checkPasswordHash("admin", viper.GetString("password"))
 	c.HTML(http.StatusOK, "settings.html", gin.H{
 		"certManagerSettings": gin.H{
 			"DnsNames":    viper.GetStringSlice("certificate_manager_certificate.dns_names"),
@@ -414,8 +450,30 @@ func handleLogin(c *gin.Context, config *Config) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	// Hash the provided password and compare it with the stored hash
-	if username == "admin" && hashPassword(password) == config.Password {
+	// Check if the stored password is a bcrypt hash
+	isBcrypt := strings.HasPrefix(config.Password, "$2a$") || strings.HasPrefix(config.Password, "$2b$")
+
+	passwordMatch := false
+	if isBcrypt {
+		// Compare with bcrypt hash
+		passwordMatch = checkPasswordHash(password, config.Password)
+	} else {
+		// Compare with old SHA-512 hash (for migration)
+		hash := sha512.New()
+		hash.Write([]byte(password))
+		passwordMatch = hex.EncodeToString(hash.Sum(nil)) == config.Password
+	}
+
+	if username == "admin" && passwordMatch {
+		// If using the old hash, migrate to bcrypt
+		if !isBcrypt {
+			newHash, err := hashPassword(password)
+			if err == nil {
+				config.Password = newHash
+				saveConfig(config)
+			}
+		}
+
 		session, _ := store.Get(c.Request, "session")
 		session.Values["authenticated"] = true
 		session.Save(c.Request, c.Writer)
@@ -442,6 +500,19 @@ func AuthRequired(c *gin.Context) {
 	c.Next()
 }
 
+func CheckPasswordChange(config *Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if config.MustChangePassword {
+			if c.Request.URL.Path != "/change-password" {
+				c.Redirect(http.StatusSeeOther, "/change-password")
+				c.Abort()
+				return
+			}
+		}
+		c.Next()
+	}
+}
+
 func loadConfig() (*Config, error) {
 	viper.SetConfigName("settings")
 	viper.SetConfigType("json")
@@ -451,29 +522,67 @@ func loadConfig() (*Config, error) {
 	var config Config
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			config.Password = hashPassword("admin")
+			// Config file not found; create a new one
+			hashedPassword, err := hashPassword("admin")
+			if err != nil {
+				return nil, err
+			}
+			config.Password = hashedPassword
+			config.MustChangePassword = true
+			// Generate a new session key
+			key := make([]byte, 64)
+			if _, err := rand.Read(key); err != nil {
+				return nil, err
+			}
+			config.SessionKey = hex.EncodeToString(key)
+
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
 			}
 		} else {
+			// Some other error occurred
 			return nil, err
 		}
 	} else {
 		if err := viper.Unmarshal(&config); err != nil {
 			return nil, err
 		}
-		if config.Password == "" {
-			config.Password = hashPassword("admin")
-			if saveErr := saveConfig(&config); saveErr != nil {
-				return nil, saveErr
-			}
+	}
+
+	// Ensure password and session key exist, create them if they don't
+	madeChanges := false
+	if config.Password == "" {
+		hashedPassword, err := hashPassword("admin")
+		if err != nil {
+			return nil, err
+		}
+		config.Password = hashedPassword
+		config.MustChangePassword = true
+		madeChanges = true
+	}
+	if config.SessionKey == "" {
+		key := make([]byte, 64)
+		if _, err := rand.Read(key); err != nil {
+			return nil, err
+		}
+		config.SessionKey = hex.EncodeToString(key)
+		madeChanges = true
+	}
+
+	if madeChanges {
+		if err := saveConfig(&config); err != nil {
+			return nil, err
 		}
 	}
+	// Initialize the session store with the key from the config
+	store = sessions.NewCookieStore([]byte(config.SessionKey))
+
 	return &config, nil
 }
 
 func saveConfig(config *Config) error {
 	viper.Set("password", config.Password)
+	viper.Set("session_key", config.SessionKey)
 	return viper.WriteConfigAs("data/settings.json")
 }
 
@@ -488,14 +597,20 @@ func changePassword(c *gin.Context, config *Config) {
 		return
 	}
 
-	// Hash the provided old password and compare it with the stored hash
-	if hashPassword(req.OldPassword) != config.Password {
+	// Check the old password
+	if !checkPasswordHash(req.OldPassword, config.Password) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Old password is incorrect"})
 		return
 	}
 
 	// Hash the new password before saving it
-	config.Password = hashPassword(req.NewPassword)
+	newHashedPassword, err := hashPassword(req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to hash new password"})
+		return
+	}
+	config.Password = newHashedPassword
+	config.MustChangePassword = false
 	if err := saveConfig(config); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to save new password"})
 		return
@@ -504,8 +619,12 @@ func changePassword(c *gin.Context, config *Config) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Password changed successfully"})
 }
 
-func hashPassword(password string) string {
-	hash := sha512.New()
-	hash.Write([]byte(password))
-	return hex.EncodeToString(hash.Sum(nil))
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
