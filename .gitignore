@@ -5,3 +5,6 @@
 *.json
 data/*
 !data/settings.json
+gemini.md
+homelab_cert_manager
+cert_manager
