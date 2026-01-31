@@ -79,7 +79,7 @@ func main() {
 	} else {
 		log.Println("Certificate Manager certificate not found.")
 		// Generate self-signed certificate for Certificate Manager
-		certKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
 			log.Printf("Failed to generate private key: %v", err)
 			return

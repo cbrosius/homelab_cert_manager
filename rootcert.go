@@ -38,7 +38,7 @@ func createRootCertificate(c *gin.Context) {
 		return
 	}
 
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error generating private key: %v", err)
 		return

@@ -229,7 +229,7 @@ func createCertificate(c *gin.Context) {
 	}
 
 	// Generate private key and certificate
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating private key"})
 		return
@@ -467,7 +467,7 @@ func recreateHomelabCertificate(c *gin.Context) {
 	}
 
 	// Generate new key pair
-	certKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate private key"})
 		return
