@@ -162,7 +162,7 @@ func findRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 func createCertificate(c *gin.Context) {
-	log.Printf("createCertificate ...")
+	debugLog("createCertificate called")
 	var form struct {
 		CommonName       string   `form:"common_name" binding:"required"`
 		ValidityYears    string   `form:"validity_years" binding:"required"`
@@ -247,14 +247,14 @@ func createCertificate(c *gin.Context) {
 			certTemplate.DNSNames = append(certTemplate.DNSNames, dns)
 		}
 	}
-	log.Printf("DNS-Names: %v", certTemplate.DNSNames)
+	debugLog("DNS-Names: %v", certTemplate.DNSNames)
 
 	for _, ip := range form.IpAddresses {
 		if parsedIP := net.ParseIP(ip); parsedIP != nil {
 			certTemplate.IPAddresses = append(certTemplate.IPAddresses, parsedIP)
 		}
 	}
-	log.Printf("IP Addresses: %v", certTemplate.IPAddresses)
+	debugLog("IP Addresses: %v", certTemplate.IPAddresses)
 
 	rootCert, rootKey, err := findRootCertAndKey()
 	if err != nil {
@@ -498,7 +498,7 @@ func recreateHomelabCertificate(c *gin.Context) {
 
 	// Load DNS names and IP addresses from settings
 	settingsDnsNames := viper.GetStringSlice("certificate_manager_certificate.dns_names")
-	log.Printf("Loaded DNS Names: %v", settingsDnsNames)
+	debugLog("Loaded %d DNS Names from settings", len(settingsDnsNames))
 	// Append DNS names from settings
 	for _, dns := range settingsDnsNames {
 		if dns != "" {
@@ -508,12 +508,12 @@ func recreateHomelabCertificate(c *gin.Context) {
 
 	// Append IP addresses from settings
 	settingsIpAddresses := viper.GetStringSlice("certificate_manager_certificate.ip_addresses")
-	log.Printf("Loaded IP Addresses: %v", settingsIpAddresses)
+	debugLog("Loaded %d IP Addresses from settings", len(settingsIpAddresses))
 	for _, ip := range settingsIpAddresses {
 		if parsedIP := net.ParseIP(ip); parsedIP != nil {
 			template.IPAddresses = append(template.IPAddresses, parsedIP)
 		} else {
-			log.Printf("Invalid IP address: %s", ip)
+			debugLog("Invalid IP address format: %s", ip)
 		}
 	}
 

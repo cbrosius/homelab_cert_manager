@@ -59,6 +59,9 @@ func main() {
 		log.Fatalf("Failed to initialize settings: %v", conf_error)
 	}
 
+	// Initialize logging defaults
+	initLoggingDefaults()
+
 	// Initialize CSRF key from session key
 	initCSRFKey(config.SessionKey)
 
@@ -78,9 +81,9 @@ func main() {
 	if err != nil {
 		log.Printf("Error checking certmanager-cert directory: %v", err)
 	} else if certManagerCertExists {
-		log.Println("Certificate Manager certificate already exists.")
+		debugLog("Certificate Manager certificate already exists")
 	} else {
-		log.Println("Certificate Manager certificate not found.")
+		debugLog("Certificate Manager certificate not found")
 		// Generate self-signed certificate for Certificate Manager
 		certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
@@ -160,9 +163,9 @@ func main() {
 	if err != nil {
 		log.Printf("Error checking root-cert directory: %v", err)
 	} else if rootCertExists {
-		log.Println("Root certificate exists.")
+		debugLog("Root certificate exists")
 	} else {
-		log.Println("Root certificate not found.")
+		debugLog("Root certificate not found")
 	}
 
 	r := gin.Default()
@@ -350,8 +353,7 @@ func loadRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 func handleCertManagerSettings(c *gin.Context) {
-
-	log.Println("running handleCertManagerSettings ...")
+	debugLog("handleCertManagerSettings called")
 
 	if c.Request.Method == "GET" {
 		c.JSON(http.StatusOK, gin.H{
@@ -379,7 +381,7 @@ func handleCertManagerSettings(c *gin.Context) {
 }
 
 func handleGeneralCertOptions(c *gin.Context) {
-	log.Println("running handleGeneralCertOptions ...")
+	debugLog("handleGeneralCertOptions called")
 
 	if c.Request.Method == "GET" {
 		c.JSON(http.StatusOK, gin.H{

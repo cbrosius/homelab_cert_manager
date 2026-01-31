@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -25,7 +24,7 @@ type Settings struct {
 }
 
 func initSettings() error {
-	log.Println("running initSettings ...")
+	debugLog("initSettings called")
 	viper.SetConfigName("settings")
 	viper.SetConfigType("json")
 	viper.AddConfigPath("data")
@@ -52,7 +51,7 @@ func initSettings() error {
 }
 
 func saveCertManagerSettings(dnsNames []string, ipAddresses []string) error {
-	log.Println("running saveCertManagerSettings ...")
+	debugLog("saveCertManagerSettings called")
 	// Strip leading and trailing spaces from DNS names
 	for i, dns := range dnsNames {
 		dnsNames[i] = strings.TrimSpace(dns)
@@ -69,7 +68,7 @@ func saveCertManagerSettings(dnsNames []string, ipAddresses []string) error {
 }
 
 func saveGeneralCertOptions(validityPeriod, organization, organizationUnit, country, state, location, email string) error {
-	log.Println("running saveGeneralCertOptions ...")
+	debugLog("saveGeneralCertOptions called")
 	viper.Set("general_cert_options.validity_period", strings.TrimSpace(validityPeriod))
 	viper.Set("general_cert_options.organization", strings.TrimSpace(organization))
 	viper.Set("general_cert_options.organization_unit", strings.TrimSpace(organizationUnit))
