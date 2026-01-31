@@ -377,6 +377,7 @@ func handleGeneralCertOptions(c *gin.Context) {
 			"country":           viper.GetString("general_cert_options.country"),
 			"state":             viper.GetString("general_cert_options.state"),
 			"location":          viper.GetString("general_cert_options.location"),
+			"email":             viper.GetString("general_cert_options.email"),
 		})
 		return
 	}

@@ -371,24 +371,20 @@ func deleteCertificate(c *gin.Context) {
 	pfxFilePath := filepath.Join("data", "certs", safeBaseName+".pfx")
 
 	// Delete the certificate file
-	err := os.Remove(certFilePath)
-	if err != nil {
+	if err := os.Remove(certFilePath); err != nil {
+		log.Printf("Error deleting certificate %s: %v", certFilePath, err)
 		c.String(http.StatusInternalServerError, "Error deleting certificate: %v", err)
 		return
 	}
 
-	// Delete the key file
-	err = os.Remove(keyFilePath)
-	if err != nil {
-		log.Printf("Warning: Error deleting key file: %v", err)
-		// Don't return here, continue with deleting other files
+	// Delete the key file (best effort, log but don't fail)
+	if err := os.Remove(keyFilePath); err != nil && !os.IsNotExist(err) {
+		log.Printf("Warning: Error deleting key file %s: %v", keyFilePath, err)
 	}
 
-	// Delete the pfx file
-	err = os.Remove(pfxFilePath)
-	if err != nil {
-		log.Printf("Warning: Error deleting pfx file: %v", err)
-		// Don't return here, continue with deleting other files
+	// Delete the pfx file (best effort, log but don't fail)
+	if err := os.Remove(pfxFilePath); err != nil && !os.IsNotExist(err) {
+		log.Printf("Warning: Error deleting pfx file %s: %v", pfxFilePath, err)
 	}
 
 	// Redirect to the certificates list page after deletion

@@ -6,9 +6,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -73,12 +75,12 @@ func createRootCertificate(c *gin.Context) {
 		return
 	}
 
-	os.MkdirAll("data/root-cert", os.ModePerm)
+	os.MkdirAll("data/root-cert", 0700)
 
 	rootCertFilename := "data/root-cert/HomeLab_Root_CA.pem"
 	rootKeyFilename := "data/root-cert/HomeLab_Root_CA.key"
 
-	rootCertFile, err := os.Create(rootCertFilename)
+	rootCertFile, err := createFileWithPermissions(rootCertFilename, 0644)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating root certificate file: %v", err)
 		return
@@ -86,7 +88,7 @@ func createRootCertificate(c *gin.Context) {
 	defer rootCertFile.Close()
 	pem.Encode(rootCertFile, &pem.Block{Type: "CERTIFICATE", Bytes: rootCertBytes})
 
-	rootKeyFile, err := os.Create(rootKeyFilename)
+	rootKeyFile, err := createFileWithPermissions(rootKeyFilename, 0600)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating root key file: %v", err)
 		return
@@ -111,21 +113,26 @@ func createRootCertificate(c *gin.Context) {
 
 func deleteRootCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	filePathPem := "./data/root-cert/" + fileName
-	filePathKey := strings.TrimSuffix(filePathPem, ".pem") + ".key"
+	safeName := sanitizeFilename(strings.TrimSuffix(fileName, ".pem"))
+
+	if safeName == "" {
+		c.String(http.StatusBadRequest, "Invalid certificate name")
+		return
+	}
+
+	filePathPem := filepath.Join("data", "root-cert", safeName+".pem")
+	filePathKey := filepath.Join("data", "root-cert", safeName+".key")
 
 	// Remove the .pem file
-	err := os.Remove(filePathPem)
-	if err != nil {
+	if err := os.Remove(filePathPem); err != nil {
+		log.Printf("Error deleting root certificate .pem file %s: %v", filePathPem, err)
 		c.String(http.StatusInternalServerError, "Error deleting root certificate .pem file: %v", err)
 		return
 	}
 
 	// Remove the .key file
-	err = os.Remove(filePathKey)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting root certificate .key file: %v", err)
-		return
+	if err := os.Remove(filePathKey); err != nil && !os.IsNotExist(err) {
+		log.Printf("Warning: Error deleting root certificate .key file %s: %v", filePathKey, err)
 	}
 
 	// Remove all files in the certs folder

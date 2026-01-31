@@ -216,7 +216,7 @@
             entry.innerHTML = `
                 <input type="text" id="dns" name="dns_names[]" class="validate" value="${value}" placeholder="e.g., certmanager.local" style="flex: 1;" oninput="enableCertManagerSaveButton()">
                 <label for="dns" class="active">DNS Name or FQDN</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px; oninput="enableCertManagerSaveButton()">
+                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this); enableCertManagerSaveButton();" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>            
             `;
@@ -232,7 +232,7 @@
             entry.innerHTML = `
                 <input type="text" id="ip" name="ip_addresses[]" class="validate" value="${value}" placeholder="e.g., 192.168.1.100" style="flex: 1;" oninput="enableCertManagerSaveButton()">
                 <label for="ip" class="active">IP-Address</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px; oninput="enableCertManagerSaveButton()">
+                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this); enableCertManagerSaveButton();" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>
             `;
