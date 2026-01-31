@@ -263,6 +263,7 @@
                                                 <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pfx')">Download PFX</a></li>
                                             </ul>
                                             <form id="delete-cert-form-{{.Name}}" action="/certificates/delete/{{.Name}}.pem" method="POST" style="display:inline;">
+                                                <input type="hidden" name="csrf_token" value="{{$.csrfToken}}">
                                                 <button type="button" class="btn-small red waves-effect waves-light" onclick="confirmDelete('{{.Name}}')">
                                                     <i class="material-icons">delete</i>
                                                 </button>

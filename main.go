@@ -59,6 +59,9 @@ func main() {
 		log.Fatalf("Failed to initialize settings: %v", conf_error)
 	}
 
+	// Initialize CSRF key from session key
+	initCSRFKey(config.SessionKey)
+
 	// First check if any .pem file exists in the certmanager-cert directory
 	certManagerCertExists := false
 	err := filepath.Walk("data/certmanager-cert", func(path string, info os.FileInfo, err error) error {
@@ -165,6 +168,9 @@ func main() {
 	r := gin.Default()
 	r.Static("/static", "./static") // Konfiguration, um statische Dateien zu bedienen
 
+	// Add CSRF middleware
+	r.Use(csrfMiddleware())
+
 	// Add the toJson function to the template's function map
 	r.SetFuncMap(template.FuncMap{
 		"toJson": toJson,
@@ -215,7 +221,10 @@ func main() {
 		})
 
 		authorized.GET("/change-password", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "change_password.html", gin.H{"MustChangePassword": config.MustChangePassword})
+			c.HTML(http.StatusOK, "change_password.html", gin.H{
+				"MustChangePassword": config.MustChangePassword,
+				"csrfToken":          getCSRFToken(c.Request),
+			})
 		})
 	}
 	// Determine which certificate to use
@@ -273,6 +282,7 @@ func showHomePage(c *gin.Context) {
 
 	renderTemplate(c, "index.html", gin.H{
 		"rootExists": rootCertExists,
+		"csrfToken":  getCSRFToken(c.Request),
 	})
 }
 
@@ -288,6 +298,7 @@ func showCreateCertificateForm(c *gin.Context) {
 	}
 	renderTemplate(c, "create_certificate.html", gin.H{
 		"generalCertOptions": generalCertOptions,
+		"csrfToken":          getCSRFToken(c.Request),
 	})
 }
 
@@ -308,6 +319,7 @@ func showSettingsPage(c *gin.Context) {
 			"Email":            viper.GetString("general_cert_options.email"),
 		},
 		"defaultPassword": isDefaultPassword,
+		"csrfToken":       getCSRFToken(c.Request),
 	})
 }
 
@@ -421,7 +433,9 @@ func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 }
 
 func showLoginPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "login.html", nil)
+	c.HTML(http.StatusOK, "login.html", gin.H{
+		"csrfToken": getCSRFToken(c.Request),
+	})
 }
 
 func handleLogin(c *gin.Context, config *Config) {

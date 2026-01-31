@@ -60,6 +60,7 @@
                     <div class="card-content">
                         <span class="card-title">Create Root Certificate</span>
                         <form action="/create-root-certificate" method="POST" class="col s12">
+                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
                             <div  class="card-content z-depth-1">
                                 <label>Mandatory data. The Common Name will be your identifier for this certificate. The Validity Period defines how long the certificate will be valid. The default value is 30 years. after this period the certificate will be invalid and all certificates signed by this certificate will be invalid too. so don´t use a too short period.</label>
                                 <div class="row" style="margin-bottom: 20px;"></div>

@@ -113,6 +113,7 @@ func checkRootCertAndListCerts(c *gin.Context) {
 		"certificates":       certs,
 		"selfSignedExists":   selfSignedExists,
 		"homelabCertExists":  homelabCertExists,
+		"csrfToken":          getCSRFToken(c.Request),
 	})
 }
 
