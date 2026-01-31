@@ -187,8 +187,14 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
+	// Use sanitized paths to prevent path traversal attacks
+	certFilePath, keyFilePath, pfxFilePath, err := getSafeCertPaths(form.CommonName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid certificate name"})
+		return
+	}
+
 	// Check if a certificate with the same common name already exists
-	certFilePath := "data/certs/" + form.CommonName + ".pem"
 	if _, err := os.Stat(certFilePath); err == nil {
 		// Certificate already exists, prompt user for confirmation
 		overwrite := c.PostForm("overwrite")
@@ -261,7 +267,7 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	certFile, err := os.Create(certFilePath)
+	certFile, err := createFileWithPermissions(certFilePath, 0644)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating certificate file"})
 		return
@@ -272,7 +278,7 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	keyFile, err := os.Create("data/certs/" + form.CommonName + ".key")
+	keyFile, err := createFileWithPermissions(keyFilePath, 0600)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating key file"})
 		return
@@ -297,7 +303,7 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	pfxFile, err := os.Create("data/certs/" + form.CommonName + ".pfx")
+	pfxFile, err := createFileWithPermissions(pfxFilePath, 0600)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
 		return
@@ -353,9 +359,16 @@ func downloadCertificate(c *gin.Context) {
 func deleteCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
 	baseName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	certFilePath := "./data/certs/" + fileName
-	keyFilePath := "./data/certs/" + baseName + ".key"
-	pfxFilePath := "./data/certs/" + baseName + ".pfx"
+	safeBaseName := sanitizeFilename(baseName)
+
+	if safeBaseName == "" {
+		c.String(http.StatusBadRequest, "Invalid certificate name")
+		return
+	}
+
+	certFilePath := filepath.Join("data", "certs", safeBaseName+".pem")
+	keyFilePath := filepath.Join("data", "certs", safeBaseName+".key")
+	pfxFilePath := filepath.Join("data", "certs", safeBaseName+".pfx")
 
 	// Delete the certificate file
 	err := os.Remove(certFilePath)
