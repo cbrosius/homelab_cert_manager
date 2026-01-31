@@ -6,3 +6,6 @@
 data/*
 !data/settings.json
 gemini.md
+
+# Security: Never commit settings with password hashes
+data/settings.json
