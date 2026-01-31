@@ -43,10 +43,10 @@ func toJson(v interface{}) (string, error) {
 }
 
 func main() {
-	os.MkdirAll("data/certs", os.ModePerm)
-	os.MkdirAll("data/root-cert", os.ModePerm)
-	os.MkdirAll("data/certmanager-cert", os.ModePerm)
-	os.MkdirAll("data", os.ModePerm)
+	os.MkdirAll("data/certs", 0750)
+	os.MkdirAll("data/root-cert", 0700)
+	os.MkdirAll("data/certmanager-cert", 0750)
+	os.MkdirAll("data", 0750)
 
 	// Load configuration
 	config, conf_error := loadConfig()
@@ -231,8 +231,12 @@ func main() {
 		keyFile = homelabKey
 
 		// Remove self-signed certificate and key if homelab certificate exists
-		os.Remove(selfSignedCert)
-		os.Remove(selfSignedKey)
+		if err := os.Remove(selfSignedCert); err != nil && !os.IsNotExist(err) {
+			log.Printf("Warning: Failed to remove self-signed certificate: %v", err)
+		}
+		if err := os.Remove(selfSignedKey); err != nil && !os.IsNotExist(err) {
+			log.Printf("Warning: Failed to remove self-signed key: %v", err)
+		}
 	} else if _, err := os.Stat(selfSignedCert); err == nil {
 		certFile = selfSignedCert
 		keyFile = selfSignedKey
@@ -447,9 +451,19 @@ func handleLogin(c *gin.Context, config *Config) {
 			}
 		}
 
-		session, _ := store.Get(c.Request, "session")
+		session, err := store.Get(c.Request, "session")
+		if err != nil {
+			log.Printf("Session error during login: %v", err)
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{"error": "Session error"})
+			return
+		}
+
 		session.Values["authenticated"] = true
-		session.Save(c.Request, c.Writer)
+		if err := session.Save(c.Request, c.Writer); err != nil {
+			log.Printf("Failed to save session: %v", err)
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{"error": "Session error"})
+			return
+		}
 		c.Redirect(http.StatusSeeOther, "/certificates")
 	} else {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "Invalid credentials"})
@@ -457,14 +471,29 @@ func handleLogin(c *gin.Context, config *Config) {
 }
 
 func handleLogout(c *gin.Context) {
-	session, _ := store.Get(c.Request, "session")
+	session, err := store.Get(c.Request, "session")
+	if err != nil {
+		log.Printf("Session error during logout: %v", err)
+		c.Redirect(http.StatusSeeOther, "/login")
+		return
+	}
+
 	session.Values["authenticated"] = false
-	session.Save(c.Request, c.Writer)
+	if err := session.Save(c.Request, c.Writer); err != nil {
+		log.Printf("Failed to save session during logout: %v", err)
+	}
 	c.Redirect(http.StatusSeeOther, "/login")
 }
 
 func AuthRequired(c *gin.Context) {
-	session, _ := store.Get(c.Request, "session")
+	session, err := store.Get(c.Request, "session")
+	if err != nil {
+		log.Printf("Session error in AuthRequired: %v", err)
+		c.Redirect(http.StatusSeeOther, "/login")
+		c.Abort()
+		return
+	}
+
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
 		c.Redirect(http.StatusSeeOther, "/login")
 		c.Abort()
