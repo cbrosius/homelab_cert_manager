@@ -206,7 +206,7 @@
             newPassword.addEventListener('input', validatePasswords);
             confirmPassword.addEventListener('input', validatePasswords);
 
-            const saveButton = document.getElementById('saveandRecreateHomelabCert');
+            const saveButton = document.getElementById('saveAndRecreateHomelabCert');
             saveButton.disabled = true;
         });
 
@@ -261,7 +261,7 @@
 
             const dnsInputs = document.getElementsByName('dns_names[]');
             const ipInputs = document.getElementsByName('ip_addresses[]');
-            const button = document.getElementById('saveandRecreateHomelabCert');
+            const button = document.getElementById('saveAndRecreateHomelabCert');
             const data = {
                 dns_names: Array.from(dnsInputs).map(input => input.value).filter(v => v),
                 ip_addresses: Array.from(ipInputs).map(input => input.value).filter(v => v)
@@ -278,7 +278,7 @@
                 if (!response.ok) throw new Error('Failed to save settings');
                 showToast('Settings saved successfully', 'green', button);
                 // new M.Toast({text:'Settings saved successfully'});
-                const saveButton = document.getElementById('saveandRecreateHomelabCert');
+                const saveButton = document.getElementById('saveAndRecreateHomelabCert');
                 saveButton.disabled = true;
                 setTimeout(() => {
                         location.reload();
