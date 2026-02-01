@@ -23,6 +23,7 @@ Then your internal sites show secure connections (without warnings) in all moder
 - **PKCS#12 Export:** Export certificates in .pfx format for Windows.
 
 ## Screenshots
+
 ![Screenshot](static/screenshot.png)
 
 ## Security Features
@@ -91,6 +92,7 @@ Debug logging is disabled by default for security.
 ### Certificate Defaults
 
 Certificate defaults can be configured through the Settings page:
+
 - Validity period (years)
 - Organization
 - Organizational Unit
@@ -102,7 +104,7 @@ Certificate defaults can be configured through the Settings page:
 The application creates directories with the following permissions:
 
 | Path | Permission | Description |
-|------|------------|-------------|
+| --- | --- | --- |
 | `data/root-cert` | 0700 | CA private key storage (owner only) |
 | `data/certs` | 0750 | Issued certificates |
 | `data/certmanager-cert` | 0750 | Application's own certificate |
