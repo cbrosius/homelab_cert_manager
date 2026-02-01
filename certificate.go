@@ -23,6 +23,29 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
+// mimeTypes maps file extensions to their corresponding MIME types.
+// Extensions include the leading dot and should be lowercase.
+var mimeTypes = map[string]string{
+	".pem": "application/x-pem-file",
+	".key": "application/x-pem-file",
+	".pfx": "application/x-pkcs12",
+	".p12": "application/x-pkcs12",
+	".crt": "application/x-x509-ca-cert",
+	".cer": "application/x-x509-ca-cert",
+	".der": "application/x-x509-ca-cert",
+}
+
+// getContentType returns the MIME type for a given filename.
+// Returns "application/octet-stream" as the default for unknown extensions.
+// The lookup is case-insensitive.
+func getContentType(fileName string) string {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	if contentType, ok := mimeTypes[ext]; ok {
+		return contentType
+	}
+	return "application/octet-stream"
+}
+
 func convertIPsToStrings(ips []net.IP) []string {
 	var ipStrings []string
 	for _, ip := range ips {
@@ -343,16 +366,8 @@ func downloadCertificate(c *gin.Context) {
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
 
-	switch {
-	case strings.HasSuffix(fileName, ".pem"):
-		c.Header("Content-Type", "application/x-pem-file")
-	case strings.HasSuffix(fileName, ".key"):
-		c.Header("Content-Type", "application/x-pem-file")
-	case strings.HasSuffix(fileName, ".pfx"):
-		c.Header("Content-Type", "application/x-pkcs12")
-	default:
-		c.Header("Content-Type", "application/octet-stream")
-	}
+	c.Header("Content-Type", getContentType(fileName))
+	c.Header("X-Content-Type-Options", "nosniff")
 
 	c.File(filePath)
 }
