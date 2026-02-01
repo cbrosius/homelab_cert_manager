@@ -120,9 +120,9 @@
             entry.innerHTML = `
                 <input type="text" id="dns" name="dns" class="validate" oninput="enableCreateCertButton()">
                 <label for="dns" class="active">DNS Name or FQDN</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px; oninput="enableCertManagerSaveButton()">
+                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
-                </button>            
+                </button>
             `;
             dnsList.appendChild(entry);
         }
@@ -136,7 +136,7 @@
             entry.innerHTML = `
                 <input type="text" id="ip" name="ip" class="validate" oninput="enableCreateCertButton()">
                 <label for="ip" class="active">IP-Address</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px; oninput="enableCertManagerSaveButton()">
+                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>            
             `;
