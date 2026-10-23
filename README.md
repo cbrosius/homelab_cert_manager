@@ -79,7 +79,16 @@ docker pull ghcr.io/cbrosius/homelab_cert_manager/homelab_cert_manager:latest
 docker run -p 8443:8443 -v $(pwd)/data:/app/data ghcr.io/cbrosius/homelab_cert_manager/homelab_cert_manager:latest
 ```
 
-The container runs as an unprivileged user (`appuser`) with the persistent `/app/data` volume.
+The container runs securely as an unprivileged user (`appuser`, UID 10001) with the persistent `/app/data` volume.
+
+> [!NOTE]
+> **Migrating from Legacy Versions (v1.x / root-based container):**
+> Older versions of this container ran as `root` (UID 0), creating files owned by `root:root` with restricted permissions. 
+> To grant the unprivileged user access to your existing volume, run this command on your host:
+> ```bash
+> sudo chown -R 10001:10001 ./data
+> ```
+> *(Or use `chmod -R u+rwX,g+rwX ./data`)*
 
 ### Building from Source
 

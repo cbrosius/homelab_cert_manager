@@ -21,7 +21,7 @@ FROM alpine:latest
 
 # Install runtime dependencies and latest security patches
 RUN apk --no-cache upgrade && \
-    apk --no-cache add ca-certificates tzdata
+    apk --no-cache add ca-certificates tzdata su-exec
 
 WORKDIR /app
 
@@ -33,14 +33,14 @@ RUN addgroup -S -g 10001 appgroup && \
 COPY --from=builder /build/homelab_cert_manager /app/
 COPY --from=builder /build/templates /app/templates
 COPY --from=builder /build/static /app/static
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Ensure data directory exists with correct ownership
 RUN mkdir -p /app/data && chown -R appuser:appgroup /app
 
-# Switch to unprivileged user
-USER appuser
-
 VOLUME [ "/app/data" ]
 EXPOSE 8443
 
-ENTRYPOINT ["/app/homelab_cert_manager"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["/app/homelab_cert_manager"]
