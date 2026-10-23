@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/hex"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/csrf"
@@ -9,19 +12,46 @@ import (
 )
 
 // csrfKey is used for CSRF token generation (32 bytes required)
-// In production, this should come from a secure configuration
 var csrfKey []byte
 
-// initCSRFKey initializes the CSRF key from the session key
-func initCSRFKey(sessionKey string) {
-	// Use the first 32 bytes of the session key for CSRF
-	if len(sessionKey) >= 32 {
-		csrfKey = []byte(sessionKey[:32])
-	} else {
-		// Pad with zeros if session key is too short
-		csrfKey = make([]byte, 32)
-		copy(csrfKey, sessionKey)
+// initCSRFKey initializes the CSRF key from a hex string or raw key
+func initCSRFKey(keyStr string) {
+	bytes, err := hex.DecodeString(keyStr)
+	if err == nil && len(bytes) == 32 {
+		csrfKey = bytes
+		return
 	}
+	// Fallback if not valid hex or not 32 bytes
+	if len(keyStr) >= 32 {
+		csrfKey = []byte(keyStr[:32])
+	} else {
+		csrfKey = make([]byte, 32)
+		copy(csrfKey, keyStr)
+	}
+}
+
+// customCSRFErrorHandler handles CSRF validation failures gracefully
+func customCSRFErrorHandler(w http.ResponseWriter, r *http.Request) {
+	reason := csrf.FailureReason(r)
+	log.Printf("CSRF validation error on %s %s: %v", r.Method, r.URL.Path, reason)
+
+	// Invalidate the broken or outdated csrf_token cookie so a clean one can be issued
+	http.SetCookie(w, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+
+	if r.Header.Get("X-Requested-With") == "XMLHttpRequest" || strings.Contains(r.Header.Get("Accept"), "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"error":"csrf_invalid","message":"Security token expired or invalid. Please refresh the page."}`))
+		return
+	}
+
+	http.Redirect(w, r, "/login?csrf_error=1", http.StatusSeeOther)
 }
 
 // csrfMiddleware is a Gin-compatible CSRF middleware wrapper
@@ -40,6 +70,7 @@ func csrfMiddleware() gin.HandlerFunc {
 		csrf.CookieName("csrf_token"),       // Cookie name
 		csrf.FieldName("csrf_token"),        // Form field name
 		csrf.RequestHeader("X-CSRF-Token"),  // Header name for AJAX / fetch requests
+		csrf.ErrorHandler(http.HandlerFunc(customCSRFErrorHandler)),
 	)
 
 	return func(c *gin.Context) {

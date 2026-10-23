@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -45,7 +46,7 @@ func initSettings() error {
 	viper.SetDefault("general_cert_options.location", "")
 	viper.SetDefault("general_cert_options.email", "")
 
-	viper.SetDefault("session_settings.timeout_minutes", 15)
+	viper.SetDefault("session_settings.timeout_minutes", 2)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -56,13 +57,30 @@ func initSettings() error {
 	return nil
 }
 
-// getSessionTimeoutMinutes returns the configured session timeout between 1 and 30 minutes (default 15).
+// getSessionTimeoutMinutes returns the configured session timeout between 1 and 30 minutes (default 2).
 func getSessionTimeoutMinutes() int {
 	mins := viper.GetInt("session_settings.timeout_minutes")
 	if mins < 1 || mins > 30 {
-		return 15
+		return 2
 	}
 	return mins
+}
+
+// saveViperConfig persists the viper configuration and ensures restricted 0600 file permissions.
+func saveViperConfig() error {
+	configFile := viper.ConfigFileUsed()
+	if configFile == "" {
+		configFile = "data/settings.json"
+	}
+	err := viper.WriteConfig()
+	if err != nil {
+		err = viper.WriteConfigAs(configFile)
+	}
+	if err != nil {
+		return err
+	}
+	_ = os.Chmod(configFile, 0600)
+	return nil
 }
 
 // saveSessionSettings saves the session timeout setting after validation.
@@ -72,7 +90,7 @@ func saveSessionSettings(timeoutMinutes int) error {
 		return err
 	}
 	viper.Set("session_settings.timeout_minutes", timeoutMinutes)
-	return viper.WriteConfig()
+	return saveViperConfig()
 }
 
 func saveCertManagerSettings(dnsNames []string, ipAddresses []string) error {
@@ -89,7 +107,7 @@ func saveCertManagerSettings(dnsNames []string, ipAddresses []string) error {
 
 	viper.Set("certificate_manager_certificate.dns_names", dnsNames)
 	viper.Set("certificate_manager_certificate.ip_addresses", ipAddresses)
-	return viper.WriteConfig()
+	return saveViperConfig()
 }
 
 func saveGeneralCertOptions(validityPeriod, organization, organizationUnit, country, state, location, email string) error {
@@ -101,5 +119,5 @@ func saveGeneralCertOptions(validityPeriod, organization, organizationUnit, coun
 	viper.Set("general_cert_options.state", strings.TrimSpace(state))
 	viper.Set("general_cert_options.location", strings.TrimSpace(location))
 	viper.Set("general_cert_options.email", strings.TrimSpace(email))
-	return viper.WriteConfig()
+	return saveViperConfig()
 }

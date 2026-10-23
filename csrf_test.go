@@ -195,3 +195,62 @@ func TestSessionStoreCookieSecurity(t *testing.T) {
 		t.Errorf("Expected positive store.Options.MaxAge, got %d", store.Options.MaxAge)
 	}
 }
+
+func TestCSRFKeyPersistenceOnRestart(t *testing.T) {
+	cfg1, err := loadConfig()
+	if err != nil {
+		t.Fatalf("first loadConfig failed: %v", err)
+	}
+	cfg2, err := loadConfig()
+	if err != nil {
+		t.Fatalf("second loadConfig failed: %v", err)
+	}
+	if cfg1.CSRFKey == "" {
+		t.Errorf("Expected non-empty CSRFKey")
+	}
+	if cfg1.CSRFKey != cfg2.CSRFKey {
+		t.Errorf("Expected CSRF key to persist across service restarts, got %s and %s", cfg1.CSRFKey, cfg2.CSRFKey)
+	}
+}
+
+func TestCustomCSRFErrorHandlerGracefulRedirect(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	initCSRFKey("0123456789012345678901234567890123456789")
+
+	r := gin.New()
+	r.Use(csrfMiddleware())
+	r.POST("/protected-action", func(c *gin.Context) {
+		c.String(http.StatusOK, "should-not-reach-here")
+	})
+
+	// 1. Browser form submission without CSRF token
+	reqBrowser, _ := http.NewRequest(http.MethodPost, "/protected-action", strings.NewReader("data=1"))
+	reqBrowser.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	wBrowser := httptest.NewRecorder()
+	r.ServeHTTP(wBrowser, reqBrowser)
+
+	if wBrowser.Code != http.StatusSeeOther {
+		t.Errorf("Expected 303 See Other redirect on CSRF failure, got %d", wBrowser.Code)
+	}
+	if loc := wBrowser.Header().Get("Location"); loc != "/login?csrf_error=1" {
+		t.Errorf("Expected Location '/login?csrf_error=1', got %q", loc)
+	}
+	setCookie := wBrowser.Header().Get("Set-Cookie")
+	if !strings.Contains(setCookie, "csrf_token=") {
+		t.Errorf("Expected Set-Cookie header clearing csrf_token, got: %s", setCookie)
+	}
+
+	// 2. AJAX request without CSRF token
+	reqAjax, _ := http.NewRequest(http.MethodPost, "/protected-action", strings.NewReader(`{"test":1}`))
+	reqAjax.Header.Set("Content-Type", "application/json")
+	reqAjax.Header.Set("X-Requested-With", "XMLHttpRequest")
+	wAjax := httptest.NewRecorder()
+	r.ServeHTTP(wAjax, reqAjax)
+
+	if wAjax.Code != http.StatusForbidden {
+		t.Errorf("Expected 403 Forbidden on AJAX CSRF failure, got %d", wAjax.Code)
+	}
+	if !strings.Contains(wAjax.Body.String(), "csrf_invalid") {
+		t.Errorf("Expected JSON error 'csrf_invalid', got: %s", wAjax.Body.String())
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha512"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
@@ -27,6 +28,7 @@ import (
 type Config struct {
 	Password           string `json:"password" mapstructure:"password"`
 	SessionKey         string `json:"session_key" mapstructure:"session_key"`
+	CSRFKey            string `json:"csrf_key" mapstructure:"csrf_key"`
 	MustChangePassword bool   `json:"must_change_password" mapstructure:"must_change_password"`
 }
 
@@ -35,6 +37,16 @@ var store *sessions.CookieStore
 
 // loginLimiter protects the login endpoint against brute-force attacks (5 failed attempts, 5-minute lockout)
 var loginLimiter = NewLoginRateLimiter(5, 5*time.Minute)
+
+// maxBodySizeMiddleware limits incoming request body size to prevent memory exhaustion and DoS attacks.
+func maxBodySizeMiddleware(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Body != nil {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		}
+		c.Next()
+	}
+}
 
 // toJson converts a Go data structure to a JSON string
 func toJson(v interface{}) (string, error) {
@@ -51,22 +63,22 @@ func main() {
 	os.MkdirAll("data/certmanager-cert", 0750)
 	os.MkdirAll("data", 0750)
 
+	// Initialize settings
+	if conf_error := initSettings(); conf_error != nil {
+		log.Fatalf("Failed to initialize settings: %v", conf_error)
+	}
+
 	// Load configuration
 	config, conf_error := loadConfig()
 	if conf_error != nil {
 		log.Fatalf("Error loading configuration: %v", conf_error)
 	}
 
-	// Initialize settings
-	if conf_error := initSettings(); conf_error != nil {
-		log.Fatalf("Failed to initialize settings: %v", conf_error)
-	}
-
 	// Initialize logging defaults
 	initLoggingDefaults()
 
-	// Initialize CSRF key from session key
-	initCSRFKey(config.SessionKey)
+	// Initialize CSRF key
+	initCSRFKey(config.CSRFKey)
 
 	// First check if any .pem file exists in the certmanager-cert directory
 	certManagerCertExists := false
@@ -94,8 +106,14 @@ func main() {
 			return
 		}
 
+		serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+		if err != nil {
+			log.Printf("Failed to generate serial number: %v", err)
+			return
+		}
+
 		template := x509.Certificate{
-			SerialNumber: big.NewInt(1),
+			SerialNumber: serialNumber,
 			Subject: pkix.Name{
 				CommonName: "HomeLab Certificate Manager",
 			},
@@ -114,8 +132,8 @@ func main() {
 			return
 		}
 
-		// Save private key
-		keyFile, err := os.Create("data/certmanager-cert/selfsigned.key")
+		// Save private key with restricted permissions
+		keyFile, err := createFileWithPermissions("data/certmanager-cert/selfsigned.key", 0600)
 		if err != nil {
 			log.Printf("Failed to create key file: %v", err)
 			return
@@ -131,8 +149,8 @@ func main() {
 			return
 		}
 
-		// Save certificate
-		certFile, err := os.Create("data/certmanager-cert/selfsigned.pem")
+		// Save certificate with standard read permissions
+		certFile, err := createFileWithPermissions("data/certmanager-cert/selfsigned.pem", 0644)
 		if err != nil {
 			log.Printf("Failed to create certificate file: %v", err)
 			return
@@ -175,6 +193,9 @@ func main() {
 
 	// Add security headers middleware
 	r.Use(securityHeadersMiddleware())
+
+	// Limit request body size to 5MB to prevent memory exhaustion / DoS
+	r.Use(maxBodySizeMiddleware(5 * 1024 * 1024))
 
 	r.Static("/static", "./static") // Konfiguration, um statische Dateien zu bedienen
 
@@ -268,8 +289,23 @@ func main() {
 		log.Fatal("No valid certificate found. Please generate either selfsigned.pem or homelab_certificate_manager.pem")
 	}
 
-	// Start the server with the selected certificate
-	r.RunTLS(":8443", certFile, keyFile)
+	// Start the server with hardened TLS configuration and timeouts (Slowloris protection)
+	srv := &http.Server{
+		Addr:              ":8443",
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
+	}
+
+	log.Printf("Starting secure server on https://localhost:8443 (TLS 1.2+)")
+	if err := srv.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Server failed to start: %v", err)
+	}
 }
 
 func showHomePage(c *gin.Context) {
@@ -569,6 +605,8 @@ func showLoginPage(c *gin.Context) {
 	var errorMsg string
 	if c.Query("timeout") == "1" {
 		errorMsg = "Your session expired due to inactivity. Please log in again."
+	} else if c.Query("csrf_error") == "1" {
+		errorMsg = "Your security token expired. Please log in again."
 	}
 	c.HTML(http.StatusOK, "login.html", gin.H{
 		"error":     errorMsg,
@@ -739,7 +777,6 @@ func CheckPasswordChange(config *Config) gin.HandlerFunc {
 func loadConfig() (*Config, error) {
 	viper.SetConfigName("settings")
 	viper.SetConfigType("json")
-	viper.AddConfigPath(".")
 	viper.AddConfigPath("data")
 
 	var config Config
@@ -758,6 +795,13 @@ func loadConfig() (*Config, error) {
 				return nil, err
 			}
 			config.SessionKey = hex.EncodeToString(key)
+
+			// Generate a persistent CSRF key
+			csrfBytes := make([]byte, 32)
+			if _, err := rand.Read(csrfBytes); err != nil {
+				return nil, err
+			}
+			config.CSRFKey = hex.EncodeToString(csrfBytes)
 
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
@@ -783,6 +827,16 @@ func loadConfig() (*Config, error) {
 		config.MustChangePassword = true
 		madeChanges = true
 	}
+	// Ensure persistent CSRF key exists
+	if config.CSRFKey == "" {
+		csrfBytes := make([]byte, 32)
+		if _, err := rand.Read(csrfBytes); err != nil {
+			return nil, err
+		}
+		config.CSRFKey = hex.EncodeToString(csrfBytes)
+		madeChanges = true
+	}
+
 	// Invalidate previous session keys on service restart by generating a fresh random key
 	key := make([]byte, 64)
 	if _, err := rand.Read(key); err != nil {
@@ -816,8 +870,9 @@ func loadConfig() (*Config, error) {
 func saveConfig(config *Config) error {
 	viper.Set("password", config.Password)
 	viper.Set("session_key", config.SessionKey)
+	viper.Set("csrf_key", config.CSRFKey)
 	viper.Set("must_change_password", config.MustChangePassword)
-	return viper.WriteConfigAs("data/settings.json")
+	return saveViperConfig()
 }
 
 func changePassword(c *gin.Context, config *Config) {

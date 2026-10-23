@@ -71,7 +71,7 @@ function toggleTheme() {
 // Session Inactivity Countdown & Ping Management
 (function() {
     let remainingSeconds = 0;
-    let totalTimeoutSeconds = 900;
+    let totalTimeoutSeconds = 120;
     let timerInterval = null;
     let lastPingTime = Date.now();
     let isRedirecting = false;
@@ -168,7 +168,7 @@ function toggleTheme() {
         })
         .then(data => {
             if (!data) return;
-            totalTimeoutSeconds = (data.timeout_minutes || 15) * 60;
+            totalTimeoutSeconds = (data.timeout_minutes || 2) * 60;
             remainingSeconds = (typeof data.remaining_seconds === 'number') ? data.remaining_seconds : totalTimeoutSeconds;
             updateDisplay();
 

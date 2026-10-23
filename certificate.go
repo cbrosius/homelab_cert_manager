@@ -80,7 +80,8 @@ func checkRootCertAndListCerts(c *gin.Context) {
 
 	files, err := os.ReadDir("./data/certs")
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Unable to read certificates directory: %v", err)
+		log.Printf("Unable to read certificates directory: %v", err)
+		c.String(http.StatusInternalServerError, "Unable to read certificates directory")
 		return
 	}
 
@@ -358,25 +359,29 @@ func createCertificate(c *gin.Context) {
 	privateKeyAsCrypto := crypto.PrivateKey(privateKey) // Convert to the appropriate interface
 	cert, err := x509.ParseCertificate(certBytes)       // Parse the raw certificate bytes
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error parsing certificate: %v", err)
+		log.Printf("Error parsing certificate: %v", err)
+		c.String(http.StatusInternalServerError, "Error parsing certificate")
 		return
 	}
 
 	pfxData, err := pkcs12.Modern.Encode(privateKeyAsCrypto, cert, []*x509.Certificate{rootCert}, "")
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
+		log.Printf("Error creating .pfx file: %v", err)
+		c.String(http.StatusInternalServerError, "Error creating .pfx file")
 		return
 	}
 
 	pfxFile, err := createFileWithPermissions(pfxFilePath, 0600)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
+		log.Printf("Error creating .pfx file: %v", err)
+		c.String(http.StatusInternalServerError, "Error creating .pfx file")
 		return
 	}
 	defer pfxFile.Close()
 	_, err = pfxFile.Write(pfxData)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error writing .pfx file: %v", err)
+		log.Printf("Error writing .pfx file: %v", err)
+		c.String(http.StatusInternalServerError, "Error writing .pfx file")
 		return
 	}
 
@@ -475,7 +480,7 @@ func deleteCertificate(c *gin.Context) {
 	// Delete the certificate file
 	if err := os.Remove(certFilePath); err != nil {
 		log.Printf("Error deleting certificate %s: %v", certFilePath, err)
-		c.String(http.StatusInternalServerError, "Error deleting certificate: %v", err)
+		c.String(http.StatusInternalServerError, "Error deleting certificate")
 		return
 	}
 
@@ -526,7 +531,8 @@ func viewCertificate(c *gin.Context) {
 	// Read and decode the certificate
 	cert, err := readCertificate(filePath)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		log.Printf("Error reading certificate %s: %v", filePath, err)
+		c.String(http.StatusInternalServerError, "Error reading certificate")
 		return
 	}
 
@@ -598,9 +604,16 @@ func recreateHomelabCertificate(c *gin.Context) {
 		return
 	}
 
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		log.Printf("Failed to generate serial number: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate serial number"})
+		return
+	}
+
 	// Create certificate template
 	template := x509.Certificate{
-		SerialNumber: big.NewInt(time.Now().Unix()),
+		SerialNumber:          serialNumber,
 		Subject: pkix.Name{
 			CommonName: "HomeLab Certificate Manager",
 		},
@@ -646,8 +659,8 @@ func recreateHomelabCertificate(c *gin.Context) {
 		return
 	}
 
-	// Save new private key
-	keyFile, err := os.Create("data/certmanager-cert/homelab_certificate_manager.key")
+	// Save new private key with restricted permissions
+	keyFile, err := createFileWithPermissions("data/certmanager-cert/homelab_certificate_manager.key", 0600)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save private key"})
 		return
@@ -655,8 +668,8 @@ func recreateHomelabCertificate(c *gin.Context) {
 	defer keyFile.Close()
 	pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(certKey)})
 
-	// Save new certificate
-	certFile, err := os.Create("data/certmanager-cert/homelab_certificate_manager.pem")
+	// Save new certificate with standard read permissions
+	certFile, err := createFileWithPermissions("data/certmanager-cert/homelab_certificate_manager.pem", 0644)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save certificate"})
 		return

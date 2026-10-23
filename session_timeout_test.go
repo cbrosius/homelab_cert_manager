@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +13,16 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/spf13/viper"
 )
+
+func backupAndRestoreSettings(t *testing.T) {
+	originalContent, err := os.ReadFile("data/settings.json")
+	t.Cleanup(func() {
+		if err == nil {
+			_ = os.WriteFile("data/settings.json", originalContent, 0600)
+			_ = initSettings()
+		}
+	})
+}
 
 func setupTestSessionStore() {
 	store = sessions.NewCookieStore([]byte("0123456789012345678901234567890123456789012345678901234567890123"))
@@ -25,19 +36,25 @@ func setupTestSessionStore() {
 }
 
 func TestGetSessionTimeoutMinutes_DefaultsAndBounds(t *testing.T) {
-	viper.Set("session_settings.timeout_minutes", nil)
-	if got := getSessionTimeoutMinutes(); got != 15 {
-		t.Errorf("Expected default 15 minutes, got %d", got)
+	backupAndRestoreSettings(t)
+	viper.Set("session_settings.timeout_minutes", 0)
+	if got := getSessionTimeoutMinutes(); got != 2 {
+		t.Errorf("Expected fallback 2 minutes for 0, got %d", got)
 	}
 
-	viper.Set("session_settings.timeout_minutes", 0)
-	if got := getSessionTimeoutMinutes(); got != 15 {
-		t.Errorf("Expected fallback 15 minutes for 0, got %d", got)
+	viper.Set("session_settings.timeout_minutes", -5)
+	if got := getSessionTimeoutMinutes(); got != 2 {
+		t.Errorf("Expected fallback 2 minutes for -5, got %d", got)
+	}
+
+	viper.Set("session_settings.timeout_minutes", 31)
+	if got := getSessionTimeoutMinutes(); got != 2 {
+		t.Errorf("Expected fallback 2 minutes for 31, got %d", got)
 	}
 
 	viper.Set("session_settings.timeout_minutes", 45)
-	if got := getSessionTimeoutMinutes(); got != 15 {
-		t.Errorf("Expected fallback 15 minutes for 45, got %d", got)
+	if got := getSessionTimeoutMinutes(); got != 2 {
+		t.Errorf("Expected fallback 2 minutes for 45, got %d", got)
 	}
 
 	viper.Set("session_settings.timeout_minutes", 20)
@@ -47,9 +64,10 @@ func TestGetSessionTimeoutMinutes_DefaultsAndBounds(t *testing.T) {
 }
 
 func TestHandleSessionSettings(t *testing.T) {
+	backupAndRestoreSettings(t)
 	gin.SetMode(gin.TestMode)
 	setupTestSessionStore()
-	viper.Set("session_settings.timeout_minutes", 15)
+	viper.Set("session_settings.timeout_minutes", 2)
 
 	r := gin.New()
 	r.GET("/settings/session", handleSessionSettings)
@@ -67,8 +85,8 @@ func TestHandleSessionSettings(t *testing.T) {
 	if err := json.Unmarshal(wGet.Body.Bytes(), &resGet); err != nil {
 		t.Fatalf("Failed to parse GET response: %v", err)
 	}
-	if resGet["timeout_minutes"] != float64(15) {
-		t.Errorf("Expected timeout_minutes 15, got %v", resGet["timeout_minutes"])
+	if resGet["timeout_minutes"] != float64(2) {
+		t.Errorf("Expected timeout_minutes 2, got %v", resGet["timeout_minutes"])
 	}
 
 	// POST valid timeout (25)
@@ -106,6 +124,7 @@ func TestHandleSessionSettings(t *testing.T) {
 }
 
 func TestHandleSessionStatusAndPing(t *testing.T) {
+	backupAndRestoreSettings(t)
 	gin.SetMode(gin.TestMode)
 	setupTestSessionStore()
 	viper.Set("session_settings.timeout_minutes", 10)
@@ -163,6 +182,7 @@ func TestHandleSessionStatusAndPing(t *testing.T) {
 }
 
 func TestAuthRequired_InactivityTimeout(t *testing.T) {
+	backupAndRestoreSettings(t)
 	gin.SetMode(gin.TestMode)
 	setupTestSessionStore()
 	viper.Set("session_settings.timeout_minutes", 5)
@@ -227,5 +247,47 @@ func TestAuthRequired_InactivityTimeout(t *testing.T) {
 	}
 	if resAjax["error"] != "session_expired" {
 		t.Errorf("Expected error 'session_expired', got %v", resAjax["error"])
+	}
+}
+
+func TestSessionTimeoutPersistenceAcrossReboot(t *testing.T) {
+	backupAndRestoreSettings(t)
+
+	// First initialize as main() does
+	if err := initSettings(); err != nil {
+		t.Fatalf("setup initSettings failed: %v", err)
+	}
+	if _, err := loadConfig(); err != nil {
+		t.Fatalf("setup loadConfig failed: %v", err)
+	}
+
+	// 1. Save custom timeout (7 minutes)
+	if err := saveSessionSettings(7); err != nil {
+		t.Fatalf("Failed to save session settings: %v", err)
+	}
+
+	valBeforeReboot := getSessionTimeoutMinutes()
+	t.Logf("Value before reboot: %d", valBeforeReboot)
+	if valBeforeReboot != 7 {
+		t.Fatalf("Expected 7 before reboot, got %d", valBeforeReboot)
+	}
+
+	// 2. Simulate complete restart by resetting viper and running main()'s startup sequence
+	viper.Reset()
+
+	if err := initSettings(); err != nil {
+		t.Fatalf("reboot initSettings failed: %v", err)
+	}
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatalf("reboot loadConfig failed: %v", err)
+	}
+	_ = cfg
+
+	valAfterInitSettings := getSessionTimeoutMinutes()
+	t.Logf("Value after reboot initSettings: %d", valAfterInitSettings)
+
+	if valAfterInitSettings != 7 {
+		t.Fatalf("Expected 7 minutes after reboot, got %d", valAfterInitSettings)
 	}
 }

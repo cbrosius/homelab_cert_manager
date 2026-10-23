@@ -130,7 +130,7 @@
                             <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
                             <div class="row">
                                 <div class="input-field col s12 m6">
-                                    <input type="number" id="timeout_minutes" name="timeout_minutes" min="1" max="30" class="validate" required oninput="enableSessionSettingsSaveButton()">
+                                    <input type="number" id="timeout_minutes" name="timeout_minutes" value="{{.sessionTimeoutMinutes}}" min="1" max="30" class="validate" required oninput="enableSessionSettingsSaveButton()">
                                     <label for="timeout_minutes" class="active">Timeout (Minutes, between 1 and 30)</label>
                                     <span class="helper-text">Application will automatically log out after this period of inactivity.</span>
                                 </div>
@@ -223,7 +223,10 @@
             const sessionTimeout = {{ .sessionTimeoutMinutes }};
             const sessionTimeoutInput = document.getElementById('timeout_minutes');
             if (sessionTimeoutInput) {
-                sessionTimeoutInput.value = sessionTimeout || 15;
+                sessionTimeoutInput.value = sessionTimeout || 2;
+            }
+            if (window.M && window.M.updateTextFields) {
+                M.updateTextFields();
             }
 
             // Initialize change password form
