@@ -386,15 +386,60 @@ func createCertificate(c *gin.Context) {
 func downloadCertificate(c *gin.Context) {
 	certType := c.Param("certType")
 	fileName := c.Param("filename")
-	var filePath string
+
+	// Validate filename: must not be empty, must be a base filename without directory traversal
+	if fileName == "" || filepath.Base(fileName) != fileName || strings.Contains(fileName, "..") || strings.ContainsAny(fileName, `/\`) {
+		c.String(http.StatusBadRequest, "Invalid file name")
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(fileName))
+	baseName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	safeBaseName := sanitizeFilename(baseName)
+	if safeBaseName == "" || safeBaseName != baseName {
+		c.String(http.StatusBadRequest, "Invalid file name")
+		return
+	}
+
+	safeFileName := safeBaseName + ext
+	var baseDir string
 
 	switch certType {
 	case "root-cert":
-		filePath = filepath.Join("data", "root-cert", fileName)
+		// Security: Under NO circumstances allow downloading Root CA private keys (.key)
+		if ext != ".pem" && ext != ".crt" {
+			c.String(http.StatusForbidden, "Downloading this file type is forbidden for Root CA")
+			return
+		}
+		baseDir = filepath.Join("data", "root-cert")
+
 	case "certs":
-		filePath = filepath.Join("data", "certs", fileName)
+		// Security: Only allow downloading authorized certificate and key formats
+		allowedExts := map[string]bool{
+			".pem": true,
+			".crt": true,
+			".key": true,
+			".pfx": true,
+			".p12": true,
+		}
+		if !allowedExts[ext] {
+			c.String(http.StatusBadRequest, "Invalid certificate file extension")
+			return
+		}
+		baseDir = filepath.Join("data", "certs")
+
 	default:
 		c.String(http.StatusBadRequest, "Invalid certificate type")
+		return
+	}
+
+	filePath := filepath.Join(baseDir, safeFileName)
+
+	// Additional path containment check
+	cleanBaseDir := filepath.Clean(baseDir) + string(filepath.Separator)
+	cleanFilePath := filepath.Clean(filePath)
+	if !strings.HasPrefix(cleanFilePath, cleanBaseDir) {
+		c.String(http.StatusBadRequest, "Invalid file path")
 		return
 	}
 
@@ -405,9 +450,9 @@ func downloadCertificate(c *gin.Context) {
 
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", safeFileName))
 
-	c.Header("Content-Type", getContentType(fileName))
+	c.Header("Content-Type", getContentType(safeFileName))
 	c.Header("X-Content-Type-Options", "nosniff")
 
 	c.File(filePath)
@@ -450,18 +495,26 @@ func deleteCertificate(c *gin.Context) {
 
 func viewCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	var filePath string
-
-	// Special case for homelab certificate manager certificate
-	if fileName == "homelab_certificate_manager.pem" {
-		filePath = "data/certmanager-cert/" + fileName
-	} else {
-		filePath = "./data/certs/" + fileName
-	}
 
 	if !isValidFileName(fileName) {
 		c.String(http.StatusBadRequest, "Invalid file name")
 		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(fileName))
+	baseName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	safeBaseName := sanitizeFilename(baseName)
+	if safeBaseName == "" || safeBaseName != baseName {
+		c.String(http.StatusBadRequest, "Invalid file name")
+		return
+	}
+	safeFileName := safeBaseName + ext
+
+	var filePath string
+	if safeFileName == "homelab_certificate_manager.pem" {
+		filePath = filepath.Join("data", "certmanager-cert", safeFileName)
+	} else {
+		filePath = filepath.Join("data", "certs", safeFileName)
 	}
 
 	// Check if the file exists
@@ -501,8 +554,14 @@ func viewCertificate(c *gin.Context) {
 }
 
 func isValidFileName(fileName string) bool {
-	// Implement validation logic here
-	return !strings.Contains(fileName, "..")
+	if fileName == "" || filepath.Base(fileName) != fileName {
+		return false
+	}
+	if strings.Contains(fileName, "..") || strings.ContainsAny(fileName, `/\`) {
+		return false
+	}
+	ext := strings.ToLower(filepath.Ext(fileName))
+	return ext == ".pem" || ext == ".crt"
 }
 
 func readCertificate(filePath string) (*x509.Certificate, error) {
