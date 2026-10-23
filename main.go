@@ -33,6 +33,9 @@ type Config struct {
 // create variable for session handling (login/logout)
 var store *sessions.CookieStore
 
+// loginLimiter protects the login endpoint against brute-force attacks (5 failed attempts, 5-minute lockout)
+var loginLimiter = NewLoginRateLimiter(5, 5*time.Minute)
+
 // toJson converts a Go data structure to a JSON string
 func toJson(v interface{}) (string, error) {
 	bytes, err := json.Marshal(v)
@@ -187,7 +190,7 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/login", showLoginPage)
-	r.POST("/login", func(c *gin.Context) {
+	r.POST("/login", loginLimiter.Middleware(), func(c *gin.Context) {
 		handleLogin(c, config)
 	})
 	r.GET("/logout", handleLogout)
@@ -534,8 +537,10 @@ func handleLogin(c *gin.Context, config *Config) {
 			})
 			return
 		}
+		loginLimiter.Reset(c.ClientIP())
 		c.Redirect(http.StatusSeeOther, "/certificates")
 	} else {
+		loginLimiter.RecordFailure(c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"error":     "Invalid credentials",
 			"csrfToken": getCSRFToken(c.Request),

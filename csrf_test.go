@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -138,14 +139,21 @@ func TestLoginWithInvalidSessionCookie(t *testing.T) {
 		t.Fatalf("loadConfig failed: %v", err)
 	}
 
+	testPass := "adminTestPassword123"
+	cfg.Password, _ = hashPassword(testPass)
+
 	r := gin.New()
+	r.SetFuncMap(template.FuncMap{
+		"toJson": toJson,
+	})
+	r.LoadHTMLGlob("templates/*")
 	r.POST("/login", func(c *gin.Context) {
 		handleLogin(c, cfg)
 	})
 
 	formData := url.Values{}
 	formData.Set("username", "admin")
-	formData.Set("password", "admin") // In default test config
+	formData.Set("password", testPass)
 
 	postReq, _ := http.NewRequest(http.MethodPost, "/login", strings.NewReader(formData.Encode()))
 	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
