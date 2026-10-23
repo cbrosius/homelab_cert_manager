@@ -669,6 +669,7 @@ func loadConfig() (*Config, error) {
 func saveConfig(config *Config) error {
 	viper.Set("password", config.Password)
 	viper.Set("session_key", config.SessionKey)
+	viper.Set("must_change_password", config.MustChangePassword)
 	return viper.WriteConfigAs("data/settings.json")
 }
 
@@ -686,6 +687,12 @@ func changePassword(c *gin.Context, config *Config) {
 	// Check the old password
 	if !checkPasswordHash(req.OldPassword, config.Password) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Old password is incorrect"})
+		return
+	}
+
+	// Validate the new password against password security policy
+	if err := validatePassword(req.NewPassword, req.OldPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
 		return
 	}
 

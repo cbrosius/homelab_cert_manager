@@ -160,3 +160,33 @@ func TestValidateIPAddress(t *testing.T) {
 		})
 	}
 }
+
+func TestValidatePassword(t *testing.T) {
+	tests := []struct {
+		name        string
+		newPassword string
+		oldPassword string
+		wantErr     bool
+	}{
+		{"Valid password", "CorrectHorseBatteryStaple123", "OldSecretPassword1", false},
+		{"Exactly 8 characters", "12345678", "OldSecretPassword1", false},
+		{"Too short (7 chars)", "1234567", "OldSecretPassword1", true},
+		{"Empty password", "", "OldSecretPassword1", true},
+		{"Only whitespace", "        ", "OldSecretPassword1", true},
+		{"Cannot be admin", "admin", "OldSecretPassword1", true},
+		{"Cannot be Admin (case insensitive)", "Admin", "OldSecretPassword1", true},
+		{"Cannot be same as old password", "SamePassword123", "SamePassword123", true},
+		{"Exceeds 72 chars", "1234567890123456789012345678901234567890123456789012345678901234567890123", "OldSecretPassword1", true},
+		{"Exactly 72 chars", "123456789012345678901234567890123456789012345678901234567890123456789012", "OldSecretPassword1", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePassword(tt.newPassword, tt.oldPassword)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePassword(%q, %q) error = %v, wantErr %v", tt.newPassword, tt.oldPassword, err, tt.wantErr)
+			}
+		})
+	}
+}
+

@@ -92,3 +92,26 @@ func validateIPAddress(ipStr string) (net.IP, error) {
 	}
 	return ip, nil
 }
+
+// validatePassword checks that the new password meets security requirements:
+// minimum 8 characters, maximum 72 characters (bcrypt limit), not empty/whitespace,
+// not the default "admin", and different from the current password.
+func validatePassword(newPassword, oldPassword string) error {
+	trimmed := strings.TrimSpace(newPassword)
+	if len(newPassword) < 8 {
+		return fmt.Errorf("password must be at least 8 characters long")
+	}
+	if len(newPassword) > 72 {
+		return fmt.Errorf("password cannot exceed 72 characters")
+	}
+	if trimmed == "" {
+		return fmt.Errorf("password cannot be empty or only whitespace")
+	}
+	if strings.ToLower(newPassword) == "admin" {
+		return fmt.Errorf("password cannot be 'admin'")
+	}
+	if oldPassword != "" && newPassword == oldPassword {
+		return fmt.Errorf("new password must be different from the old password")
+	}
+	return nil
+}
