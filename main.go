@@ -635,14 +635,13 @@ func loadConfig() (*Config, error) {
 		config.MustChangePassword = true
 		madeChanges = true
 	}
-	if config.SessionKey == "" {
-		key := make([]byte, 64)
-		if _, err := rand.Read(key); err != nil {
-			return nil, err
-		}
-		config.SessionKey = hex.EncodeToString(key)
-		madeChanges = true
+	// Invalidate previous session keys on service restart by generating a fresh random key
+	key := make([]byte, 64)
+	if _, err := rand.Read(key); err != nil {
+		return nil, err
 	}
+	config.SessionKey = hex.EncodeToString(key)
+	madeChanges = true
 
 	if madeChanges {
 		if err := saveConfig(&config); err != nil {

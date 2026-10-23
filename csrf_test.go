@@ -117,6 +117,20 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
+func TestSessionKeyInvalidationOnRestart(t *testing.T) {
+	cfg1, err := loadConfig()
+	if err != nil {
+		t.Fatalf("first loadConfig failed: %v", err)
+	}
+	cfg2, err := loadConfig()
+	if err != nil {
+		t.Fatalf("second loadConfig failed: %v", err)
+	}
+	if cfg1.SessionKey == cfg2.SessionKey {
+		t.Errorf("Expected session keys to be different across restarts, got identical: %s", cfg1.SessionKey)
+	}
+}
+
 func TestLoginWithInvalidSessionCookie(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	cfg, err := loadConfig()
