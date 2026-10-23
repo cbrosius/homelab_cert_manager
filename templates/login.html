@@ -49,26 +49,10 @@
             <!-- Login Form -->
             <form action="/login" method="POST" id="loginForm">
                 <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
-
-                <!-- Username Input -->
-                <div class="form-group">
-                    <label class="form-label" for="username">Username</label>
-                    <div class="input-with-icon">
-                        <i class="material-icons input-leading-icon">person</i>
-                        <input 
-                            type="text" 
-                            id="username" 
-                            name="username" 
-                            autocomplete="username" 
-                            placeholder="Enter your username" 
-                            required 
-                            autofocus
-                        >
-                    </div>
-                </div>
+                <input type="hidden" name="username" value="admin" autocomplete="username">
 
                 <!-- Password Input -->
-                <div class="form-group" style="margin-top: 1.25rem;">
+                <div class="form-group">
                     <label class="form-label" for="password">Password</label>
                     <div class="input-with-icon">
                         <i class="material-icons input-leading-icon">lock</i>
@@ -79,6 +63,7 @@
                             autocomplete="current-password" 
                             placeholder="Enter your password" 
                             required
+                            autofocus
                         >
                         <button type="button" class="input-trailing-btn" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
                             <i id="passwordToggleIcon" class="material-icons" style="font-size: 18px;">visibility</i>
@@ -87,7 +72,7 @@
                 </div>
 
                 <!-- Sign In Button -->
-                <div style="margin-top: 2rem;">
+                <div style="margin-top: 1.75rem;">
                     <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;">
                         <span>Sign In</span>
                         <i class="material-icons" style="font-size: 18px;">arrow_forward</i>
