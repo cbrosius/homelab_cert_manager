@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +21,29 @@ import (
 	"github.com/spf13/viper"
 	"software.sslmate.com/src/go-pkcs12"
 )
+
+// mimeTypes maps file extensions to their corresponding MIME types.
+// Extensions include the leading dot and should be lowercase.
+var mimeTypes = map[string]string{
+	".pem": "application/x-pem-file",
+	".key": "application/x-pem-file",
+	".pfx": "application/x-pkcs12",
+	".p12": "application/x-pkcs12",
+	".crt": "application/x-x509-ca-cert",
+	".cer": "application/x-x509-ca-cert",
+	".der": "application/x-x509-ca-cert",
+}
+
+// getContentType returns the MIME type for a given filename.
+// Returns "application/octet-stream" as the default for unknown extensions.
+// The lookup is case-insensitive.
+func getContentType(fileName string) string {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	if contentType, ok := mimeTypes[ext]; ok {
+		return contentType
+	}
+	return "application/octet-stream"
+}
 
 func convertIPsToStrings(ips []net.IP) []string {
 	var ipStrings []string
@@ -58,7 +80,8 @@ func checkRootCertAndListCerts(c *gin.Context) {
 
 	files, err := os.ReadDir("./data/certs")
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Unable to read certificates directory: %v", err)
+		log.Printf("Unable to read certificates directory: %v", err)
+		c.String(http.StatusInternalServerError, "Unable to read certificates directory")
 		return
 	}
 
@@ -113,6 +136,7 @@ func checkRootCertAndListCerts(c *gin.Context) {
 		"certificates":       certs,
 		"selfSignedExists":   selfSignedExists,
 		"homelabCertExists":  homelabCertExists,
+		"csrfToken":          getCSRFToken(c.Request),
 	})
 }
 
@@ -161,7 +185,7 @@ func findRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 func createCertificate(c *gin.Context) {
-	log.Printf("createCertificate ...")
+	debugLog("createCertificate called")
 	var form struct {
 		CommonName       string   `form:"common_name" binding:"required"`
 		ValidityYears    string   `form:"validity_years" binding:"required"`
@@ -181,19 +205,82 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	validityYears, err := strconv.Atoi(form.ValidityYears)
+	// Ensure Root CA exists before attempting certificate creation
+	rootCert, rootKey, err := findRootCertAndKey()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid validity period"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No Root CA certificate found. Please create a Root CA before issuing certificates."})
+		return
+	}
+
+	form.CommonName = strings.TrimSpace(form.CommonName)
+	if err := validateCommonName(form.CommonName); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	validityYears, err := validateValidityYears(form.ValidityYears, 1, 100)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateEmail(form.Email); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateCountry(form.Country); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate and collect DNS names
+	var validDNSNames []string
+	for _, dns := range form.DnsNames {
+		dns = strings.TrimSpace(dns)
+		if dns == "" {
+			continue
+		}
+		if err := validateDNSName(dns); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		validDNSNames = append(validDNSNames, dns)
+	}
+
+	// Validate and collect IP addresses
+	var validIPAddresses []net.IP
+	for _, ipStr := range form.IpAddresses {
+		ipStr = strings.TrimSpace(ipStr)
+		if ipStr == "" {
+			continue
+		}
+		parsedIP, err := validateIPAddress(ipStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if parsedIP != nil {
+			validIPAddresses = append(validIPAddresses, parsedIP)
+		}
+	}
+
+	// Use sanitized paths to prevent path traversal attacks
+	certFilePath, keyFilePath, pfxFilePath, err := getSafeCertPaths(form.CommonName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid certificate name"})
 		return
 	}
 
 	// Check if a certificate with the same common name already exists
-	certFilePath := "data/certs/" + form.CommonName + ".pem"
 	if _, err := os.Stat(certFilePath); err == nil {
 		// Certificate already exists, prompt user for confirmation
 		overwrite := c.PostForm("overwrite")
 		if overwrite != "yes" {
-			c.JSON(http.StatusOK, gin.H{"error": "A certificate with the same common name already exists. Do you want to overwrite it?"})
+			c.JSON(http.StatusOK, gin.H{
+				"error":             "A certificate with the same common name already exists. Do you want to overwrite it?",
+				"needsConfirmation": true,
+			})
 			return
 		}
 	}
@@ -226,32 +313,17 @@ func createCertificate(c *gin.Context) {
 		KeyUsage:              x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
+		DNSNames:              validDNSNames,
+		IPAddresses:           validIPAddresses,
 	}
+
+	debugLog("DNS-Names: %v", certTemplate.DNSNames)
+	debugLog("IP Addresses: %v", certTemplate.IPAddresses)
 
 	// Generate private key and certificate
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating private key"})
-		return
-	}
-
-	for _, dns := range form.DnsNames {
-		if dns != "" {
-			certTemplate.DNSNames = append(certTemplate.DNSNames, dns)
-		}
-	}
-	log.Printf("DNS-Names: %v", certTemplate.DNSNames)
-
-	for _, ip := range form.IpAddresses {
-		if parsedIP := net.ParseIP(ip); parsedIP != nil {
-			certTemplate.IPAddresses = append(certTemplate.IPAddresses, parsedIP)
-		}
-	}
-	log.Printf("IP Addresses: %v", certTemplate.IPAddresses)
-
-	rootCert, rootKey, err := findRootCertAndKey()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding root certificate or key"})
 		return
 	}
 
@@ -261,7 +333,7 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	certFile, err := os.Create(certFilePath)
+	certFile, err := createFileWithPermissions(certFilePath, 0644)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating certificate file"})
 		return
@@ -272,7 +344,7 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	keyFile, err := os.Create("data/certs/" + form.CommonName + ".key")
+	keyFile, err := createFileWithPermissions(keyFilePath, 0600)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating key file"})
 		return
@@ -287,25 +359,29 @@ func createCertificate(c *gin.Context) {
 	privateKeyAsCrypto := crypto.PrivateKey(privateKey) // Convert to the appropriate interface
 	cert, err := x509.ParseCertificate(certBytes)       // Parse the raw certificate bytes
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error parsing certificate: %v", err)
+		log.Printf("Error parsing certificate: %v", err)
+		c.String(http.StatusInternalServerError, "Error parsing certificate")
 		return
 	}
 
 	pfxData, err := pkcs12.Modern.Encode(privateKeyAsCrypto, cert, []*x509.Certificate{rootCert}, "")
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
+		log.Printf("Error creating .pfx file: %v", err)
+		c.String(http.StatusInternalServerError, "Error creating .pfx file")
 		return
 	}
 
-	pfxFile, err := os.Create("data/certs/" + form.CommonName + ".pfx")
+	pfxFile, err := createFileWithPermissions(pfxFilePath, 0600)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating .pfx file: %v", err)
+		log.Printf("Error creating .pfx file: %v", err)
+		c.String(http.StatusInternalServerError, "Error creating .pfx file")
 		return
 	}
 	defer pfxFile.Close()
 	_, err = pfxFile.Write(pfxData)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error writing .pfx file: %v", err)
+		log.Printf("Error writing .pfx file: %v", err)
+		c.String(http.StatusInternalServerError, "Error writing .pfx file")
 		return
 	}
 
@@ -315,15 +391,60 @@ func createCertificate(c *gin.Context) {
 func downloadCertificate(c *gin.Context) {
 	certType := c.Param("certType")
 	fileName := c.Param("filename")
-	var filePath string
+
+	// Validate filename: must not be empty, must be a base filename without directory traversal
+	if fileName == "" || filepath.Base(fileName) != fileName || strings.Contains(fileName, "..") || strings.ContainsAny(fileName, `/\`) {
+		c.String(http.StatusBadRequest, "Invalid file name")
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(fileName))
+	baseName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	safeBaseName := sanitizeFilename(baseName)
+	if safeBaseName == "" || safeBaseName != baseName {
+		c.String(http.StatusBadRequest, "Invalid file name")
+		return
+	}
+
+	safeFileName := safeBaseName + ext
+	var baseDir string
 
 	switch certType {
 	case "root-cert":
-		filePath = filepath.Join("data", "root-cert", fileName)
+		// Security: Under NO circumstances allow downloading Root CA private keys (.key)
+		if ext != ".pem" && ext != ".crt" {
+			c.String(http.StatusForbidden, "Downloading this file type is forbidden for Root CA")
+			return
+		}
+		baseDir = filepath.Join("data", "root-cert")
+
 	case "certs":
-		filePath = filepath.Join("data", "certs", fileName)
+		// Security: Only allow downloading authorized certificate and key formats
+		allowedExts := map[string]bool{
+			".pem": true,
+			".crt": true,
+			".key": true,
+			".pfx": true,
+			".p12": true,
+		}
+		if !allowedExts[ext] {
+			c.String(http.StatusBadRequest, "Invalid certificate file extension")
+			return
+		}
+		baseDir = filepath.Join("data", "certs")
+
 	default:
 		c.String(http.StatusBadRequest, "Invalid certificate type")
+		return
+	}
+
+	filePath := filepath.Join(baseDir, safeFileName)
+
+	// Additional path containment check
+	cleanBaseDir := filepath.Clean(baseDir) + string(filepath.Separator)
+	cleanFilePath := filepath.Clean(filePath)
+	if !strings.HasPrefix(cleanFilePath, cleanBaseDir) {
+		c.String(http.StatusBadRequest, "Invalid file path")
 		return
 	}
 
@@ -334,18 +455,10 @@ func downloadCertificate(c *gin.Context) {
 
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", safeFileName))
 
-	switch {
-	case strings.HasSuffix(fileName, ".pem"):
-		c.Header("Content-Type", "application/x-pem-file")
-	case strings.HasSuffix(fileName, ".key"):
-		c.Header("Content-Type", "application/x-pem-file")
-	case strings.HasSuffix(fileName, ".pfx"):
-		c.Header("Content-Type", "application/x-pkcs12")
-	default:
-		c.Header("Content-Type", "application/octet-stream")
-	}
+	c.Header("Content-Type", getContentType(safeFileName))
+	c.Header("X-Content-Type-Options", "nosniff")
 
 	c.File(filePath)
 }
@@ -353,29 +466,32 @@ func downloadCertificate(c *gin.Context) {
 func deleteCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
 	baseName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	certFilePath := "./data/certs/" + fileName
-	keyFilePath := "./data/certs/" + baseName + ".key"
-	pfxFilePath := "./data/certs/" + baseName + ".pfx"
+	safeBaseName := sanitizeFilename(baseName)
 
-	// Delete the certificate file
-	err := os.Remove(certFilePath)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting certificate: %v", err)
+	if safeBaseName == "" {
+		c.String(http.StatusBadRequest, "Invalid certificate name")
 		return
 	}
 
-	// Delete the key file
-	err = os.Remove(keyFilePath)
-	if err != nil {
-		log.Printf("Warning: Error deleting key file: %v", err)
-		// Don't return here, continue with deleting other files
+	certFilePath := filepath.Join("data", "certs", safeBaseName+".pem")
+	keyFilePath := filepath.Join("data", "certs", safeBaseName+".key")
+	pfxFilePath := filepath.Join("data", "certs", safeBaseName+".pfx")
+
+	// Delete the certificate file
+	if err := os.Remove(certFilePath); err != nil {
+		log.Printf("Error deleting certificate %s: %v", certFilePath, err)
+		c.String(http.StatusInternalServerError, "Error deleting certificate")
+		return
 	}
 
-	// Delete the pfx file
-	err = os.Remove(pfxFilePath)
-	if err != nil {
-		log.Printf("Warning: Error deleting pfx file: %v", err)
-		// Don't return here, continue with deleting other files
+	// Delete the key file (best effort, log but don't fail)
+	if err := os.Remove(keyFilePath); err != nil && !os.IsNotExist(err) {
+		log.Printf("Warning: Error deleting key file %s: %v", keyFilePath, err)
+	}
+
+	// Delete the pfx file (best effort, log but don't fail)
+	if err := os.Remove(pfxFilePath); err != nil && !os.IsNotExist(err) {
+		log.Printf("Warning: Error deleting pfx file %s: %v", pfxFilePath, err)
 	}
 
 	// Redirect to the certificates list page after deletion
@@ -384,18 +500,26 @@ func deleteCertificate(c *gin.Context) {
 
 func viewCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	var filePath string
-
-	// Special case for homelab certificate manager certificate
-	if fileName == "homelab_certificate_manager.pem" {
-		filePath = "data/certmanager-cert/" + fileName
-	} else {
-		filePath = "./data/certs/" + fileName
-	}
 
 	if !isValidFileName(fileName) {
 		c.String(http.StatusBadRequest, "Invalid file name")
 		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(fileName))
+	baseName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	safeBaseName := sanitizeFilename(baseName)
+	if safeBaseName == "" || safeBaseName != baseName {
+		c.String(http.StatusBadRequest, "Invalid file name")
+		return
+	}
+	safeFileName := safeBaseName + ext
+
+	var filePath string
+	if safeFileName == "homelab_certificate_manager.pem" {
+		filePath = filepath.Join("data", "certmanager-cert", safeFileName)
+	} else {
+		filePath = filepath.Join("data", "certs", safeFileName)
 	}
 
 	// Check if the file exists
@@ -407,7 +531,8 @@ func viewCertificate(c *gin.Context) {
 	// Read and decode the certificate
 	cert, err := readCertificate(filePath)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		log.Printf("Error reading certificate %s: %v", filePath, err)
+		c.String(http.StatusInternalServerError, "Error reading certificate")
 		return
 	}
 
@@ -435,8 +560,14 @@ func viewCertificate(c *gin.Context) {
 }
 
 func isValidFileName(fileName string) bool {
-	// Implement validation logic here
-	return !strings.Contains(fileName, "..")
+	if fileName == "" || filepath.Base(fileName) != fileName {
+		return false
+	}
+	if strings.Contains(fileName, "..") || strings.ContainsAny(fileName, `/\`) {
+		return false
+	}
+	ext := strings.ToLower(filepath.Ext(fileName))
+	return ext == ".pem" || ext == ".crt"
 }
 
 func readCertificate(filePath string) (*x509.Certificate, error) {
@@ -467,15 +598,22 @@ func recreateHomelabCertificate(c *gin.Context) {
 	}
 
 	// Generate new key pair
-	certKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate private key"})
 		return
 	}
 
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		log.Printf("Failed to generate serial number: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate serial number"})
+		return
+	}
+
 	// Create certificate template
 	template := x509.Certificate{
-		SerialNumber: big.NewInt(time.Now().Unix()),
+		SerialNumber:          serialNumber,
 		Subject: pkix.Name{
 			CommonName: "HomeLab Certificate Manager",
 		},
@@ -488,7 +626,7 @@ func recreateHomelabCertificate(c *gin.Context) {
 
 	// Load DNS names and IP addresses from settings
 	settingsDnsNames := viper.GetStringSlice("certificate_manager_certificate.dns_names")
-	log.Printf("Loaded DNS Names: %v", settingsDnsNames)
+	debugLog("Loaded %d DNS Names from settings", len(settingsDnsNames))
 	// Append DNS names from settings
 	for _, dns := range settingsDnsNames {
 		if dns != "" {
@@ -498,12 +636,12 @@ func recreateHomelabCertificate(c *gin.Context) {
 
 	// Append IP addresses from settings
 	settingsIpAddresses := viper.GetStringSlice("certificate_manager_certificate.ip_addresses")
-	log.Printf("Loaded IP Addresses: %v", settingsIpAddresses)
+	debugLog("Loaded %d IP Addresses from settings", len(settingsIpAddresses))
 	for _, ip := range settingsIpAddresses {
 		if parsedIP := net.ParseIP(ip); parsedIP != nil {
 			template.IPAddresses = append(template.IPAddresses, parsedIP)
 		} else {
-			log.Printf("Invalid IP address: %s", ip)
+			debugLog("Invalid IP address format: %s", ip)
 		}
 	}
 
@@ -521,8 +659,8 @@ func recreateHomelabCertificate(c *gin.Context) {
 		return
 	}
 
-	// Save new private key
-	keyFile, err := os.Create("data/certmanager-cert/homelab_certificate_manager.key")
+	// Save new private key with restricted permissions
+	keyFile, err := createFileWithPermissions("data/certmanager-cert/homelab_certificate_manager.key", 0600)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save private key"})
 		return
@@ -530,8 +668,8 @@ func recreateHomelabCertificate(c *gin.Context) {
 	defer keyFile.Close()
 	pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(certKey)})
 
-	// Save new certificate
-	certFile, err := os.Create("data/certmanager-cert/homelab_certificate_manager.pem")
+	// Save new certificate with standard read permissions
+	certFile, err := createFileWithPermissions("data/certmanager-cert/homelab_certificate_manager.pem", 0644)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save certificate"})
 		return

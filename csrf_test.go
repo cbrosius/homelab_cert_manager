@@ -1,0 +1,256 @@
+package main
+
+import (
+	"html/template"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+
+	"github.com/gin-gonic/gin"
+)
+
+func TestCSRFMiddlewareTokenGeneration(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	initCSRFKey("0123456789012345678901234567890123456789")
+
+	r := gin.New()
+	r.Use(csrfMiddleware())
+
+	var token string
+	r.GET("/test-csrf", func(c *gin.Context) {
+		token = getCSRFToken(c.Request)
+		c.String(http.StatusOK, "token: %s", token)
+	})
+
+	req, _ := http.NewRequest(http.MethodGet, "/test-csrf", nil)
+	req.Header.Set("X-Forwarded-Proto", "https")
+	req.URL.Scheme = "https"
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d. Body: %s", w.Code, w.Body.String())
+	}
+
+	if token == "" {
+		t.Errorf("Expected non-empty CSRF token, got empty string")
+	}
+
+	cookie := w.Header().Get("Set-Cookie")
+	if !strings.Contains(cookie, "csrf_token=") {
+		t.Errorf("Expected Set-Cookie header with csrf_token, got: %s", cookie)
+	}
+}
+
+func TestCSRFLoginPost(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	initCSRFKey("0123456789012345678901234567890123456789")
+
+	r := gin.New()
+	r.Use(csrfMiddleware())
+
+	var retrievedToken string
+	r.GET("/login", func(c *gin.Context) {
+		retrievedToken = getCSRFToken(c.Request)
+		c.String(http.StatusOK, retrievedToken)
+	})
+
+	r.POST("/login", func(c *gin.Context) {
+		c.String(http.StatusOK, "login successful")
+	})
+
+	// 1. First perform GET /login
+	getReq, _ := http.NewRequest(http.MethodGet, "/login", nil)
+	getReq.Header.Set("X-Forwarded-Proto", "https")
+	getReq.URL.Scheme = "https"
+	getW := httptest.NewRecorder()
+	r.ServeHTTP(getW, getReq)
+
+	if getW.Code != http.StatusOK {
+		t.Fatalf("GET /login failed: code %d", getW.Code)
+	}
+	cookie := getW.Header().Get("Set-Cookie")
+	if cookie == "" {
+		t.Fatalf("No Set-Cookie header received on GET /login")
+	}
+
+	// Extract cookie raw value before semicolon
+	parts := strings.Split(cookie, ";")
+	cookieValue := parts[0] // csrf_token=...
+
+	// 2. Perform POST /login with the token and cookie
+	formData := url.Values{}
+	formData.Set("csrf_token", retrievedToken)
+	formData.Set("username", "admin")
+	formData.Set("password", "admin")
+
+	postReq, _ := http.NewRequest(http.MethodPost, "/login", strings.NewReader(formData.Encode()))
+	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	postReq.Header.Set("Cookie", cookieValue)
+	postReq.Header.Set("X-Forwarded-Proto", "https")
+	postReq.Header.Set("Referer", "https://example.com/login")
+	postReq.Host = "example.com"
+	postReq.URL.Host = "example.com"
+	postReq.URL.Scheme = "https"
+
+	postW := httptest.NewRecorder()
+	r.ServeHTTP(postW, postReq)
+
+	if postW.Code != http.StatusOK {
+		t.Fatalf("POST /login failed with code %d: %s", postW.Code, postW.Body.String())
+	}
+
+	if postW.Body.String() != "login successful" {
+		t.Errorf("Unexpected body: %s", postW.Body.String())
+	}
+}
+
+func TestLoadConfig(t *testing.T) {
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+	if cfg.SessionKey == "" {
+		t.Errorf("Expected non-empty SessionKey")
+	}
+}
+
+func TestSessionKeyInvalidationOnRestart(t *testing.T) {
+	cfg1, err := loadConfig()
+	if err != nil {
+		t.Fatalf("first loadConfig failed: %v", err)
+	}
+	cfg2, err := loadConfig()
+	if err != nil {
+		t.Fatalf("second loadConfig failed: %v", err)
+	}
+	if cfg1.SessionKey == cfg2.SessionKey {
+		t.Errorf("Expected session keys to be different across restarts, got identical: %s", cfg1.SessionKey)
+	}
+}
+
+func TestLoginWithInvalidSessionCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	testPass := "adminTestPassword123"
+	cfg.Password, _ = hashPassword(testPass)
+
+	r := gin.New()
+	r.SetFuncMap(template.FuncMap{
+		"toJson": toJson,
+	})
+	r.LoadHTMLGlob("templates/*")
+	r.POST("/login", func(c *gin.Context) {
+		handleLogin(c, cfg)
+	})
+
+	formData := url.Values{}
+	formData.Set("username", "admin")
+	formData.Set("password", testPass)
+
+	postReq, _ := http.NewRequest(http.MethodPost, "/login", strings.NewReader(formData.Encode()))
+	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// Send an invalid/corrupted session cookie
+	postReq.Header.Set("Cookie", "session=corrupted_or_outdated_cookie_value")
+
+	postW := httptest.NewRecorder()
+	r.ServeHTTP(postW, postReq)
+
+	// Even if password does not match (if changed in settings.json), it shouldn't return 500 session error
+	if postW.Code == http.StatusInternalServerError {
+		t.Fatalf("Login failed with 500 session error when invalid cookie sent!")
+	}
+	t.Logf("Response code with invalid cookie: %d", postW.Code)
+}
+
+func TestSessionStoreCookieSecurity(t *testing.T) {
+	_, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	if store == nil {
+		t.Fatalf("Expected store to be initialized")
+	}
+	if store.Options == nil {
+		t.Fatalf("Expected store.Options to be initialized")
+	}
+	if !store.Options.HttpOnly {
+		t.Errorf("Expected store.Options.HttpOnly to be true, got false")
+	}
+	if store.Options.SameSite != http.SameSiteLaxMode {
+		t.Errorf("Expected store.Options.SameSite to be SameSiteLaxMode (%v), got %v", http.SameSiteLaxMode, store.Options.SameSite)
+	}
+	if store.Options.Path != "/" {
+		t.Errorf("Expected store.Options.Path to be '/', got %s", store.Options.Path)
+	}
+	if store.Options.MaxAge <= 0 {
+		t.Errorf("Expected positive store.Options.MaxAge, got %d", store.Options.MaxAge)
+	}
+}
+
+func TestCSRFKeyPersistenceOnRestart(t *testing.T) {
+	cfg1, err := loadConfig()
+	if err != nil {
+		t.Fatalf("first loadConfig failed: %v", err)
+	}
+	cfg2, err := loadConfig()
+	if err != nil {
+		t.Fatalf("second loadConfig failed: %v", err)
+	}
+	if cfg1.CSRFKey == "" {
+		t.Errorf("Expected non-empty CSRFKey")
+	}
+	if cfg1.CSRFKey != cfg2.CSRFKey {
+		t.Errorf("Expected CSRF key to persist across service restarts, got %s and %s", cfg1.CSRFKey, cfg2.CSRFKey)
+	}
+}
+
+func TestCustomCSRFErrorHandlerGracefulRedirect(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	initCSRFKey("0123456789012345678901234567890123456789")
+
+	r := gin.New()
+	r.Use(csrfMiddleware())
+	r.POST("/protected-action", func(c *gin.Context) {
+		c.String(http.StatusOK, "should-not-reach-here")
+	})
+
+	// 1. Browser form submission without CSRF token
+	reqBrowser, _ := http.NewRequest(http.MethodPost, "/protected-action", strings.NewReader("data=1"))
+	reqBrowser.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	wBrowser := httptest.NewRecorder()
+	r.ServeHTTP(wBrowser, reqBrowser)
+
+	if wBrowser.Code != http.StatusSeeOther {
+		t.Errorf("Expected 303 See Other redirect on CSRF failure, got %d", wBrowser.Code)
+	}
+	if loc := wBrowser.Header().Get("Location"); loc != "/login?csrf_error=1" {
+		t.Errorf("Expected Location '/login?csrf_error=1', got %q", loc)
+	}
+	setCookie := wBrowser.Header().Get("Set-Cookie")
+	if !strings.Contains(setCookie, "csrf_token=") {
+		t.Errorf("Expected Set-Cookie header clearing csrf_token, got: %s", setCookie)
+	}
+
+	// 2. AJAX request without CSRF token
+	reqAjax, _ := http.NewRequest(http.MethodPost, "/protected-action", strings.NewReader(`{"test":1}`))
+	reqAjax.Header.Set("Content-Type", "application/json")
+	reqAjax.Header.Set("X-Requested-With", "XMLHttpRequest")
+	wAjax := httptest.NewRecorder()
+	r.ServeHTTP(wAjax, reqAjax)
+
+	if wAjax.Code != http.StatusForbidden {
+		t.Errorf("Expected 403 Forbidden on AJAX CSRF failure, got %d", wAjax.Code)
+	}
+	if !strings.Contains(wAjax.Body.String(), "csrf_invalid") {
+		t.Errorf("Expected JSON error 'csrf_invalid', got: %s", wAjax.Body.String())
+	}
+}

@@ -6,10 +6,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
-	"strconv"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -27,25 +28,43 @@ func createRootCertificate(c *gin.Context) {
 	email := c.PostForm("email")
 	validityYearsStr := c.PostForm("validity_years")
 
-	if commonName == "" || validityYearsStr == "" {
-		c.String(http.StatusBadRequest, "Common Name and Validity Period are mandatory fields.")
+	if err := validateCommonName(commonName); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	validityYears, err := strconv.Atoi(validityYearsStr)
+	validityYears, err := validateValidityYears(validityYearsStr, 1, 100)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid validity period: %v", err)
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err := validateEmail(email); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validateCountry(country); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error generating private key: %v", err)
+		log.Printf("Error generating root private key: %v", err)
+		c.String(http.StatusInternalServerError, "Error generating private key")
+		return
+	}
+
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		log.Printf("Error generating root certificate serial number: %v", err)
+		c.String(http.StatusInternalServerError, "Error generating serial number")
 		return
 	}
 
 	rootCertTemplate := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName:         commonName,
 			Organization:       []string{organization},
@@ -69,26 +88,29 @@ func createRootCertificate(c *gin.Context) {
 
 	rootCertBytes, err := x509.CreateCertificate(rand.Reader, rootCertTemplate, rootCertTemplate, &privateKey.PublicKey, privateKey)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating root certificate: %v", err)
+		log.Printf("Error creating root certificate: %v", err)
+		c.String(http.StatusInternalServerError, "Error creating root certificate")
 		return
 	}
 
-	os.MkdirAll("data/root-cert", os.ModePerm)
+	os.MkdirAll("data/root-cert", 0700)
 
 	rootCertFilename := "data/root-cert/HomeLab_Root_CA.pem"
 	rootKeyFilename := "data/root-cert/HomeLab_Root_CA.key"
 
-	rootCertFile, err := os.Create(rootCertFilename)
+	rootCertFile, err := createFileWithPermissions(rootCertFilename, 0644)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating root certificate file: %v", err)
+		log.Printf("Error creating root certificate file: %v", err)
+		c.String(http.StatusInternalServerError, "Error creating root certificate file")
 		return
 	}
 	defer rootCertFile.Close()
 	pem.Encode(rootCertFile, &pem.Block{Type: "CERTIFICATE", Bytes: rootCertBytes})
 
-	rootKeyFile, err := os.Create(rootKeyFilename)
+	rootKeyFile, err := createFileWithPermissions(rootKeyFilename, 0600)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating root key file: %v", err)
+		log.Printf("Error creating root key file: %v", err)
+		c.String(http.StatusInternalServerError, "Error creating root key file")
 		return
 	}
 	defer rootKeyFile.Close()
@@ -102,43 +124,52 @@ func createRootCertificate(c *gin.Context) {
 	viper.Set("general_cert_options.location", strings.TrimSpace(locality))
 	viper.Set("general_cert_options.email", strings.TrimSpace(email))
 	if err := viper.WriteConfig(); err != nil {
-		c.String(http.StatusInternalServerError, "Error saving settings: %v", err)
+		log.Printf("Error saving settings after root certificate creation: %v", err)
+		c.String(http.StatusInternalServerError, "Error saving settings")
 		return
 	}
+	_ = os.Chmod("data/settings.json", 0600)
 
 	c.Redirect(http.StatusSeeOther, "/certificates")
 }
 
 func deleteRootCertificate(c *gin.Context) {
 	fileName := c.Param("filename")
-	filePathPem := "./data/root-cert/" + fileName
-	filePathKey := strings.TrimSuffix(filePathPem, ".pem") + ".key"
+	safeName := sanitizeFilename(strings.TrimSuffix(fileName, ".pem"))
+
+	if safeName == "" {
+		c.String(http.StatusBadRequest, "Invalid certificate name")
+		return
+	}
+
+	filePathPem := filepath.Join("data", "root-cert", safeName+".pem")
+	filePathKey := filepath.Join("data", "root-cert", safeName+".key")
 
 	// Remove the .pem file
-	err := os.Remove(filePathPem)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting root certificate .pem file: %v", err)
+	if err := os.Remove(filePathPem); err != nil {
+		log.Printf("Error deleting root certificate .pem file %s: %v", filePathPem, err)
+		c.String(http.StatusInternalServerError, "Error deleting root certificate file")
 		return
 	}
 
 	// Remove the .key file
-	err = os.Remove(filePathKey)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting root certificate .key file: %v", err)
-		return
+	if err := os.Remove(filePathKey); err != nil && !os.IsNotExist(err) {
+		log.Printf("Warning: Error deleting root certificate .key file %s: %v", filePathKey, err)
 	}
 
 	// Remove all files in the certs folder
 	certFiles, err := os.ReadDir("./data/certs")
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error reading certificates directory: %v", err)
+		log.Printf("Error reading certificates directory: %v", err)
+		c.String(http.StatusInternalServerError, "Error reading certificates directory")
 		return
 	}
 
 	for _, file := range certFiles {
 		err = os.Remove("./data/certs/" + file.Name())
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error deleting certificate file: %v", err)
+			log.Printf("Error deleting certificate file %s: %v", file.Name(), err)
+			c.String(http.StatusInternalServerError, "Error deleting certificate file")
 			return
 		}
 	}

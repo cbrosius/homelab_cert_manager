@@ -1,29 +1,46 @@
-# Start from the official Go image
-FROM golang:alpine
+# Stage 1: Build the Go binary
+FROM golang:alpine AS builder
 
-# update all
-RUN apk update && apk upgrade
+WORKDIR /build
 
-# Set the Current Working Directory inside the container
-WORKDIR /app
+# Install ca-certificates
+RUN apk add --no-cache ca-certificates
 
-# Copy go mod and sum files
+# Copy dependency manifests
 COPY go.mod go.sum ./
-
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Copy the source from the current directory to the Working Directory inside the container
+# Copy source code
 COPY . .
 
-# create Volumes
-VOLUME [ "/app/data" ]
+# Build statically linked binary without debug symbols or symbol tables
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o homelab_cert_manager .
 
-# use Port 8443
+# Stage 2: Minimal, secure runtime image
+FROM alpine:latest
+
+# Install runtime dependencies and latest security patches
+RUN apk --no-cache upgrade && \
+    apk --no-cache add ca-certificates tzdata
+
+WORKDIR /app
+
+# Create unprivileged application user and group (non-root)
+RUN addgroup -S -g 10001 appgroup && \
+    adduser -S -u 10001 -G appgroup -h /app -s /sbin/nologin appuser
+
+# Copy executable and assets from builder
+COPY --from=builder /build/homelab_cert_manager /app/
+COPY --from=builder /build/templates /app/templates
+COPY --from=builder /build/static /app/static
+
+# Ensure data directory exists with correct ownership
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+
+# Switch to unprivileged user
+USER appuser
+
+VOLUME [ "/app/data" ]
 EXPOSE 8443
 
-# Build the Go app
-RUN go build -o homelab_cert_manager .
-
-# Command to run the executable
-CMD ["./homelab_cert_manager"]
+ENTRYPOINT ["/app/homelab_cert_manager"]

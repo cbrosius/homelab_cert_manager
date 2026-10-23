@@ -6,8 +6,6 @@
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
     <link rel="stylesheet" href="/static/materialize/materialize.css">
-    <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Custom CSS and Theme Settings -->
     <link rel="stylesheet" href="/static/styles.css">
     <script>
@@ -25,6 +23,7 @@
                     <div class="card-content">
                         <span class="card-title">Certificate Manager Certificate Defaults</span>
                         <form id="certManagerForm" onsubmit="submitCertManagerSettings(event)">
+                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
                             <div class="row">
                                 <!-- DNS Names -->
                                 <div class="col s12">
@@ -74,6 +73,7 @@
                     <div class="card-content">
                         <span class="card-title">General Certificate Defaults</span>
                         <form id="generalCertOptionsForm" action="/settings/generalcertoptions" method="POST" onsubmit="submitGeneralCertOptions(event)">
+                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
                             <!-- Form fields for General Cert Options -->
                             <div class="row">
                                 <div class="input-field col s12">
@@ -120,10 +120,41 @@
         <!-- Add spacing between the cards -->
         <div class="row" style="margin-bottom: 20px;"></div>
 
+        <!-- New Card for Session Settings -->
+        <div class="row">
+            <div class="col s12">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title">Session Inactivity Timeout</span>
+                        <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)">
+                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
+                            <div class="row">
+                                <div class="input-field col s12 m6">
+                                    <input type="number" id="timeout_minutes" name="timeout_minutes" value="{{.sessionTimeoutMinutes}}" min="1" max="30" class="validate" required oninput="enableSessionSettingsSaveButton()">
+                                    <label for="timeout_minutes" class="active">Timeout (Minutes, between 1 and 30)</label>
+                                    <span class="helper-text">Application will automatically log out after this period of inactivity.</span>
+                                </div>
+                            </div>
+                            <div class="card-action">
+                                <button id="saveSessionSettingsButton" type="submit" class="waves-effect waves-light btn green" disabled>
+                                    <i class="material-icons left" style="margin-right: 8px;">save</i> 
+                                    Save Session Settings                                
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add spacing between the cards -->
+        <div class="row" style="margin-bottom: 20px;"></div>
+
         <div class="card">
             <div class="card-content">
                 <span class="card-title">Change Password</span>
                 <form id="changePasswordForm" onsubmit="changePassword(event)">
+                    <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
                     <div class="input-field col s12">
                         <input id="old_password" name="old_password" type="password" class="validate" required>
                         <label for="old_password">Old Password</label>
@@ -188,6 +219,16 @@
                 document.querySelector('input[name="email"]').value = generalCertOptions.Email || '';
             }
 
+            // Initialize session timeout
+            const sessionTimeout = {{ .sessionTimeoutMinutes }};
+            const sessionTimeoutInput = document.getElementById('timeout_minutes');
+            if (sessionTimeoutInput) {
+                sessionTimeoutInput.value = sessionTimeout || 2;
+            }
+            if (window.M && window.M.updateTextFields) {
+                M.updateTextFields();
+            }
+
             // Initialize change password form
             const newPassword = document.getElementById('new_password');
             const confirmPassword = document.getElementById('confirm_password');
@@ -203,7 +244,7 @@
             newPassword.addEventListener('input', validatePasswords);
             confirmPassword.addEventListener('input', validatePasswords);
 
-            const saveButton = document.getElementById('saveandRecreateHomelabCert');
+            const saveButton = document.getElementById('saveAndRecreateHomelabCert');
             saveButton.disabled = true;
         });
 
@@ -216,7 +257,7 @@
             entry.innerHTML = `
                 <input type="text" id="dns" name="dns_names[]" class="validate" value="${value}" placeholder="e.g., certmanager.local" style="flex: 1;" oninput="enableCertManagerSaveButton()">
                 <label for="dns" class="active">DNS Name or FQDN</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px; oninput="enableCertManagerSaveButton()">
+                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this); enableCertManagerSaveButton();" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>            
             `;
@@ -232,7 +273,7 @@
             entry.innerHTML = `
                 <input type="text" id="ip" name="ip_addresses[]" class="validate" value="${value}" placeholder="e.g., 192.168.1.100" style="flex: 1;" oninput="enableCertManagerSaveButton()">
                 <label for="ip" class="active">IP-Address</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px; oninput="enableCertManagerSaveButton()">
+                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this); enableCertManagerSaveButton();" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>
             `;
@@ -254,11 +295,20 @@
             saveButton.disabled = false;
         }
 
-        function recreateHomelabCertButtonClick() {
+        function enableSessionSettingsSaveButton() {
+            const saveButton = document.getElementById('saveSessionSettingsButton');
+            if (saveButton) saveButton.disabled = false;
+        }
 
+        function getCsrfToken() {
+            const el = document.querySelector('input[name="csrf_token"]');
+            return el ? el.value : '';
+        }
+
+        function recreateHomelabCertButtonClick() {
             const dnsInputs = document.getElementsByName('dns_names[]');
             const ipInputs = document.getElementsByName('ip_addresses[]');
-            const button = document.getElementById('saveandRecreateHomelabCert');
+            const button = document.getElementById('saveAndRecreateHomelabCert');
             const data = {
                 dns_names: Array.from(dnsInputs).map(input => input.value).filter(v => v),
                 ip_addresses: Array.from(ipInputs).map(input => input.value).filter(v => v)
@@ -267,22 +317,21 @@
             fetch('/settings/certmanager', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(data)
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
                 showToast('Settings saved successfully', 'green', button);
-                // new M.Toast({text:'Settings saved successfully'});
-                const saveButton = document.getElementById('saveandRecreateHomelabCert');
+                const saveButton = document.getElementById('saveAndRecreateHomelabCert');
                 saveButton.disabled = true;
                 setTimeout(() => {
                         location.reload();
-                    }, 2000); // Wait 2 seconds before refreshing the page
+                    }, 2000);
             })
             .catch(error => {
-                // new M.Toast({text: error.message, classes: 'red'});
                 showToast(error.message, 'red', button);
             });
             recreateHomelabCert();
@@ -305,19 +354,56 @@
             fetch('/settings/generalcertoptions', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(data)
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
                 showToast('Settings saved successfully', 'green', button);
-                // new M.Toast({text: 'Settings saved successfully', classes: 'green'});
                 const saveButton = document.getElementById('saveGeneralOptionsButton');
                 saveButton.disabled = true;
             })
             .catch(error => {
-                // new M.Toast({text: error.message, classes: 'red'});
+                showToast(error.message, 'red', button);
+            });
+        }
+
+        function submitSessionSettings(event) {
+            event.preventDefault();
+            const form = event.target;
+            const button = document.getElementById('saveSessionSettingsButton');
+            const val = parseInt(form.timeout_minutes.value, 10);
+            if (isNaN(val) || val < 1 || val > 30) {
+                showToast('Session timeout must be between 1 and 30 minutes', 'red', button);
+                return;
+            }
+
+            fetch('/settings/session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    timeout_minutes: val
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => { throw new Error(data.error || 'Failed to save settings'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                showToast('Session timeout saved successfully', 'green', button);
+                if (button) button.disabled = true;
+                if (window.initSessionTimer) {
+                    window.initSessionTimer();
+                }
+            })
+            .catch(error => {
                 showToast(error.message, 'red', button);
             });
         }
@@ -338,7 +424,8 @@
             fetch('/change-password', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify({
                     old_password: oldPassword,

@@ -6,8 +6,6 @@
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Materialize CSS -->
     <link rel="stylesheet" href="/static/materialize/materialize.css">
-    <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/styles.css">
     <script>
@@ -48,6 +46,7 @@
                 <div class="card login-card">
                     <div class="card-content">
                         <form action="/login" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
                             <div class="input-field">
                                 <input id="username" name="username" type="text" class="validate" required>
                                 <label for="username">Username</label>

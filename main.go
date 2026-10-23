@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha512"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
@@ -25,13 +26,27 @@ import (
 )
 
 type Config struct {
-	Password           string `json:"password"`
-	SessionKey         string `json:"session_key"`
-	MustChangePassword bool   `json:"must_change_password"`
+	Password           string `json:"password" mapstructure:"password"`
+	SessionKey         string `json:"session_key" mapstructure:"session_key"`
+	CSRFKey            string `json:"csrf_key" mapstructure:"csrf_key"`
+	MustChangePassword bool   `json:"must_change_password" mapstructure:"must_change_password"`
 }
 
 // create variable for session handling (login/logout)
 var store *sessions.CookieStore
+
+// loginLimiter protects the login endpoint against brute-force attacks (5 failed attempts, 5-minute lockout)
+var loginLimiter = NewLoginRateLimiter(5, 5*time.Minute)
+
+// maxBodySizeMiddleware limits incoming request body size to prevent memory exhaustion and DoS attacks.
+func maxBodySizeMiddleware(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Body != nil {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		}
+		c.Next()
+	}
+}
 
 // toJson converts a Go data structure to a JSON string
 func toJson(v interface{}) (string, error) {
@@ -43,10 +58,15 @@ func toJson(v interface{}) (string, error) {
 }
 
 func main() {
-	os.MkdirAll("data/certs", os.ModePerm)
-	os.MkdirAll("data/root-cert", os.ModePerm)
-	os.MkdirAll("data/certmanager-cert", os.ModePerm)
-	os.MkdirAll("data", os.ModePerm)
+	os.MkdirAll("data/certs", 0750)
+	os.MkdirAll("data/root-cert", 0700)
+	os.MkdirAll("data/certmanager-cert", 0750)
+	os.MkdirAll("data", 0750)
+
+	// Initialize settings
+	if conf_error := initSettings(); conf_error != nil {
+		log.Fatalf("Failed to initialize settings: %v", conf_error)
+	}
 
 	// Load configuration
 	config, conf_error := loadConfig()
@@ -54,10 +74,11 @@ func main() {
 		log.Fatalf("Error loading configuration: %v", conf_error)
 	}
 
-	// Initialize settings
-	if conf_error := initSettings(); conf_error != nil {
-		log.Fatalf("Failed to initialize settings: %v", conf_error)
-	}
+	// Initialize logging defaults
+	initLoggingDefaults()
+
+	// Initialize CSRF key
+	initCSRFKey(config.CSRFKey)
 
 	// First check if any .pem file exists in the certmanager-cert directory
 	certManagerCertExists := false
@@ -75,18 +96,24 @@ func main() {
 	if err != nil {
 		log.Printf("Error checking certmanager-cert directory: %v", err)
 	} else if certManagerCertExists {
-		log.Println("Certificate Manager certificate already exists.")
+		debugLog("Certificate Manager certificate already exists")
 	} else {
-		log.Println("Certificate Manager certificate not found.")
+		debugLog("Certificate Manager certificate not found")
 		// Generate self-signed certificate for Certificate Manager
-		certKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
 			log.Printf("Failed to generate private key: %v", err)
 			return
 		}
 
+		serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+		if err != nil {
+			log.Printf("Failed to generate serial number: %v", err)
+			return
+		}
+
 		template := x509.Certificate{
-			SerialNumber: big.NewInt(1),
+			SerialNumber: serialNumber,
 			Subject: pkix.Name{
 				CommonName: "HomeLab Certificate Manager",
 			},
@@ -105,8 +132,8 @@ func main() {
 			return
 		}
 
-		// Save private key
-		keyFile, err := os.Create("data/certmanager-cert/selfsigned.key")
+		// Save private key with restricted permissions
+		keyFile, err := createFileWithPermissions("data/certmanager-cert/selfsigned.key", 0600)
 		if err != nil {
 			log.Printf("Failed to create key file: %v", err)
 			return
@@ -122,8 +149,8 @@ func main() {
 			return
 		}
 
-		// Save certificate
-		certFile, err := os.Create("data/certmanager-cert/selfsigned.pem")
+		// Save certificate with standard read permissions
+		certFile, err := createFileWithPermissions("data/certmanager-cert/selfsigned.pem", 0644)
 		if err != nil {
 			log.Printf("Failed to create certificate file: %v", err)
 			return
@@ -157,13 +184,23 @@ func main() {
 	if err != nil {
 		log.Printf("Error checking root-cert directory: %v", err)
 	} else if rootCertExists {
-		log.Println("Root certificate exists.")
+		debugLog("Root certificate exists")
 	} else {
-		log.Println("Root certificate not found.")
+		debugLog("Root certificate not found")
 	}
 
 	r := gin.Default()
+
+	// Add security headers middleware
+	r.Use(securityHeadersMiddleware())
+
+	// Limit request body size to 5MB to prevent memory exhaustion / DoS
+	r.Use(maxBodySizeMiddleware(5 * 1024 * 1024))
+
 	r.Static("/static", "./static") // Konfiguration, um statische Dateien zu bedienen
+
+	// Add CSRF middleware
+	r.Use(csrfMiddleware())
 
 	// Add the toJson function to the template's function map
 	r.SetFuncMap(template.FuncMap{
@@ -174,7 +211,7 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/login", showLoginPage)
-	r.POST("/login", func(c *gin.Context) {
+	r.POST("/login", loginLimiter.Middleware(), func(c *gin.Context) {
 		handleLogin(c, config)
 	})
 	r.GET("/logout", handleLogout)
@@ -210,12 +247,20 @@ func main() {
 		authorized.GET("/settings/generalcertoptions", handleGeneralCertOptions)
 		authorized.POST("/settings/generalcertoptions", handleGeneralCertOptions)
 
+		authorized.GET("/settings/session", handleSessionSettings)
+		authorized.POST("/settings/session", handleSessionSettings)
+		authorized.GET("/api/session/status", handleSessionStatus)
+		authorized.POST("/api/session/ping", handleSessionPing)
+
 		authorized.POST("/change-password", func(c *gin.Context) {
 			changePassword(c, config)
 		})
 
 		authorized.GET("/change-password", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "change_password.html", gin.H{"MustChangePassword": config.MustChangePassword})
+			c.HTML(http.StatusOK, "change_password.html", gin.H{
+				"MustChangePassword": config.MustChangePassword,
+				"csrfToken":          getCSRFToken(c.Request),
+			})
 		})
 	}
 	// Determine which certificate to use
@@ -231,8 +276,12 @@ func main() {
 		keyFile = homelabKey
 
 		// Remove self-signed certificate and key if homelab certificate exists
-		os.Remove(selfSignedCert)
-		os.Remove(selfSignedKey)
+		if err := os.Remove(selfSignedCert); err != nil && !os.IsNotExist(err) {
+			log.Printf("Warning: Failed to remove self-signed certificate: %v", err)
+		}
+		if err := os.Remove(selfSignedKey); err != nil && !os.IsNotExist(err) {
+			log.Printf("Warning: Failed to remove self-signed key: %v", err)
+		}
 	} else if _, err := os.Stat(selfSignedCert); err == nil {
 		certFile = selfSignedCert
 		keyFile = selfSignedKey
@@ -240,8 +289,23 @@ func main() {
 		log.Fatal("No valid certificate found. Please generate either selfsigned.pem or homelab_certificate_manager.pem")
 	}
 
-	// Start the server with the selected certificate
-	r.RunTLS(":8443", certFile, keyFile)
+	// Start the server with hardened TLS configuration and timeouts (Slowloris protection)
+	srv := &http.Server{
+		Addr:              ":8443",
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
+	}
+
+	log.Printf("Starting secure server on https://localhost:8443 (TLS 1.2+)")
+	if err := srv.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Server failed to start: %v", err)
+	}
 }
 
 func showHomePage(c *gin.Context) {
@@ -269,10 +333,16 @@ func showHomePage(c *gin.Context) {
 
 	renderTemplate(c, "index.html", gin.H{
 		"rootExists": rootCertExists,
+		"csrfToken":  getCSRFToken(c.Request),
 	})
 }
 
 func showCreateCertificateForm(c *gin.Context) {
+	rootCertExists := false
+	if _, err := os.Stat("data/root-cert/HomeLab_Root_CA.pem"); err == nil {
+		rootCertExists = true
+	}
+
 	generalCertOptions := gin.H{
 		"ValidityPeriod":   viper.GetString("general_cert_options.validity_period"),
 		"Organization":     viper.GetString("general_cert_options.organization"),
@@ -283,7 +353,9 @@ func showCreateCertificateForm(c *gin.Context) {
 		"Email":            viper.GetString("general_cert_options.email"),
 	}
 	renderTemplate(c, "create_certificate.html", gin.H{
+		"rootCertExists":     rootCertExists,
 		"generalCertOptions": generalCertOptions,
+		"csrfToken":          getCSRFToken(c.Request),
 	})
 }
 
@@ -303,7 +375,9 @@ func showSettingsPage(c *gin.Context) {
 			"Location":         viper.GetString("general_cert_options.location"),
 			"Email":            viper.GetString("general_cert_options.email"),
 		},
-		"defaultPassword": isDefaultPassword,
+		"sessionTimeoutMinutes": getSessionTimeoutMinutes(),
+		"defaultPassword":       isDefaultPassword,
+		"csrfToken":             getCSRFToken(c.Request),
 	})
 }
 
@@ -334,8 +408,7 @@ func loadRootCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 func handleCertManagerSettings(c *gin.Context) {
-
-	log.Println("running handleCertManagerSettings ...")
+	debugLog("handleCertManagerSettings called")
 
 	if c.Request.Method == "GET" {
 		c.JSON(http.StatusOK, gin.H{
@@ -354,6 +427,20 @@ func handleCertManagerSettings(c *gin.Context) {
 		return
 	}
 
+	for _, dns := range certSettings.DnsNames {
+		if err := validateDNSName(dns); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	for _, ip := range certSettings.IpAddresses {
+		if _, err := validateIPAddress(ip); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
 	if err := saveCertManagerSettings(certSettings.DnsNames, certSettings.IpAddresses); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -363,7 +450,7 @@ func handleCertManagerSettings(c *gin.Context) {
 }
 
 func handleGeneralCertOptions(c *gin.Context) {
-	log.Println("running handleGeneralCertOptions ...")
+	debugLog("handleGeneralCertOptions called")
 
 	if c.Request.Method == "GET" {
 		c.JSON(http.StatusOK, gin.H{
@@ -373,6 +460,7 @@ func handleGeneralCertOptions(c *gin.Context) {
 			"country":           viper.GetString("general_cert_options.country"),
 			"state":             viper.GetString("general_cert_options.state"),
 			"location":          viper.GetString("general_cert_options.location"),
+			"email":             viper.GetString("general_cert_options.email"),
 		})
 		return
 	}
@@ -388,6 +476,21 @@ func handleGeneralCertOptions(c *gin.Context) {
 	}
 
 	if err := c.BindJSON(&generalCertOptions); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if _, err := validateValidityYears(generalCertOptions.ValidityPeriod, 1, 100); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateEmail(generalCertOptions.Email); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateCountry(generalCertOptions.Country); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -408,6 +511,89 @@ func handleGeneralCertOptions(c *gin.Context) {
 	c.JSON(http.StatusOK, generalCertOptions)
 }
 
+func handleSessionSettings(c *gin.Context) {
+	debugLog("handleSessionSettings called")
+
+	if c.Request.Method == "GET" {
+		c.JSON(http.StatusOK, gin.H{
+			"timeout_minutes": getSessionTimeoutMinutes(),
+		})
+		return
+	}
+
+	var req struct {
+		TimeoutMinutes int `json:"timeout_minutes"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := saveSessionSettings(req.TimeoutMinutes); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"timeout_minutes": req.TimeoutMinutes,
+	})
+}
+
+func handleSessionStatus(c *gin.Context) {
+	session, err := store.Get(c.Request, "session")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_session"})
+		return
+	}
+
+	timeoutMinutes := getSessionTimeoutMinutes()
+	var lastActivity int64
+	switch v := session.Values["last_activity"].(type) {
+	case int64:
+		lastActivity = v
+	case int:
+		lastActivity = int64(v)
+	case float64:
+		lastActivity = int64(v)
+	default:
+		lastActivity = time.Now().Unix()
+	}
+
+	elapsed := int(time.Since(time.Unix(lastActivity, 0)).Seconds())
+	totalSeconds := timeoutMinutes * 60
+	remainingSeconds := totalSeconds - elapsed
+	if remainingSeconds < 0 {
+		remainingSeconds = 0
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"timeout_minutes":   timeoutMinutes,
+		"total_seconds":     totalSeconds,
+		"remaining_seconds": remainingSeconds,
+	})
+}
+
+func handleSessionPing(c *gin.Context) {
+	session, err := store.Get(c.Request, "session")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_session"})
+		return
+	}
+
+	timeoutMinutes := getSessionTimeoutMinutes()
+	session.Values["last_activity"] = time.Now().Unix()
+	if err := session.Save(c.Request, c.Writer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed_to_save_session"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":            "ok",
+		"timeout_minutes":   timeoutMinutes,
+		"remaining_seconds": timeoutMinutes * 60,
+	})
+}
+
 func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 	if data == nil {
 		data = gin.H{}
@@ -416,7 +602,16 @@ func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 }
 
 func showLoginPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "login.html", nil)
+	var errorMsg string
+	if c.Query("timeout") == "1" {
+		errorMsg = "Your session expired due to inactivity. Please log in again."
+	} else if c.Query("csrf_error") == "1" {
+		errorMsg = "Your security token expired. Please log in again."
+	}
+	c.HTML(http.StatusOK, "login.html", gin.H{
+		"error":     errorMsg,
+		"csrfToken": getCSRFToken(c.Request),
+	})
 }
 
 func handleLogin(c *gin.Context, config *Config) {
@@ -447,29 +642,122 @@ func handleLogin(c *gin.Context, config *Config) {
 			}
 		}
 
-		session, _ := store.Get(c.Request, "session")
+		session, err := store.Get(c.Request, "session")
+		if err != nil {
+			// An error here usually indicates an invalid, expired, or rotated cookie from an older session.
+			// Since the user is authenticating with valid credentials, we replace the invalid session.
+			log.Printf("Notice: replacing invalid/expired session cookie during login: %v", err)
+		}
+		if session == nil {
+			session, err = store.New(c.Request, "session")
+			if err != nil || session == nil {
+				log.Printf("Fatal: failed to create session during login: %v", err)
+				c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+					"error":     "Session error",
+					"csrfToken": getCSRFToken(c.Request),
+				})
+				return
+			}
+		}
+
 		session.Values["authenticated"] = true
-		session.Save(c.Request, c.Writer)
+		session.Values["last_activity"] = time.Now().Unix()
+		if err := session.Save(c.Request, c.Writer); err != nil {
+			log.Printf("Failed to save session: %v", err)
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"error":     "Session error",
+				"csrfToken": getCSRFToken(c.Request),
+			})
+			return
+		}
+		loginLimiter.Reset(c.ClientIP())
 		c.Redirect(http.StatusSeeOther, "/certificates")
 	} else {
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "Invalid credentials"})
+		loginLimiter.RecordFailure(c.ClientIP())
+		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+			"error":     "Invalid credentials",
+			"csrfToken": getCSRFToken(c.Request),
+		})
 	}
 }
 
 func handleLogout(c *gin.Context) {
-	session, _ := store.Get(c.Request, "session")
-	session.Values["authenticated"] = false
-	session.Save(c.Request, c.Writer)
+	session, err := store.Get(c.Request, "session")
+	if session != nil {
+		if err != nil {
+			log.Printf("Notice: session error during logout: %v", err)
+		}
+		session.Values["authenticated"] = false
+		session.Values["last_activity"] = int64(0)
+		session.Options.MaxAge = -1 // expire cookie
+		if err := session.Save(c.Request, c.Writer); err != nil {
+			log.Printf("Failed to save session during logout: %v", err)
+		}
+	}
 	c.Redirect(http.StatusSeeOther, "/login")
 }
 
 func AuthRequired(c *gin.Context) {
-	session, _ := store.Get(c.Request, "session")
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+	session, err := store.Get(c.Request, "session")
+	if err != nil {
+		log.Printf("Session error in AuthRequired: %v", err)
 		c.Redirect(http.StatusSeeOther, "/login")
 		c.Abort()
 		return
 	}
+
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		if c.GetHeader("X-Requested-With") == "XMLHttpRequest" || strings.HasPrefix(c.Request.URL.Path, "/api/") || strings.Contains(c.GetHeader("Accept"), "application/json") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		} else {
+			c.Redirect(http.StatusSeeOther, "/login")
+		}
+		c.Abort()
+		return
+	}
+
+	// Inactivity session timeout check
+	var lastActivity int64
+	switch v := session.Values["last_activity"].(type) {
+	case int64:
+		lastActivity = v
+	case int:
+		lastActivity = int64(v)
+	case float64:
+		lastActivity = int64(v)
+	default:
+		lastActivity = 0
+	}
+
+	timeoutMinutes := getSessionTimeoutMinutes()
+	timeoutDuration := time.Duration(timeoutMinutes) * time.Minute
+
+	if lastActivity == 0 {
+		lastActivity = time.Now().Unix()
+		session.Values["last_activity"] = lastActivity
+		_ = session.Save(c.Request, c.Writer)
+	} else if time.Since(time.Unix(lastActivity, 0)) > timeoutDuration {
+		log.Printf("Session timed out after %v of inactivity", time.Since(time.Unix(lastActivity, 0)))
+		session.Values["authenticated"] = false
+		session.Values["last_activity"] = int64(0)
+		session.Options.MaxAge = -1
+		_ = session.Save(c.Request, c.Writer)
+
+		if c.GetHeader("X-Requested-With") == "XMLHttpRequest" || strings.HasPrefix(c.Request.URL.Path, "/api/") || strings.Contains(c.GetHeader("Accept"), "application/json") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "session_expired", "message": "Session expired due to inactivity"})
+		} else {
+			c.Redirect(http.StatusSeeOther, "/login?timeout=1")
+		}
+		c.Abort()
+		return
+	}
+
+	// Update last_activity on user interactions (do not refresh on passive status polling)
+	if c.Request.URL.Path != "/api/session/status" {
+		session.Values["last_activity"] = time.Now().Unix()
+		_ = session.Save(c.Request, c.Writer)
+	}
+
 	c.Next()
 }
 
@@ -489,7 +777,6 @@ func CheckPasswordChange(config *Config) gin.HandlerFunc {
 func loadConfig() (*Config, error) {
 	viper.SetConfigName("settings")
 	viper.SetConfigType("json")
-	viper.AddConfigPath(".")
 	viper.AddConfigPath("data")
 
 	var config Config
@@ -508,6 +795,13 @@ func loadConfig() (*Config, error) {
 				return nil, err
 			}
 			config.SessionKey = hex.EncodeToString(key)
+
+			// Generate a persistent CSRF key
+			csrfBytes := make([]byte, 32)
+			if _, err := rand.Read(csrfBytes); err != nil {
+				return nil, err
+			}
+			config.CSRFKey = hex.EncodeToString(csrfBytes)
 
 			if saveErr := saveConfig(&config); saveErr != nil {
 				return nil, saveErr
@@ -533,22 +827,42 @@ func loadConfig() (*Config, error) {
 		config.MustChangePassword = true
 		madeChanges = true
 	}
-	if config.SessionKey == "" {
-		key := make([]byte, 64)
-		if _, err := rand.Read(key); err != nil {
+	// Ensure persistent CSRF key exists
+	if config.CSRFKey == "" {
+		csrfBytes := make([]byte, 32)
+		if _, err := rand.Read(csrfBytes); err != nil {
 			return nil, err
 		}
-		config.SessionKey = hex.EncodeToString(key)
+		config.CSRFKey = hex.EncodeToString(csrfBytes)
 		madeChanges = true
 	}
+
+	// Invalidate previous session keys on service restart by generating a fresh random key
+	key := make([]byte, 64)
+	if _, err := rand.Read(key); err != nil {
+		return nil, err
+	}
+	config.SessionKey = hex.EncodeToString(key)
+	madeChanges = true
 
 	if madeChanges {
 		if err := saveConfig(&config); err != nil {
 			return nil, err
 		}
 	}
-	// Initialize the session store with the key from the config
+	// Initialize the session store with the key from the config and secure cookie options
 	store = sessions.NewCookieStore([]byte(config.SessionKey))
+	sessionSecure := !viper.GetBool("debug")
+	if viper.IsSet("session_secure") {
+		sessionSecure = viper.GetBool("session_secure")
+	}
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   sessionSecure,
+		SameSite: http.SameSiteLaxMode,
+	}
 
 	return &config, nil
 }
@@ -556,7 +870,9 @@ func loadConfig() (*Config, error) {
 func saveConfig(config *Config) error {
 	viper.Set("password", config.Password)
 	viper.Set("session_key", config.SessionKey)
-	return viper.WriteConfigAs("data/settings.json")
+	viper.Set("csrf_key", config.CSRFKey)
+	viper.Set("must_change_password", config.MustChangePassword)
+	return saveViperConfig()
 }
 
 func changePassword(c *gin.Context, config *Config) {
@@ -573,6 +889,12 @@ func changePassword(c *gin.Context, config *Config) {
 	// Check the old password
 	if !checkPasswordHash(req.OldPassword, config.Password) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Old password is incorrect"})
+		return
+	}
+
+	// Validate the new password against password security policy
+	if err := validatePassword(req.NewPassword, req.OldPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
 		return
 	}
 

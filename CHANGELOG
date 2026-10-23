@@ -1,8 +1,24 @@
-2024/11/24 v.0.1
+2024/11/24 v0.1
 - Initial Github upload
+
 2024/12/23 v0.2
 Features:
 - create selfsigned-certificate if no certificate is available
 - add settings page with certificate defaults
 - add dark-/lightmode
 - search/filter for certificates-table
+
+2026/01/31 v0.3 - Security Hardening Release
+Security Improvements:
+- SECURITY: Removed hardcoded password hash from repository
+- SECURITY: Upgraded RSA key size from 2048 to 4096 bits for all certificates
+- SECURITY: Fixed path traversal vulnerability in certificate file operations
+- SECURITY: Hardened directory permissions (0777 -> 0700/0750)
+- SECURITY: Hardened file permissions for private keys (0600)
+- SECURITY: Added proper session error handling
+- SECURITY: Added CSRF protection for all forms
+- SECURITY: Added configurable debug logging (disabled by default)
+- SECURITY: Added sanitization for all user input used in file paths
+- SECURITY: Added proper error handling for file deletion operations
+- FIX: Added missing email field to settings API response
+- FIX: Fixed malformed HTML attribute in settings template
