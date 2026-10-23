@@ -169,6 +169,10 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	// Add security headers middleware
+	r.Use(securityHeadersMiddleware())
+
 	r.Static("/static", "./static") // Konfiguration, um statische Dateien zu bedienen
 
 	// Add CSRF middleware
