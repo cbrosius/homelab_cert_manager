@@ -2,259 +2,563 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Create Certificate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Certificate - HomeLab Certificate Manager</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-    <!-- Materialize CSS -->
-    <link rel="stylesheet" href="/static/materialize/materialize.css">
-    <!-- Custom CSS -->
+    <!-- Modern Design System -->
     <link rel="stylesheet" href="/static/styles.css">
     <script>
-        const theme = localStorage.getItem('theme');
-        if (theme === 'dark') {
-            document.documentElement.setAttribute('theme', 'dark');
-        }
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('theme', theme);
     </script>
 </head>
 <body>
     {{ template "header.html" . }}
-    <div class="container" style="margin-top: 30px;">
-        <h1 class="center-align">Create Certificate</h1>
 
-        {{if not .rootCertExists}}
-        <div class="card-panel orange lighten-5" style="border-left: 5px solid #ff9800; color: #b74700; display: flex; align-items: center; margin-bottom: 25px;">
-            <i class="material-icons left" style="font-size: 2.5rem; margin-right: 15px;">warning</i>
-            <div style="flex-grow: 1;">
-                <h5 style="margin: 0 0 8px 0; font-weight: 600;">Root CA Missing</h5>
-                <p style="margin: 0;">You cannot issue service certificates yet because no HomeLab Root CA exists. Please create the Root CA certificate first.</p>
+    <main class="container main-content">
+        <!-- Breadcrumb & Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <a href="/certificates" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--text-muted); text-decoration: none; margin-bottom: 0.35rem;">
+                    <i class="material-icons" style="font-size: 16px;">arrow_back</i>
+                    <span>Back to Certificates</span>
+                </a>
+                <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary);">Create SSL/TLS Certificate</h1>
             </div>
-            <a href="/" class="btn orange darken-1 white-text waves-effect waves-light" style="margin-left: 15px;">
-                <i class="material-icons left">add_moderator</i>Create Root CA
-            </a>
+            <span class="badge-pill status-active" style="font-size: 0.8rem;">
+                <i class="material-icons" style="font-size: 14px;">verified</i>
+                CA Ready
+            </span>
         </div>
-        {{end}}
 
-        <form id="createCertificateForm" action="/create-certificate" method="POST" onsubmit="submitCreateCertificateForm(event)">
-            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
-            <div class="row">
-                <div class="input-field col s12">
-                    <input type="text" id="common_name" name="common_name" class="validate" required maxlength="64" oninput="validateCertificateForm()" {{if not .rootCertExists}}disabled{{end}}>
-                    <label for="common_name" class="active">Common Name (CN) *</label>
-                    <span class="helper-text" data-error="Common Name is required (max 64 characters)">Hostname, domain, or service identifier (e.g. proxmox, nas.homelab.local)</span>
-                </div>
-
-                <!-- DNS Names -->
-                <div class="col s12" style="margin-top: 15px;">
-                    <h6>Subject Alternative Names: DNS Hostnames</h6>
-                    <p class="grey-text" style="font-size: 0.9rem; margin-top: 0;">Add DNS hostnames or wildcards (e.g. *.homelab.local, pihole, service.local)</p>
-                    <div class="input-field">
-                        <div id="dns_list"></div>
-                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addDnsField()" {{if not .rootCertExists}}disabled{{end}}>
-                            <i class="material-icons">add</i>
-                        </button>
+        {{ if not .rootCertExists }}
+        <!-- Root CA Missing Alert -->
+        <div class="card" style="border-left: 4px solid var(--accent-warning); background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), var(--bg-surface)); margin-bottom: 2rem;">
+            <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <i class="material-icons" style="font-size: 2.2rem; color: var(--accent-warning);">warning</i>
+                    <div>
+                        <h4 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Root CA Missing</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+                            You cannot issue service certificates yet because no HomeLab Root CA exists.
+                        </p>
                     </div>
                 </div>
-
-                <!-- IP Addresses -->
-                <div class="col s12" style="margin-top: 15px;">
-                    <h6>Subject Alternative Names: IP Addresses</h6>
-                    <p class="grey-text" style="font-size: 0.9rem; margin-top: 0;">Add IPv4 or IPv6 addresses (e.g. 192.168.1.50, 10.0.0.1)</p>
-                    <div class="input-field">
-                        <div id="ip_list"></div>
-                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addIpField()" {{if not .rootCertExists}}disabled{{end}}>
-                            <i class="material-icons">add</i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="input-field col s12" style="margin-top: 20px;">
-                    <input type="number" id="validity_years" name="validity_years" class="validate" required min="1" max="100" oninput="validateCertificateForm()" {{if not .rootCertExists}}disabled{{end}}>
-                    <label for="validity_years" class="active">Validity Period (Years) *</label>
-                    <span class="helper-text" data-error="Please enter a validity period between 1 and 100 years">Duration in years (e.g. 5, 10)</span>
-                </div>
-
-                <div class="input-field col s12">
-                    <input type="text" id="organization" name="organization" class="validate" {{if not .rootCertExists}}disabled{{end}}>
-                    <label for="organization" class="active">Organization (Optional)</label>
-                </div>
-                <div class="input-field col s12">
-                    <input type="text" id="organization_unit" name="organization_unit" class="validate" {{if not .rootCertExists}}disabled{{end}}>
-                    <label for="organization_unit" class="active">Organization Unit (Optional)</label>
-                </div>
-                <div class="input-field col s12">
-                    <input type="text" id="country" name="country" class="validate" maxlength="2" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase(); validateCertificateForm();" {{if not .rootCertExists}}disabled{{end}}>
-                    <label for="country" class="active">Country Code (Optional, 2-letter ISO e.g. US, DE)</label>
-                    <span class="helper-text" data-error="Country code must be exactly 2 letters"></span>
-                </div>
-                <div class="input-field col s12">
-                    <input type="text" id="state" name="state" class="validate" {{if not .rootCertExists}}disabled{{end}}>
-                    <label for="state" class="active">State or Province (Optional)</label>
-                </div>
-                <div class="input-field col s12">
-                    <input type="text" id="location" name="location" class="validate" {{if not .rootCertExists}}disabled{{end}}>
-                    <label for="location" class="active">Locality / City (Optional)</label>
-                </div>
-                <div class="input-field col s12">
-                    <input type="email" id="email" name="email" class="validate" oninput="validateCertificateForm()" {{if not .rootCertExists}}disabled{{end}}>
-                    <label for="email" class="active">Email (Optional)</label>
-                    <span class="helper-text" data-error="Please enter a valid email address (or leave empty)"></span>
-                </div>
+                <a href="/" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-warning), #d97706); box-shadow: 0 0 15px var(--accent-warning-glow);">
+                    <i class="material-icons">add_moderator</i>
+                    <span>Create Root CA First</span>
+                </a>
             </div>
+        </div>
+        {{ end }}
 
-            <div class="row" style="margin-top: 25px; margin-bottom: 40px;">
-                <div class="col s12">
-                    <button id="createCertButton" type="submit" class="waves-effect waves-light btn green" disabled>
-                        <i class="material-icons left">verified</i>Create Certificate
-                    </button>
-                    <a href="/certificates" class="waves-effect waves-light btn grey lighten-1 white-text" style="margin-left: 10px;">
+        <!-- 2-Column Creator Layout: Form on Left, Live Preview on Right -->
+        <div class="creator-grid">
+            <!-- Left Form Column -->
+            <form id="createCertificateForm" action="/create-certificate" method="POST" onsubmit="submitCreateCertificateForm(event)">
+                <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                <div id="hidden-sans-container"></div>
+
+                <!-- Primary Certificate Details Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="material-icons" style="color: var(--accent-primary);">tune</i>
+                            <span>Certificate Parameters</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Common Name (CN) -->
+                        <div class="form-group">
+                            <label class="form-label" for="common_name">
+                                Common Name (CN) <span style="color: var(--accent-danger);">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="common_name" 
+                                name="common_name" 
+                                class="validate" 
+                                required 
+                                maxlength="64" 
+                                placeholder="e.g. proxmox, nas.homelab.local, pihole"
+                                oninput="onCommonNameChange(this.value)"
+                                {{ if not .rootCertExists }}disabled{{ end }}
+                            >
+                            <span class="helper-text" id="cn-helper">Main hostname or service identifier (max 64 characters)</span>
+                        </div>
+
+                        <!-- Interactive Subject Alternative Names (SANs) Tag Manager -->
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <label class="form-label">
+                                Subject Alternative Names (SANs) - Hostnames & IPs
+                            </label>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                                Type a domain (e.g. <code>*.homelab.lan</code>) or IP address (e.g. <code>192.168.1.100</code>) and press <strong>Enter</strong> or comma.
+                            </p>
+
+                            <div class="tag-input-box" id="sanTagBox" onclick="focusTagInput()">
+                                <div id="tagsWrapper" style="display: inline-flex; flex-wrap: wrap; gap: 0.35rem;"></div>
+                                <input 
+                                    type="text" 
+                                    id="sanTagInput" 
+                                    class="tag-input-field" 
+                                    placeholder="Add DNS or IP and press Enter..." 
+                                    onkeydown="handleTagKeydown(event)"
+                                    {{ if not .rootCertExists }}disabled{{ end }}
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Validity Period Slider & Presets -->
+                        <div class="form-group" style="margin-top: 1.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                                <label class="form-label" for="validity_years" style="margin-bottom: 0;">
+                                    Validity Period <span style="color: var(--accent-danger);">*</span>
+                                </label>
+                                <span id="validityDisplayBadge" class="badge-pill status-active" style="font-size: 0.8rem; text-transform: none;">
+                                    10 Years
+                                </span>
+                            </div>
+
+                            <div class="validity-controls">
+                                <div class="slider-row">
+                                    <input 
+                                        type="range" 
+                                        id="validity_years_slider" 
+                                        class="range-slider" 
+                                        min="1" 
+                                        max="30" 
+                                        value="10" 
+                                        oninput="onValiditySliderChange(this.value)"
+                                        {{ if not .rootCertExists }}disabled{{ end }}
+                                    >
+                                    <input 
+                                        type="number" 
+                                        id="validity_years" 
+                                        name="validity_years" 
+                                        value="10" 
+                                        min="1" 
+                                        max="100" 
+                                        required 
+                                        style="width: 80px; text-align: center;" 
+                                        oninput="onValidityNumberChange(this.value)"
+                                        {{ if not .rootCertExists }}disabled{{ end }}
+                                    >
+                                </div>
+                                <div class="preset-pill-group">
+                                    <button type="button" class="preset-pill-btn" onclick="setValidityYears(1)">1 Year</button>
+                                    <button type="button" class="preset-pill-btn" onclick="setValidityYears(2)">2 Years</button>
+                                    <button type="button" class="preset-pill-btn" onclick="setValidityYears(5)">5 Years</button>
+                                    <button type="button" class="preset-pill-btn active" onclick="setValidityYears(10)">10 Years</button>
+                                    <button type="button" class="preset-pill-btn" onclick="setValidityYears(30)">30 Years</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expandable Organizational Details (Optional) -->
+                <details class="collapsible-card">
+                    <summary>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="material-icons" style="font-size: 18px; color: var(--accent-secondary);">business</i>
+                            <span>Organizational Details (Optional)</span>
+                        </div>
+                        <i class="material-icons" style="font-size: 18px;">expand_more</i>
+                    </summary>
+                    <div class="collapsible-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="organization">Organization (O)</label>
+                                <input type="text" id="organization" name="organization" placeholder="e.g. My HomeLab" oninput="updatePreviewCard()" {{ if not .rootCertExists }}disabled{{ end }}>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="organization_unit">Unit (OU)</label>
+                                <input type="text" id="organization_unit" name="organization_unit" placeholder="e.g. Infrastructure" oninput="updatePreviewCard()" {{ if not .rootCertExists }}disabled{{ end }}>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="country">Country Code</label>
+                                <input type="text" id="country" name="country" maxlength="2" placeholder="e.g. US, DE" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase(); validateFormState();" {{ if not .rootCertExists }}disabled{{ end }}>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="state">State / Province</label>
+                                <input type="text" id="state" name="state" placeholder="e.g. RLP, California" {{ if not .rootCertExists }}disabled{{ end }}>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="location">City / Locality</label>
+                                <input type="text" id="location" name="location" placeholder="e.g. Home" {{ if not .rootCertExists }}disabled{{ end }}>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="email">Contact Email</label>
+                            <input type="email" id="email" name="email" placeholder="admin@homelab.local" oninput="validateFormState()" {{ if not .rootCertExists }}disabled{{ end }}>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Action Toolbar -->
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+                    <a href="/certificates" class="btn btn-secondary">
                         Cancel
                     </a>
+                    <button id="createCertButton" type="submit" class="btn btn-primary" disabled>
+                        <i class="material-icons">verified</i>
+                        <span>Generate & Sign Certificate</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Right Sticky Column: Live Certificate Preview Card -->
+            <div class="preview-card-sticky">
+                <div class="cert-preview-card">
+                    <div class="preview-badge-row">
+                        <div class="preview-lock-glow">
+                            <i class="material-icons">lock</i>
+                        </div>
+                        <div class="authority-sign-pill">
+                            <i class="material-icons" style="font-size: 14px;">verified_user</i>
+                            <span>Signed by HomeLab CA</span>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">
+                        Common Name
+                    </div>
+                    <div id="previewCommonName" class="preview-cert-cn">
+                        plex.homelab.lan
+                    </div>
+
+                    <div style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">
+                        Subject Alternative Names (SANs)
+                    </div>
+                    <div id="previewSanList" class="preview-san-list">
+                        <span class="san-tag">plex.homelab.lan</span>
+                    </div>
+
+                    <div class="preview-meta-list">
+                        <div>
+                            <span>Issued Date:</span>
+                            <strong id="previewIssueDate">Today</strong>
+                        </div>
+                        <div>
+                            <span>Valid Until:</span>
+                            <strong id="previewExpiryDate">In 10 Years</strong>
+                        </div>
+                        <div>
+                            <span>Key Algorithm:</span>
+                            <strong>RSA 2048-bit</strong>
+                        </div>
+                        <div>
+                            <span>Signature:</span>
+                            <strong>SHA256withRSA</strong>
+                        </div>
+                    </div>
+
+                    <div class="preview-expiry-hero">
+                        <div style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase;">Estimated Lifetime</div>
+                        <div id="previewExpiryDays" class="preview-expiry-days">Expires in 3,652 Days</div>
+                    </div>
                 </div>
             </div>
-        </form>
-    </div>
-    
-    <!-- Materialize JavaScript -->
-    <script src="/static/materialize/materialize.js"></script>
+        </div>
+    </main>
+
+    <!-- Overwrite Confirmation Modal Dialog -->
+    <dialog id="overwriteModal" class="modern-dialog" style="max-width: 480px;">
+        <div class="modal-header">
+            <h3 style="color: var(--accent-warning); display: flex; align-items: center; gap: 0.5rem;">
+                <i class="material-icons">warning</i>
+                <span>Certificate Exists</span>
+            </h3>
+            <button class="btn-icon-nav" type="button" onclick="closeOverwriteModal()" aria-label="Close modal">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="overwriteModalMsg" style="font-size: 0.925rem; color: var(--text-primary); margin-bottom: 0.5rem;">
+                A certificate with this name already exists. Do you want to overwrite it?
+            </p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                The existing private key and certificates will be replaced with new keys signed by the Root CA.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" type="button" onclick="closeOverwriteModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="confirmOverwriteSubmit()">
+                <i class="material-icons">sync</i>
+                <span>Overwrite Certificate</span>
+            </button>
+        </div>
+    </dialog>
+
     <script src="/static/script.js"></script>
     <script>
         const rootCertExists = {{ .rootCertExists }};
+        const sanTags = []; // Array of { type: 'dns'|'ip', value: string }
+        let currentFormDataCache = null;
 
         document.addEventListener('DOMContentLoaded', function() {
-            var elems = document.querySelectorAll('select');
-            M.FormSelect.init(elems);
-
-            // Initialize general certificate options from settings
-            const generalCertOptions = JSON.parse(`{{ .generalCertOptions | toJson }}`);
-            if (generalCertOptions) {
-                document.querySelector('input[name="validity_years"]').value = generalCertOptions.ValidityPeriod || '10';
-                document.querySelector('input[name="organization"]').value = generalCertOptions.Organization || '';
-                document.querySelector('input[name="organization_unit"]').value = generalCertOptions.OrganizationUnit || '';
-                document.querySelector('input[name="country"]').value = generalCertOptions.Country || '';
-                document.querySelector('input[name="state"]').value = generalCertOptions.State || '';
-                document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
-                document.querySelector('input[name="email"]').value = generalCertOptions.Email || '';
+            // Pre-populate defaults from settings if available
+            try {
+                const generalOptions = JSON.parse(`{{ .generalCertOptions | toJson }}`);
+                if (generalOptions) {
+                    if (generalOptions.ValidityPeriod) setValidityYears(parseInt(generalOptions.ValidityPeriod, 10));
+                    if (generalOptions.Organization) document.getElementById('organization').value = generalOptions.Organization;
+                    if (generalOptions.OrganizationUnit) document.getElementById('organization_unit').value = generalOptions.OrganizationUnit;
+                    if (generalOptions.Country) document.getElementById('country').value = generalOptions.Country;
+                    if (generalOptions.State) document.getElementById('state').value = generalOptions.State;
+                    if (generalOptions.Location) document.getElementById('location').value = generalOptions.Location;
+                    if (generalOptions.Email) document.getElementById('email').value = generalOptions.Email;
+                }
+            } catch (e) {
+                console.log('Defaults not loaded:', e);
             }
 
-            validateCertificateForm();
+            updatePreviewCard();
+            validateFormState();
         });
 
-        function addDnsField(value = '') {
-            const dnsList = document.getElementById('dns_list');
-            const entry = document.createElement('div');
-            entry.className = 'dns-entry input-field col s12';
-            entry.style.display = 'flex';
-            entry.style.alignItems = 'center';
-            entry.style.marginBottom = '8px';
-            entry.innerHTML = `
-                <div style="flex-grow: 1;">
-                    <input type="text" name="dns" class="validate" value="${value}" placeholder="e.g. service.local or *.homelab.local" oninput="validateCertificateForm()">
-                </div>
-                <button type="button" class="btn-floating waves-effect waves-light red btn-small" onclick="removeField(this)" style="margin-left: 10px;">
-                    <i class="material-icons">remove</i>
-                </button>
-            `;
-            dnsList.appendChild(entry);
-            validateCertificateForm();
+        // SAN Tag Management
+        function focusTagInput() {
+            const input = document.getElementById('sanTagInput');
+            if (input) input.focus();
         }
 
-        function addIpField(value = '') {
-            const ipList = document.getElementById('ip_list');
-            const entry = document.createElement('div');
-            entry.className = 'ip-entry input-field col s12';
-            entry.style.display = 'flex';
-            entry.style.alignItems = 'center';
-            entry.style.marginBottom = '8px';
-            entry.innerHTML = `
-                <div style="flex-grow: 1;">
-                    <input type="text" name="ip" class="validate" value="${value}" placeholder="e.g. 192.168.1.100" oninput="validateCertificateForm()">
-                </div>
-                <button type="button" class="btn-floating waves-effect waves-light red btn-small" onclick="removeField(this)" style="margin-left: 10px;">
-                    <i class="material-icons">remove</i>
-                </button>            
-            `;
-            ipList.appendChild(entry);
-            validateCertificateForm();
+        function isIpAddress(str) {
+            // Simple IPv4 / IPv6 test
+            const ipv4 = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            const ipv6 = /^[0-9a-fA-F:]+$/;
+            return ipv4.test(str) || (str.includes(':') && ipv6.test(str));
         }
 
-        function removeField(button) {
-            const entry = button.closest('.dns-entry, .ip-entry');
-            if (entry) {
-                entry.remove();
-            }
-            validateCertificateForm();
-        }
+        function addSanTag(val) {
+            const trimmed = val.trim();
+            if (!trimmed) return;
 
-        function validateCertificateForm() {
-            const saveButton = document.getElementById('createCertButton');
-            if (!rootCertExists) {
-                saveButton.disabled = true;
+            // Prevent duplicates
+            if (sanTags.some(t => t.value.toLowerCase() === trimmed.toLowerCase())) {
                 return;
             }
 
-            const cnInput = document.getElementById('common_name');
-            const yearsInput = document.getElementById('validity_years');
-            const emailInput = document.getElementById('email');
-            const countryInput = document.getElementById('country');
-
-            const isCnValid = cnInput && cnInput.value.trim().length > 0 && cnInput.value.trim().length <= 64;
-            const yearsVal = parseInt(yearsInput ? yearsInput.value : '0', 10);
-            const isYearsValid = !isNaN(yearsVal) && yearsVal >= 1 && yearsVal <= 100;
-
-            let isEmailValid = true;
-            if (emailInput && emailInput.value.trim().length > 0) {
-                isEmailValid = emailInput.checkValidity();
-            }
-
-            let isCountryValid = true;
-            if (countryInput && countryInput.value.trim().length > 0) {
-                isCountryValid = countryInput.value.trim().length === 2;
-            }
-
-            saveButton.disabled = !(isCnValid && isYearsValid && isEmailValid && isCountryValid);
+            const type = isIpAddress(trimmed) ? 'ip' : 'dns';
+            sanTags.push({ type: type, value: trimmed });
+            renderTags();
+            updatePreviewCard();
         }
 
+        function removeSanTag(index) {
+            sanTags.splice(index, 1);
+            renderTags();
+            updatePreviewCard();
+        }
+
+        function renderTags() {
+            const wrapper = document.getElementById('tagsWrapper');
+            const hiddenContainer = document.getElementById('hidden-sans-container');
+            wrapper.innerHTML = '';
+            hiddenContainer.innerHTML = '';
+
+            sanTags.forEach((tag, idx) => {
+                // Visual Tag
+                const tagEl = document.createElement('span');
+                tagEl.className = `tag-item ${tag.type === 'ip' ? 'ip-tag' : ''}`;
+                tagEl.innerHTML = `
+                    <span>${tag.type.toUpperCase()}:${tag.value}</span>
+                    <button type="button" class="tag-remove-btn" onclick="removeSanTag(${idx})" title="Remove">✕</button>
+                `;
+                wrapper.appendChild(tagEl);
+
+                // Hidden input for Go form handler
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = tag.type; // "dns" or "ip"
+                input.value = tag.value;
+                hiddenContainer.appendChild(input);
+            });
+        }
+
+        function handleTagKeydown(e) {
+            if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+                e.preventDefault();
+                const input = e.target;
+                addSanTag(input.value);
+                input.value = '';
+            } else if (e.key === 'Backspace' && e.target.value === '' && sanTags.length > 0) {
+                removeSanTag(sanTags.length - 1);
+            }
+        }
+
+        // Common Name Changes
+        function onCommonNameChange(val) {
+            updatePreviewCard();
+            validateFormState();
+        }
+
+        // Validity Handling
+        function setValidityYears(years) {
+            const valid = Math.max(1, Math.min(100, years));
+            document.getElementById('validity_years').value = valid;
+            document.getElementById('validity_years_slider').value = Math.min(30, valid);
+            document.getElementById('validityDisplayBadge').textContent = `${valid} ${valid === 1 ? 'Year' : 'Years'}`;
+
+            // Update active preset button
+            document.querySelectorAll('.preset-pill-btn').forEach(btn => {
+                const btnYears = parseInt(btn.textContent, 10);
+                if (btnYears === valid) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            updatePreviewCard();
+            validateFormState();
+        }
+
+        function onValiditySliderChange(val) {
+            setValidityYears(parseInt(val, 10));
+        }
+
+        function onValidityNumberChange(val) {
+            const parsed = parseInt(val, 10) || 1;
+            setValidityYears(parsed);
+        }
+
+        // Live Certificate Preview Card Updates
+        function updatePreviewCard() {
+            const cnInput = document.getElementById('common_name');
+            const previewCn = document.getElementById('previewCommonName');
+            const previewSanList = document.getElementById('previewSanList');
+            const previewIssue = document.getElementById('previewIssueDate');
+            const previewExpiry = document.getElementById('previewExpiryDate');
+            const previewDays = document.getElementById('previewExpiryDays');
+
+            const cnVal = (cnInput && cnInput.value.trim()) || 'myservice.homelab.lan';
+            previewCn.textContent = cnVal;
+
+            // SANs preview
+            previewSanList.innerHTML = '';
+            if (sanTags.length === 0) {
+                const defSpan = document.createElement('span');
+                defSpan.className = 'san-tag';
+                defSpan.textContent = cnVal;
+                previewSanList.appendChild(defSpan);
+            } else {
+                sanTags.forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'san-tag';
+                    span.textContent = `${tag.type.toUpperCase()}:${tag.value}`;
+                    previewSanList.appendChild(span);
+                });
+            }
+
+            // Dates calculation
+            const now = new Date();
+            const years = parseInt(document.getElementById('validity_years').value, 10) || 10;
+            const expiry = new Date();
+            expiry.setFullYear(now.getFullYear() + years);
+
+            previewIssue.textContent = now.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            previewExpiry.textContent = expiry.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+
+            const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+            previewDays.textContent = `Expires in ${diffDays.toLocaleString()} Days`;
+        }
+
+        // Validation logic
+        function validateFormState() {
+            const btn = document.getElementById('createCertButton');
+            if (!rootCertExists) {
+                btn.disabled = true;
+                return;
+            }
+
+            const cn = document.getElementById('common_name').value.trim();
+            const years = parseInt(document.getElementById('validity_years').value, 10);
+            const country = document.getElementById('country').value.trim();
+            const email = document.getElementById('email').value.trim();
+
+            const isCnValid = cn.length > 0 && cn.length <= 64;
+            const isYearsValid = !isNaN(years) && years >= 1 && years <= 100;
+            const isCountryValid = country.length === 0 || country.length === 2;
+            const isEmailValid = email.length === 0 || document.getElementById('email').checkValidity();
+
+            btn.disabled = !(isCnValid && isYearsValid && isCountryValid && isEmailValid);
+        }
+
+        // Form Submit
         function submitCreateCertificateForm(event) {
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
+            currentFormDataCache = formData;
+
+            const submitBtn = document.getElementById('createCertButton');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="material-icons" style="animation: pulseDot 1s infinite;">refresh</i><span>Generating...</span>';
 
             fetch('/create-certificate', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json().then(data => ({ status: response.status, data: data })))
-            .then(result => {
-                const data = result.data;
+            .then(res => res.json())
+            .then(data => {
                 if (data.needsConfirmation) {
-                    if (confirm(data.error)) {
-                        formData.set('overwrite', 'yes');
-                        fetch('/create-certificate', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(r => r.json())
-                        .then(overwriteResult => {
-                            if (overwriteResult.redirect) {
-                                window.location.href = overwriteResult.redirect;
-                            } else if (overwriteResult.error) {
-                                new M.Toast({html: overwriteResult.error, classes: 'red darken-1'});
-                            }
-                        })
-                        .catch(err => {
-                            new M.Toast({html: 'Error overwriting certificate: ' + err, classes: 'red darken-1'});
-                        });
-                    }
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="material-icons">verified</i><span>Generate & Sign Certificate</span>';
+                    openOverwriteModal(data.error);
                 } else if (data.error) {
-                    new M.Toast({html: data.error, classes: 'red darken-1'});
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="material-icons">verified</i><span>Generate & Sign Certificate</span>';
+                    if (window.showToast) window.showToast(data.error, 'error');
                 } else if (data.redirect) {
-                    window.location.href = data.redirect;
+                    if (window.showToast) window.showToast('Certificate created successfully!', 'success');
+                    setTimeout(() => { window.location.href = data.redirect; }, 600);
                 } else {
                     window.location.href = '/certificates';
                 }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                new M.Toast({html: 'Network error creating certificate', classes: 'red darken-1'});
+            .catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="material-icons">verified</i><span>Generate & Sign Certificate</span>';
+                if (window.showToast) window.showToast('Network error creating certificate: ' + err.message, 'error');
+            });
+        }
+
+        function openOverwriteModal(msg) {
+            const modal = document.getElementById('overwriteModal');
+            document.getElementById('overwriteModalMsg').textContent = msg || 'A certificate with this name already exists. Do you want to overwrite it?';
+            modal.showModal();
+        }
+
+        function closeOverwriteModal() {
+            const modal = document.getElementById('overwriteModal');
+            if (modal) modal.close();
+        }
+
+        function confirmOverwriteSubmit() {
+            closeOverwriteModal();
+            if (!currentFormDataCache) return;
+
+            currentFormDataCache.set('overwrite', 'yes');
+            if (window.showToast) window.showToast('Overwriting certificate...', 'info');
+
+            fetch('/create-certificate', {
+                method: 'POST',
+                body: currentFormDataCache
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.redirect) {
+                    if (window.showToast) window.showToast('Certificate replaced successfully!', 'success');
+                    setTimeout(() => { window.location.href = data.redirect; }, 600);
+                } else if (data.error) {
+                    if (window.showToast) window.showToast(data.error, 'error');
+                }
+            })
+            .catch(err => {
+                if (window.showToast) window.showToast('Failed to overwrite certificate: ' + err.message, 'error');
             });
         }
     </script>

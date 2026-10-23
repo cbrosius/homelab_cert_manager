@@ -1112,8 +1112,308 @@ dialog.modern-dialog::backdrop {
 }
 
 /* ==========================================================================
+   Certificate Creator Layout & Interactive Preview Card
+   ========================================================================== */
+.creator-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* Interactive SAN Tag Input Box */
+.tag-input-box {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.4rem 0.6rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 48px;
+    cursor: text;
+    transition: all var(--transition-fast);
+}
+
+.tag-input-box:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-primary-glow);
+}
+
+.tag-item {
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    color: var(--text-primary);
+    border-radius: var(--border-radius-full);
+    padding: 0.25rem 0.65rem 0.25rem 0.75rem;
+    font-size: 0.825rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    user-select: none;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.tag-item.ip-tag {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.tag-remove-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    border-radius: 50%;
+    transition: color var(--transition-fast);
+}
+
+.tag-remove-btn:hover {
+    color: var(--accent-danger);
+}
+
+.tag-input-field {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0.25rem 0.4rem !important;
+    flex-grow: 1;
+    min-width: 140px;
+    font-size: 0.875rem !important;
+    color: var(--text-primary) !important;
+    outline: none !important;
+}
+
+/* Validity Slider & Preset Pills */
+.validity-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.range-slider {
+    flex-grow: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: var(--border-radius-full);
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+    cursor: pointer;
+}
+
+.range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 10px var(--accent-primary-glow);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+.preset-pill-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.preset-pill-btn {
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--border-radius-full);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.preset-pill-btn:hover, .preset-pill-btn.active {
+    background: rgba(6, 182, 212, 0.15);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* Expandable Details Container */
+.collapsible-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+}
+
+.collapsible-card summary {
+    padding: 0.85rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    transition: color var(--transition-fast);
+}
+
+.collapsible-card summary:hover {
+    color: var(--text-primary);
+}
+
+.collapsible-card[open] summary {
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+
+.collapsible-content {
+    padding: 1.25rem;
+}
+
+/* Live Dynamic Certificate Preview Card */
+.preview-card-sticky {
+    position: sticky;
+    top: calc(var(--header-height) + 1.5rem);
+}
+
+.cert-preview-card {
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(6, 182, 212, 0.06) 100%);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    border-radius: var(--border-radius-lg);
+    padding: 1.75rem;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 25px rgba(6, 182, 212, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.cert-preview-card::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.preview-badge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.preview-lock-glow {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius-md);
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--accent-success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px var(--accent-success-glow);
+}
+
+.authority-sign-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--border-radius-full);
+    font-size: 0.775rem;
+    font-weight: 600;
+}
+
+.preview-cert-cn {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    word-break: break-all;
+    margin-bottom: 1rem;
+}
+
+.preview-san-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 1.25rem;
+    min-height: 28px;
+}
+
+.preview-meta-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.preview-meta-list div {
+    display: flex;
+    justify-content: space-between;
+}
+
+.preview-meta-list strong {
+    color: var(--text-primary);
+}
+
+.preview-expiry-hero {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--border-radius-md);
+    padding: 0.85rem;
+    text-align: center;
+}
+
+.preview-expiry-days {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
    Responsive Breakpoints
    ========================================================================== */
+@media (max-width: 992px) {
+    .creator-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .nav-menu {
         display: none;
@@ -1132,3 +1432,4 @@ dialog.modern-dialog::backdrop {
         max-width: 100%;
     }
 }
+
