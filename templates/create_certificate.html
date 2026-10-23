@@ -225,14 +225,14 @@
                         </div>
                     </div>
 
-                    <div style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">
+                    <div class="preview-label">
                         Common Name
                     </div>
                     <div id="previewCommonName" class="preview-cert-cn">
                         plex.homelab.lan
                     </div>
 
-                    <div style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">
+                    <div class="preview-label">
                         Subject Alternative Names (SANs)
                     </div>
                     <div id="previewSanList" class="preview-san-list">
@@ -259,7 +259,7 @@
                     </div>
 
                     <div class="preview-expiry-hero">
-                        <div style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase;">Estimated Lifetime</div>
+                        <div class="preview-label" style="margin-bottom: 0.2rem;">Estimated Lifetime</div>
                         <div id="previewExpiryDays" class="preview-expiry-days">Expires in 3,652 Days</div>
                     </div>
                 </div>
@@ -318,6 +318,7 @@
                 console.log('Defaults not loaded:', e);
             }
 
+            updateSliderTrack(document.getElementById('validity_years_slider'));
             updatePreviewCard();
             validateFormState();
         });
@@ -399,10 +400,23 @@
         }
 
         // Validity Handling
+        function updateSliderTrack(slider) {
+            if (!slider) return;
+            const min = parseFloat(slider.min) || 1;
+            const max = parseFloat(slider.max) || 30;
+            const val = parseFloat(slider.value) || min;
+            const percentage = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+            slider.style.setProperty('--slider-percent', `${percentage}%`);
+        }
+
         function setValidityYears(years) {
             const valid = Math.max(1, Math.min(100, years));
             document.getElementById('validity_years').value = valid;
-            document.getElementById('validity_years_slider').value = Math.min(30, valid);
+            const slider = document.getElementById('validity_years_slider');
+            if (slider) {
+                slider.value = Math.min(30, valid);
+                updateSliderTrack(slider);
+            }
             document.getElementById('validityDisplayBadge').textContent = `${valid} ${valid === 1 ? 'Year' : 'Years'}`;
 
             // Update active preset button

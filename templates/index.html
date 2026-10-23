@@ -160,18 +160,18 @@
 
             <!-- Right Preview Column -->
             <div class="preview-card-sticky">
-                <div class="cert-preview-card" style="border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 25px rgba(245, 158, 11, 0.15);">
+                <div class="cert-preview-card root-ca-preview">
                     <div class="preview-badge-row">
-                        <div class="preview-lock-glow" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: var(--accent-warning); box-shadow: 0 0 15px var(--accent-warning-glow);">
+                        <div class="preview-lock-glow">
                             <i class="material-icons">security</i>
                         </div>
-                        <div class="authority-sign-pill" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #fed7aa;">
+                        <div class="authority-sign-pill">
                             <i class="material-icons" style="font-size: 14px;">verified</i>
                             <span>Self-Signed Root Authority</span>
                         </div>
                     </div>
 
-                    <div style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">
+                    <div class="preview-label">
                         Authority Common Name
                     </div>
                     <div id="previewCn" class="preview-cert-cn">
@@ -198,8 +198,8 @@
                     </div>
 
                     <div class="preview-expiry-hero">
-                        <div style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase;">Authority Lifetime</div>
-                        <div id="previewLifetime" class="preview-expiry-days" style="color: var(--accent-warning);">30 Years Active</div>
+                        <div class="preview-label" style="margin-bottom: 0.2rem;">Authority Lifetime</div>
+                        <div id="previewLifetime" class="preview-expiry-days">30 Years Active</div>
                     </div>
                 </div>
             </div>
@@ -208,14 +208,28 @@
 
     <script src="/static/script.js"></script>
     <script>
+        function updateSliderTrack(slider) {
+            if (!slider) return;
+            const min = parseFloat(slider.min) || 5;
+            const max = parseFloat(slider.max) || 50;
+            const val = parseFloat(slider.value) || min;
+            const percentage = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+            slider.style.setProperty('--slider-percent', `${percentage}%`);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            updateSliderTrack(document.getElementById('validity_slider'));
             updateRootPreview();
         });
 
         function setRootValidity(val) {
             const v = Math.max(1, Math.min(100, parseInt(val, 10) || 30));
             document.getElementById('validity_years').value = v;
-            document.getElementById('validity_slider').value = Math.min(50, v);
+            const slider = document.getElementById('validity_slider');
+            if (slider) {
+                slider.value = Math.min(50, v);
+                updateSliderTrack(slider);
+            }
             document.getElementById('validityBadge').textContent = `${v} Years`;
             updateRootPreview();
         }
