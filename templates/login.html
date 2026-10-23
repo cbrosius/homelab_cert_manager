@@ -40,8 +40,8 @@
 
             <!-- Error Banner -->
             {{ if .error }}
-            <div style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); color: #fecdd3; padding: 0.75rem 1rem; border-radius: var(--border-radius-md); font-size: 0.875rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem;">
-                <i class="material-icons" style="color: var(--accent-danger); font-size: 18px;">error</i>
+            <div class="alert-banner-error" role="alert">
+                <i class="material-icons">error</i>
                 <span>{{ .error }}</span>
             </div>
             {{ end }}

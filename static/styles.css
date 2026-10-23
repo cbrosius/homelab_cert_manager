@@ -108,7 +108,7 @@
 
     --text-primary: #0f172a;
     --text-secondary: #475569;
-    --text-muted: #94a3b8;
+    --text-muted: #64748b;
     --text-inverse: #ffffff;
 
     --input-bg: #ffffff;
@@ -324,6 +324,12 @@ body {
     font-weight: 600;
 }
 
+[theme='light'] .session-timer-pill.warning {
+    background: #fff1f2;
+    border-color: #fecdd3;
+    color: #be123c;
+}
+
 .session-timer-pill.warning .session-pulse-dot {
     background: var(--accent-danger);
     box-shadow: 0 0 10px var(--accent-danger);
@@ -333,6 +339,37 @@ body {
 @keyframes fastPulse {
     0%, 100% { opacity: 1; transform: scale(1.1); }
     50% { opacity: 0.2; transform: scale(0.7); }
+}
+
+/* Alert Error Banner */
+.alert-banner-error {
+    background: rgba(244, 63, 94, 0.15);
+    border: 1px solid rgba(244, 63, 94, 0.35);
+    color: #fecdd3;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.alert-banner-error .material-icons {
+    color: var(--accent-danger);
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+[theme='light'] .alert-banner-error {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    color: #9f1239;
+    box-shadow: 0 1px 3px rgba(159, 18, 57, 0.06);
+}
+
+[theme='light'] .alert-banner-error .material-icons {
+    color: #e11d48;
 }
 
 /* Theme Switcher Button */
@@ -678,16 +715,54 @@ select:focus {
     border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+[theme='light'] .status-active,
+[theme='light'] .badge-active {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
 .status-expiring {
     background: rgba(245, 158, 11, 0.15);
     color: #fbbf24;
     border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+[theme='light'] .status-expiring {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
 .status-expired {
     background: rgba(244, 63, 94, 0.15);
     color: #f87171;
     border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+[theme='light'] .status-expired {
+    background: #fff1f2;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+}
+
+/* Root CA Emblem Glow */
+.root-ca-logo-glow {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius-md);
+    background: rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+}
+
+[theme='light'] .root-ca-logo-glow {
+    background: rgba(8, 145, 178, 0.1);
+    border: 1px solid rgba(8, 145, 178, 0.3);
+    box-shadow: 0 0 15px rgba(8, 145, 178, 0.12);
 }
 
 /* SAN Domain Badges */
@@ -706,7 +781,9 @@ select:focus {
 }
 
 [theme='light'] .san-tag {
-    background: rgba(15, 23, 42, 0.04);
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
 }
 
 /* ==========================================================================
@@ -838,6 +915,12 @@ select:focus {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
+[theme='light'] .root-ca-card {
+    background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 50%, #f8fafc 100%);
+    border: 1px solid rgba(8, 145, 178, 0.3);
+    box-shadow: 0 10px 25px -5px rgba(8, 145, 178, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
 .root-ca-header {
     display: flex;
     align-items: center;
@@ -859,6 +942,10 @@ select:focus {
     color: var(--text-primary);
 }
 
+[theme='light'] .root-ca-title-group h2 {
+    color: #0f172a;
+}
+
 .progress-bar-container {
     width: 100%;
     max-width: 320px;
@@ -867,6 +954,11 @@ select:focus {
     border-radius: var(--border-radius-full);
     overflow: hidden;
     position: relative;
+}
+
+[theme='light'] .progress-bar-container {
+    background: #e2e8f0;
+    border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 .progress-bar-fill {
@@ -886,8 +978,17 @@ select:focus {
     border-top: 1px solid var(--border-subtle);
 }
 
+[theme='light'] .root-ca-meta {
+    color: #475569;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
 .root-ca-meta span strong {
     color: var(--text-primary);
+}
+
+[theme='light'] .root-ca-meta span strong {
+    color: #0f172a;
 }
 
 /* ==========================================================================
