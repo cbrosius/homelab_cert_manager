@@ -1,71 +1,164 @@
 <!-- header.html -->
-<header class="certificate-page">
-    <div class="navbar-fixed">
-        <nav>
-            <div class="nav-wrapper">
-                <a href="/certificates" class="brand-logo left" style="display: flex; align-items: center;">
-                    <img src="/static/favicon.ico" alt="Logo" style="height: 32px; margin-right: 10px; margin-left: 10px;">
-                    HomeLab Certificate Manager
+<header class="site-header">
+    <div class="nav-container">
+        <!-- Brand -->
+        <a href="/certificates" class="brand-wrapper" title="HomeLab Certificate Manager">
+            <div class="brand-logo-glow">
+                <img src="/static/favicon.ico" alt="Logo">
+            </div>
+            <span class="brand-title">HomeLab CA</span>
+        </a>
+
+        <!-- Main Navigation Links -->
+        <ul class="nav-menu">
+            <li>
+                <a href="/certificates" class="nav-link" id="nav-link-certs">
+                    <i class="material-icons">verified_user</i>
+                    <span>Certificates</span>
                 </a>
-                <ul id="nav-mobile" class="right">
-                    <li id="session-timer-li" style="display: flex; align-items: center; height: 64px; margin-right: 8px;">
-                        <span id="session-timer-badge" title="Session timeout countdown (resets on interaction)" style="display: inline-flex; align-items: center; font-size: 0.85rem; padding: 4px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.15); line-height: 1.2; user-select: none;">
-                            <i class="material-icons tiny" style="margin-right: 4px; font-size: 1.1rem; line-height: 1; vertical-align: middle;">timer</i>
-                            <span id="session-countdown">--:--</span>
-                        </span>
-                    </li>
-                    <li>
-                        <a id="theme-switch" href="#" onclick="toggleTheme()" class="waves-effect waves-light">
-                            <i class="material-icons">dark_mode</i>
+            </li>
+            <li>
+                <a href="/create-certificate-form" class="nav-link" id="nav-link-create">
+                    <i class="material-icons">add_circle_outline</i>
+                    <span>Create</span>
+                </a>
+            </li>
+            <li>
+                <a href="/settings" class="nav-link" id="nav-link-settings">
+                    <i class="material-icons">tune</i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Right Side Actions -->
+        <div class="nav-actions">
+            <!-- Session Timer Pill -->
+            <div id="session-timer-badge" class="session-timer-pill" title="Session timeout countdown (resets on interaction)">
+                <span class="session-pulse-dot"></span>
+                <i class="material-icons" style="font-size: 14px;">timer</i>
+                <span id="session-countdown">--:--</span>
+            </div>
+
+            <!-- Theme Toggle Switch -->
+            <button id="theme-switch" class="btn-icon-nav" type="button" onclick="toggleTheme()" title="Toggle color theme" aria-label="Toggle theme">
+                <i class="material-icons">light_mode</i>
+            </button>
+
+            <!-- Admin Profile & Dropdown -->
+            <div class="profile-dropdown-container">
+                <button id="profileButton" class="btn-profile" type="button" aria-expanded="false" aria-haspopup="true">
+                    <span class="avatar-badge">A</span>
+                    <span>Admin</span>
+                    <i class="material-icons" style="font-size: 16px;">expand_more</i>
+                </button>
+
+                <!-- Modern Dropdown Menu -->
+                <ul id="dropdown1" class="dropdown-menu-box hidden" role="menu">
+                    <li role="none">
+                        <a href="/certificates" role="menuitem">
+                            <i class="material-icons">verified_user</i>
+                            <span>Certificate List</span>
                         </a>
                     </li>
-                    <li>
-                        <a id="profileButton" class="dropdown-trigger" href="#!" data-target="dropdown1">
-                            Admin
-                            <i class="material-icons right">arrow_drop_down</i>
+                    <li role="none">
+                        <a href="/create-certificate-form" role="menuitem">
+                            <i class="material-icons">add_circle_outline</i>
+                            <span>Create Certificate</span>
+                        </a>
+                    </li>
+                    <li role="none">
+                        <a href="/settings" role="menuitem">
+                            <i class="material-icons">tune</i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                    <li class="divider" role="separator"></li>
+                    <li role="none">
+                        <a href="/logout" class="logout-link" role="menuitem">
+                            <i class="material-icons">logout</i>
+                            <span>Logout</span>
                         </a>
                     </li>
                 </ul>
             </div>
-            {{ if .defaultPassword }}
-            <div class="warning-banner" style="padding: 10px; text-align: center; line-height: 1.5em;">
-                Warning: The default password is being used. Please change it in the <a href="/settings" class="text-important">settings</a>.
-            </div>
-            {{ end }}
-        </nav>
+        </div>
     </div>
-    <input type="hidden" id="session_csrf_token" value="{{.csrfToken}}">
 
-    <!-- Dropdown Structure -->
-    <ul id="dropdown1" class="dropdown-content">
-        <li><a href="/certificates" class="text-important">Certificate List</a></li>
-        <li><a href="/settings" class="text-important">Settings</a></li>
-        <li class="divider"></li>
-        <li><a href="/logout" class="text-important">Logout</a></li>
-    </ul>
+    <!-- Security Warning for Default Password -->
+    {{ if .defaultPassword }}
+    <div class="security-warning-bar" role="alert">
+        <i class="material-icons" style="color: var(--accent-warning);">warning</i>
+        <span>Security Warning: The default password is active. Please update your password immediately in <a href="/settings">Settings</a>.</span>
+    </div>
+    {{ end }}
+
+    <input type="hidden" id="session_csrf_token" value="{{.csrfToken}}">
 </header>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize dropdowns
-    var dropdowns = document.querySelectorAll('.dropdown-trigger');
-    M.Dropdown.init(dropdowns, {
-        constrainWidth: false,
-        coverTrigger: false
-    });
+// Highlight active navigation tab based on URL path
+(function() {
+    const currentPath = window.location.pathname;
+    if (currentPath === '/certificates' || currentPath === '/') {
+        const el = document.getElementById('nav-link-certs');
+        if (el) el.classList.add('active');
+    } else if (currentPath === '/create-certificate-form' || currentPath === '/create-certificate') {
+        const el = document.getElementById('nav-link-create');
+        if (el) el.classList.add('active');
+    } else if (currentPath.startsWith('/settings')) {
+        const el = document.getElementById('nav-link-settings');
+        if (el) el.classList.add('active');
+    }
+})();
 
-    // Set initial theme icon
-    const theme = localStorage.getItem('theme') || 'light';
+// Modern Profile Dropdown Logic (Native JS)
+document.addEventListener('DOMContentLoaded', function() {
+    const profileBtn = document.getElementById('profileButton');
+    const dropdown = document.getElementById('dropdown1');
+
+    if (profileBtn && dropdown) {
+        profileBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isHidden = dropdown.classList.toggle('hidden');
+            profileBtn.setAttribute('aria-expanded', !isHidden);
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target) && !profileBtn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                profileBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
+                dropdown.classList.add('hidden');
+                profileBtn.setAttribute('aria-expanded', 'false');
+                profileBtn.focus();
+            }
+        });
+    }
+
+    // Apply initial theme icon state
+    updateThemeIcon();
+});
+
+// Theme Management
+function updateThemeIcon() {
+    const theme = document.documentElement.getAttribute('theme') || localStorage.getItem('theme') || 'dark';
     const icon = document.querySelector('#theme-switch i');
     if (icon) {
         icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
     }
-});
+}
 
 function toggleTheme() {
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    applyTheme(newTheme);
+    const current = document.documentElement.getAttribute('theme') || localStorage.getItem('theme') || 'dark';
+    const nextTheme = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('theme', nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    updateThemeIcon();
 }
 
 // Session Inactivity Countdown & Ping Management
@@ -92,13 +185,9 @@ function toggleTheme() {
 
         if (badgeEl) {
             if (remainingSeconds <= 60) {
-                badgeEl.style.background = 'rgba(244, 67, 54, 0.8)';
-                badgeEl.style.color = '#ffffff';
-                badgeEl.style.fontWeight = 'bold';
+                badgeEl.classList.add('warning');
             } else {
-                badgeEl.style.background = 'rgba(0, 0, 0, 0.15)';
-                badgeEl.style.color = 'inherit';
-                badgeEl.style.fontWeight = 'normal';
+                badgeEl.classList.remove('warning');
             }
         }
     }
@@ -143,11 +232,9 @@ function toggleTheme() {
 
     function onUserInteraction() {
         if (isRedirecting) return;
-        // Instantly reset the visible countdown on interaction
         remainingSeconds = totalTimeoutSeconds;
         updateDisplay();
 
-        // Throttle background ping to the server (at most once every 15s)
         const now = Date.now();
         if (now - lastPingTime > 15000) {
             lastPingTime = now;
@@ -190,7 +277,6 @@ function toggleTheme() {
     document.addEventListener('DOMContentLoaded', function() {
         window.initSessionTimer();
 
-        // Listen for user interaction events to refresh countdown
         const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
         activityEvents.forEach(evt => {
             window.addEventListener(evt, onUserInteraction, { passive: true });
