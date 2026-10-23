@@ -645,8 +645,19 @@ func loadConfig() (*Config, error) {
 			return nil, err
 		}
 	}
-	// Initialize the session store with the key from the config
+	// Initialize the session store with the key from the config and secure cookie options
 	store = sessions.NewCookieStore([]byte(config.SessionKey))
+	sessionSecure := !viper.GetBool("debug")
+	if viper.IsSet("session_secure") {
+		sessionSecure = viper.GetBool("session_secure")
+	}
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   sessionSecure,
+		SameSite: http.SameSiteLaxMode,
+	}
 
 	return &config, nil
 }

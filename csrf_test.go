@@ -147,3 +147,29 @@ func TestLoginWithInvalidSessionCookie(t *testing.T) {
 	}
 	t.Logf("Response code with invalid cookie: %d", postW.Code)
 }
+
+func TestSessionStoreCookieSecurity(t *testing.T) {
+	_, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	if store == nil {
+		t.Fatalf("Expected store to be initialized")
+	}
+	if store.Options == nil {
+		t.Fatalf("Expected store.Options to be initialized")
+	}
+	if !store.Options.HttpOnly {
+		t.Errorf("Expected store.Options.HttpOnly to be true, got false")
+	}
+	if store.Options.SameSite != http.SameSiteLaxMode {
+		t.Errorf("Expected store.Options.SameSite to be SameSiteLaxMode (%v), got %v", http.SameSiteLaxMode, store.Options.SameSite)
+	}
+	if store.Options.Path != "/" {
+		t.Errorf("Expected store.Options.Path to be '/', got %s", store.Options.Path)
+	}
+	if store.Options.MaxAge <= 0 {
+		t.Errorf("Expected positive store.Options.MaxAge, got %d", store.Options.MaxAge)
+	}
+}
