@@ -1,48 +1,70 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all Materialize components
-    M.AutoInit();
+/**
+ * HomeLab Certificate Manager - Modern Client Scripts
+ */
 
-    const profileButton = document.getElementById('profileButton');
-    const dropdownMenu = document.getElementById('dropdown1');
-    
-    profileButton.addEventListener('click', () => {
-        dropdownMenu.classList.toggle('hidden');
-    });
-
-    // Schließen des Menüs, wenn der Benutzer außerhalb des Menüs klickt
-    window.addEventListener('click', (e) => {
-        if (!profileButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
-            dropdownMenu.classList.add('hidden');
-        }
-    });
-
-    // Modal Initialisierung
-    const aboutModal = document.querySelectorAll('.modal');
-    M.Modal.init(aboutModal);
-
-    // Initialize select element
-    const elems = document.querySelectorAll('select');
-    M.FormSelect.init(elems);
-
-    // Initialize theme on page load
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    applyTheme(savedTheme);
-    
-    // Theme switch handler
-    const themeSwitch = document.getElementById('theme-switch');
-    if (themeSwitch) {
-        themeSwitch.addEventListener('click', function(e) {
-            e.preventDefault();
-            const currentTheme = document.documentElement.getAttribute('theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(newTheme);
-        });
+// Global modern toast notification system
+window.showToast = function(message, type = 'info', duration = 4000) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
     }
-});
 
+    const toast = document.createElement('div');
+    toast.className = `modern-toast toast-${type}`;
+
+    let iconName = 'info';
+    if (type === 'success') iconName = 'check_circle';
+    else if (type === 'error') iconName = 'error';
+    else if (type === 'warning') iconName = 'warning';
+
+    toast.innerHTML = `
+        <i class="material-icons" style="font-size: 1.25rem;">${iconName}</i>
+        <span style="flex-grow: 1;">${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px) scale(0.95)';
+        setTimeout(() => toast.remove(), 250);
+    }, duration);
+};
+
+// Materialize M.Toast compatibility layer
+window.M = window.M || {};
+window.M.Toast = function(options) {
+    const text = (options && options.text) || '';
+    const classes = (options && options.classes) || '';
+    let type = 'info';
+    if (classes.includes('red') || classes.includes('error')) type = 'error';
+    else if (classes.includes('green') || classes.includes('success')) type = 'success';
+    else if (classes.includes('orange') || classes.includes('warning')) type = 'warning';
+
+    window.showToast(text, type, 4000);
+};
+
+// Helper for modal dialogues
+window.M.Modal = {
+    init: function() {},
+    getInstance: function(elem) {
+        return {
+            open: function() { if (elem.showModal) elem.showModal(); else elem.style.display = 'block'; },
+            close: function() { if (elem.close) elem.close(); else elem.style.display = 'none'; }
+        };
+    }
+};
+
+window.M.AutoInit = function() {
+    // No-op for legacy Materialize calls
+};
+
+// Homelab Cert Re-creation
 function recreateHomelabCert() {
     if (confirm('Are you sure you want to recreate the Homelab Certificate Manager certificate? The server will need to be restarted afterwards.')) {
-        const csrfTokenEl = document.querySelector('input[name="csrf_token"]');
+        const csrfTokenEl = document.querySelector('input[name="csrf_token"]') || document.getElementById('session_csrf_token');
         const csrfHeaders = csrfTokenEl ? { 'X-CSRF-Token': csrfTokenEl.value } : {};
         fetch('/recreate-homelab-cert', {
             method: 'POST',
@@ -50,58 +72,23 @@ function recreateHomelabCert() {
         })
         .then(response => {
             if (response.ok) {
-                new M.Toast({text: 'Certificate recreated successfully. Please restart the server.'});
-                // Reload the page after a short delay to allow the toast to be visible
+                window.showToast('Certificate recreated successfully. Please restart the server.', 'success');
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
             } else {
-                new M.Toast({text: 'Failed to recreate certificate'});
+                window.showToast('Failed to recreate certificate', 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            new M.Toast({text: 'Error recreating certificate'});
+            window.showToast('Error recreating certificate', 'error');
         });
     }
 }
 
-function applyTheme(theme){
-    // Change Theme Setting with a Switch
-    const currentTheme = localStorage.getItem('theme');
-    const switchElem = document.querySelector('#theme-switch');
-
-    const setTheme = (isDark) => {
-        if (isDark) {
-            switchElem.classList.add('is-dark');
-            switchElem.querySelector('i').innerText = 'light_mode';
-            switchElem.title = 'Switch to light mode';
-        }
-        else {
-            switchElem.classList.remove('is-dark');
-            switchElem.querySelector('i').innerText = 'dark_mode';
-            switchElem.title = 'Switch to dark mode';
-        }
-    }
-
-    if (switchElem) {
-        // Load
-        if (currentTheme) setTheme(true);
-        // Change
-        switchElem.addEventListener('click', e => {
-            e.preventDefault();
-            if (!switchElem.classList.contains('is-dark')) {
-            // Dark Theme
-            document.documentElement.setAttribute('theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-            setTheme(true);
-            }
-            else {
-            // Light Theme
-            document.documentElement.removeAttribute('theme');
-            localStorage.removeItem('theme');
-            setTheme(false);
-            }
-        });
-    }
-}
+// Initial theme enforcement
+document.addEventListener('DOMContentLoaded', function() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('theme', savedTheme);
+});

@@ -616,6 +616,9 @@ func showLoginPage(c *gin.Context) {
 
 func handleLogin(c *gin.Context, config *Config) {
 	username := c.PostForm("username")
+	if username == "" {
+		username = "admin"
+	}
 	password := c.PostForm("password")
 
 	// Check if the stored password is a bcrypt hash

@@ -2,74 +2,123 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - HomeLab Certificate Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - HomeLab Certificate Manager</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-    <!-- Materialize CSS -->
-    <link rel="stylesheet" href="/static/materialize/materialize.css">
-    <!-- Custom CSS -->
+    <!-- Modern Design System -->
     <link rel="stylesheet" href="/static/styles.css">
     <script>
-        const theme = localStorage.getItem('theme') || 'light';
+        const theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('theme', theme);
     </script>
-    <style>
-        .nowrap-title {
-            white-space: nowrap;
-        }
-        .login-card {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .card-content {
-            background: url('/static/Homelab Certification Authority.png') no-repeat center center;
-            background-size: cover;
-            padding: 50px;
-            border-radius: 20px;
-        }
-        .center-button {
-            display: flex;
-            justify-content: center;
-        }
-        .input-field {
-            margin-bottom: 20px;
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="center-align">
-            <h2 class="nowrap-title">HomeLAB Certificate Manager</h2>
+    <div class="login-page-wrapper">
+        <!-- Top Right Theme Switcher -->
+        <div style="position: absolute; top: 20px; right: 24px;">
+            <button id="theme-switch" class="btn-icon-nav" type="button" onclick="toggleTheme()" title="Toggle color theme" aria-label="Toggle theme">
+                <i class="material-icons">light_mode</i>
+            </button>
         </div>
-        <div class="row" style="margin-top: 50px;">
-            <div class="col s12 m6 offset-m3">
-                <div class="card login-card">
-                    <div class="card-content">
-                        <form action="/login" method="POST">
-                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
-                            <div class="input-field">
-                                <input id="username" name="username" type="text" class="validate" required>
-                                <label for="username">Username</label>
-                            </div>
-                            <div class="input-field">
-                                <input id="password" name="password" type="password" class="validate" required>
-                                <label for="password">Password</label>
-                            </div>
-                            <div class="center-button">
-                                <button class="btn waves-effect waves-light" type="submit">
-                                    Login
-                                </button>
-                            </div>
-                        </form>
+
+        <!-- Glassmorphic Login Card -->
+        <div class="login-card-glass">
+            <!-- Shield Icon Emblem -->
+            <div class="login-emblem">
+                <i class="material-icons">shield</i>
+            </div>
+
+            <!-- Header Titles -->
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;">
+                    HomeLab Certificate Authority
+                </h1>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.35rem;">
+                    Sign in to manage your local SSL/TLS certificates
+                </p>
+            </div>
+
+            <!-- Error Banner -->
+            {{ if .error }}
+            <div class="alert-banner-error" role="alert">
+                <i class="material-icons">error</i>
+                <span>{{ .error }}</span>
+            </div>
+            {{ end }}
+
+            <!-- Login Form -->
+            <form action="/login" method="POST" id="loginForm">
+                <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                <input type="hidden" name="username" value="admin" autocomplete="username">
+
+                <!-- Password Input -->
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="material-icons input-leading-icon">lock</i>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            autocomplete="current-password" 
+                            placeholder="Enter your password" 
+                            required
+                            autofocus
+                        >
+                        <button type="button" class="input-trailing-btn" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
+                            <i id="passwordToggleIcon" class="material-icons" style="font-size: 18px;">visibility</i>
+                        </button>
                     </div>
                 </div>
-                {{if .error}}
-                <div class="red-text center-align">{{.error}}</div>
-                {{end}}
+
+                <!-- Sign In Button -->
+                <div style="margin-top: 1.75rem;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;">
+                        <span>Sign In</span>
+                        <i class="material-icons" style="font-size: 18px;">arrow_forward</i>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Bottom Security Badge -->
+            <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; gap: 0.45rem; font-size: 0.75rem; color: var(--text-muted);">
+                <i class="material-icons" style="font-size: 14px; color: var(--accent-success);">verified_user</i>
+                <span>Protected with TLS 1.2+ & Session Timeout</span>
             </div>
         </div>
     </div>
-    <!-- Materialize JavaScript -->
-    <script src="/static/materialize/materialize.js"></script>
+
+    <script src="/static/script.js"></script>
+    <script>
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('password');
+            const icon = document.getElementById('passwordToggleIcon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                pwdInput.type = 'password';
+                icon.textContent = 'visibility';
+            }
+        }
+
+        function updateThemeIcon() {
+            const theme = document.documentElement.getAttribute('theme') || localStorage.getItem('theme') || 'dark';
+            const icon = document.querySelector('#theme-switch i');
+            if (icon) {
+                icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+            }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('theme') || localStorage.getItem('theme') || 'dark';
+            const nextTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('theme', nextTheme);
+            localStorage.setItem('theme', nextTheme);
+            updateThemeIcon();
+        }
+
+        document.addEventListener('DOMContentLoaded', updateThemeIcon);
+    </script>
 </body>
 </html>

@@ -2,169 +2,272 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HomeLab Certificate Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Root CA - HomeLab Certificate Manager</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-    <!-- Materialize CSS -->
-    <link rel="stylesheet" href="/static/materialize/materialize.css">
-    <!-- Custom CSS -->
+    <!-- Modern Design System -->
     <link rel="stylesheet" href="/static/styles.css">
     <script>
-        // Initialize theme before page load
-        const theme = localStorage.getItem('theme') || 'light';
+        const theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('theme', theme);
     </script>
-    <style>
-        .container {
-            margin-top: 50px;
-        }
-        .mandatory::after {
-            content: " *";
-            color: red;
-        }
-        .helper-text.mandatory {
-            color: red;
-        }
-        /* Add styles for collapsible width */
-        .row {
-            margin-bottom: 0;
-            width: 100%;
-        }
-        .collapsible {
-            width: 100%;
-            margin: 1rem 0;
-        }
-        .card {
-            width: 100%;
-        }
-        .col.s8, .col.s4 {
-            padding: 0;
-        }
-    </style>
 </head>
-<body class="{{.theme}}" theme="{{.theme}}">
+<body>
     {{ template "header.html" . }}
-    <div class="container">
-        <h1>HomeLab Certificate Manager</h1>
-        <p>
-        This application helps you create, manage, and download certificates for secure communication and authentication inside your HomeLab.<br>
-        They can help you to get rid of unsecure-warnings for your HomeLab-Services.</p> 
-        <p>First you create a root certificate, all later generated certificates will be signed by this root-certificate.</p>
-        <p>After adding this root certificate to your trusted certificate store, all certificates signed by this root certification authority
-            will be trusted by your system.</p>
 
-        <div class="row">
-            <div class="col s12">
-                <div class="card">
-                    <div class="card-content">
-                        <span class="card-title">Create Root Certificate</span>
-                        <form action="/create-root-certificate" method="POST" class="col s12">
-                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
-                            <div  class="card-content z-depth-1">
-                                <label>Mandatory data. The Common Name will be your identifier for this certificate. The Validity Period defines how long the certificate will be valid. The default value is 30 years. after this period the certificate will be invalid and all certificates signed by this certificate will be invalid too. so don´t use a too short period.</label>
-                                <div class="row" style="margin-bottom: 20px;"></div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="common_name" name="common_name" value="HomeLab Root CA" class="validate" required>
-                                    <label for="common_name" class="active mandatory">Common Name (CN)</label>
-                                    <span class="helper-text mandatory" data-error="Please enter the common name">This field is mandatory.</span>
-                                    <span class="helper-text" data-success="Looks good!"></span>
-                                </div>
-                                <div class="input-field col s12">
-                                    <input type="number" id="validity_years" name="validity_years" value="30" class="validate" required >    
-                                    <label for="validity_years" class="active mandatory">Validity Period (Years)</label>
-                                    <span class="helper-text mandatory" data-error="Please enter the validity period in years">This field is mandatory.</span>
-                                    <p></p>
-                                    <span class="helper-text" data-success="Looks good!"></span>
-                                </div>
-                            </div>
-                            <div class="row" style="margin-bottom: 20px;"></div>
-                            <div  class="card-content z-depth-1">
-                                <label>Optional data. All this fields are not essential to create a root certificate, but will make the certificate more detailed. These values will additionally be used when creating certificates later.</label>
-                                <div class="row" style="margin-bottom: 20px;"></div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="organization" name="organization" value="my HomeLab" class="validate">
-                                    <label for="organization" class="active">Organization (O)</label>
-                                    <span class="helper-text" data-error="Please enter the organization" data-success="Looks good!"></span>
-                                </div>
-                                <div class="row" style="margin-bottom: 20px;"></div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="organizational_unit" name="organizational_unit" value="private" class="validate">
-                                    <label for="organizational_unit" class="active">Organizational Unit (OU)</label>
-                                    <span class="helper-text" data-error="Please enter the organizational unit" data-success="Looks good!"></span>
-                                </div>
-                                <div class="row" style="margin-bottom: 20px;"></div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="country" name="country" class="validate" maxlength="2" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();">
-                                    <label for="country" class="active">Country Code (C) - 2-letter ISO</label>
-                                    <span class="helper-text" data-error="Please enter a 2-letter country code (e.g. US, DE)" data-success="Looks good!">Optional 2-letter code</span>
-                                </div>
-                                <div class="row" style="margin-bottom: 20px;"></div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="state" name="state" class="validate">
-                                    <label for="state" class="active">State or Province (ST)</label>
-                                    <span class="helper-text" data-error="Please enter the state or province" data-success="Looks good!"></span>
-                                </div>
-                                <div class="row" style="margin-bottom: 20px;"></div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="locality" name="locality" class="validate">
-                                    <label for="locality" class="active">Locality (L)</label>
-                                    <span class="helper-text" data-error="Please enter the locality" data-success="Looks good!"></span>
-                                </div>
-                                <div class="row" style="margin-bottom: 20px;"></div>
-                                <div class="input-field col s12">
-                                    <input type="email" id="email" name="email" class="validate">
-                                    <label for="email" class="active">Email</label>
-                                    <span class="helper-text" data-error="Please enter a valid email" data-success="Looks good!"></span>
-                                </div>
-                            </div>
-                        <div class="row" style="margin-bottom: 20px;"></div>
-                        <div class="row">
-                            <button type="submit" class="btn waves-effect waves-light orange white-text right-content">
-                                <i class="material-icons left" style="margin-right: 8px">add_moderator</i>
-                                Create Root Certificate
-                            </button>
-                            <button type="button" onclick="clearForm()" class="btn waves-effect waves-light red">Reset Form Entries</button>
-                            <button type="button" onclick="prefillForm()" class="btn waves-effect waves-light blue">Prefill Form</button>
+    <main class="container main-content">
+        <!-- Hero Header -->
+        <div style="text-align: center; max-width: 720px; margin: 1rem auto 2.5rem;">
+            <div class="brand-logo-glow" style="width: 56px; height: 56px; margin: 0 auto 1rem; border-radius: var(--border-radius-lg);">
+                <i class="material-icons" style="font-size: 32px; color: var(--accent-primary);">shield</i>
+            </div>
+            <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;">
+                Initialize HomeLab Certificate Authority
+            </h1>
+            <p style="font-size: 0.95rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.6;">
+                Create your internal <strong>Root Certificate</strong>. All service certificates you create will be signed by this Root CA.
+                Once you install this root certificate into your devices' trusted root stores, all your homelab services will be securely trusted without browser warnings.
+            </p>
+        </div>
+
+        <div class="creator-grid">
+            <!-- Left Form Column -->
+            <form action="/create-root-certificate" method="POST" id="rootCertForm">
+                <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+
+                <!-- Mandatory Parameters Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="material-icons" style="color: var(--accent-primary);">verified_user</i>
+                            <span>Mandatory Parameters</span>
                         </div>
-                        </form>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label" for="common_name">
+                                Authority Common Name (CN) <span style="color: var(--accent-danger);">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="common_name" 
+                                name="common_name" 
+                                value="HomeLab Root CA" 
+                                required 
+                                maxlength="64"
+                                oninput="updateRootPreview()"
+                            >
+                            <span class="helper-text">Identifies your root certificate authority (e.g. HomeLab Root CA)</span>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                                <label class="form-label" for="validity_years" style="margin-bottom: 0;">
+                                    Validity Period <span style="color: var(--accent-danger);">*</span>
+                                </label>
+                                <span id="validityBadge" class="badge-pill status-active" style="text-transform: none;">
+                                    30 Years (Recommended)
+                                </span>
+                            </div>
+                            <div class="slider-row">
+                                <input 
+                                    type="range" 
+                                    id="validity_slider" 
+                                    class="range-slider" 
+                                    min="5" 
+                                    max="50" 
+                                    value="30" 
+                                    oninput="setRootValidity(this.value)"
+                                >
+                                <input 
+                                    type="number" 
+                                    id="validity_years" 
+                                    name="validity_years" 
+                                    value="30" 
+                                    min="1" 
+                                    max="100" 
+                                    required 
+                                    style="width: 80px; text-align: center;" 
+                                    oninput="setRootValidity(this.value)"
+                                >
+                            </div>
+                            <span class="helper-text">Root CAs should be valid long-term so issued certificates remain trusted</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optional Authority Details Card -->
+                <details class="collapsible-card" open>
+                    <summary>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="material-icons" style="font-size: 18px; color: var(--accent-secondary);">domain</i>
+                            <span>Authority Organization (Optional)</span>
+                        </div>
+                        <i class="material-icons" style="font-size: 18px;">expand_more</i>
+                    </summary>
+                    <div class="collapsible-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="organization">Organization (O)</label>
+                                <input type="text" id="organization" name="organization" value="my HomeLab" oninput="updateRootPreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="organizational_unit">Unit (OU)</label>
+                                <input type="text" id="organizational_unit" name="organizational_unit" value="private" oninput="updateRootPreview()">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="country">Country Code</label>
+                                <input type="text" id="country" name="country" maxlength="2" placeholder="e.g. US, DE" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase(); updateRootPreview();">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="state">State / Province</label>
+                                <input type="text" id="state" name="state" placeholder="e.g. California">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="locality">City / Locality</label>
+                                <input type="text" id="locality" name="locality" placeholder="e.g. Home">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="email">Contact Email</label>
+                            <input type="email" id="email" name="email" placeholder="admin@homelab.local">
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Actions -->
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary" onclick="prefillForm()">
+                            <i class="material-icons" style="font-size: 16px;">auto_fix_high</i>
+                            <span>Prefill</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                            <i class="material-icons" style="font-size: 16px;">clear</i>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-warning), #d97706); box-shadow: 0 0 20px var(--accent-warning-glow);">
+                        <i class="material-icons">add_moderator</i>
+                        <span>Generate Root Certificate</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Right Preview Column -->
+            <div class="preview-card-sticky">
+                <div class="cert-preview-card root-ca-preview">
+                    <div class="preview-badge-row">
+                        <div class="preview-lock-glow">
+                            <i class="material-icons">security</i>
+                        </div>
+                        <div class="authority-sign-pill">
+                            <i class="material-icons" style="font-size: 14px;">verified</i>
+                            <span>Self-Signed Root Authority</span>
+                        </div>
+                    </div>
+
+                    <div class="preview-label">
+                        Authority Common Name
+                    </div>
+                    <div id="previewCn" class="preview-cert-cn">
+                        HomeLab Root CA
+                    </div>
+
+                    <div class="preview-meta-list">
+                        <div>
+                            <span>Issuer:</span>
+                            <strong id="previewIssuer">Self-Signed Root</strong>
+                        </div>
+                        <div>
+                            <span>Organization:</span>
+                            <strong id="previewOrg">my HomeLab</strong>
+                        </div>
+                        <div>
+                            <span>Valid Until:</span>
+                            <strong id="previewExpiry">In 30 Years</strong>
+                        </div>
+                        <div>
+                            <span>CA Constraint:</span>
+                            <strong style="color: var(--accent-success);">IsCA: TRUE, MaxPath: 1</strong>
+                        </div>
+                    </div>
+
+                    <div class="preview-expiry-hero">
+                        <div class="preview-label" style="margin-bottom: 0.2rem;">Authority Lifetime</div>
+                        <div id="previewLifetime" class="preview-expiry-days">30 Years Active</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Materialize JavaScript --> 
-    <script src="/static/materialize/materialize.js"></script>
-    <!-- Custom JavaScript --> 
+    </main>
+
     <script src="/static/script.js"></script>
     <script>
+        function updateSliderTrack(slider) {
+            if (!slider) return;
+            const min = parseFloat(slider.min) || 5;
+            const max = parseFloat(slider.max) || 50;
+            const val = parseFloat(slider.value) || min;
+            const percentage = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+            slider.style.setProperty('--slider-percent', `${percentage}%`);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize theme
-            const currentTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(currentTheme);
+            updateSliderTrack(document.getElementById('validity_slider'));
+            updateRootPreview();
         });
 
+        function setRootValidity(val) {
+            const v = Math.max(1, Math.min(100, parseInt(val, 10) || 30));
+            document.getElementById('validity_years').value = v;
+            const slider = document.getElementById('validity_slider');
+            if (slider) {
+                slider.value = Math.min(50, v);
+                updateSliderTrack(slider);
+            }
+            document.getElementById('validityBadge').textContent = `${v} Years`;
+            updateRootPreview();
+        }
+
+        function updateRootPreview() {
+            const cn = document.getElementById('common_name').value.trim() || 'HomeLab Root CA';
+            const org = document.getElementById('organization').value.trim() || 'None';
+            const years = parseInt(document.getElementById('validity_years').value, 10) || 30;
+
+            document.getElementById('previewCn').textContent = cn;
+            document.getElementById('previewIssuer').textContent = cn;
+            document.getElementById('previewOrg').textContent = org;
+
+            const now = new Date();
+            const expiry = new Date();
+            expiry.setFullYear(now.getFullYear() + years);
+            document.getElementById('previewExpiry').textContent = expiry.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            document.getElementById('previewLifetime').textContent = `${years} Years Active`;
+        }
+
         function clearForm() {
-            const fields = ['common_name', 'organization', 'organizational_unit', 'country', 'state', 'locality', 'email', 'validity_years'];
-            fields.forEach(id => {
-                document.getElementById(id).value = '';
+            ['common_name', 'organization', 'organizational_unit', 'country', 'state', 'locality', 'email'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
             });
+            setRootValidity(10);
         }
 
         function prefillForm() {
-            const defaultValues = {
-                common_name: 'HomeLab Root CA',
-                organization: 'my HomeLab',
-                organizational_unit: 'private',
-                country: 'US',
-                state: 'HomeState',
-                locality: 'HomeCity',
-                email: 'admin@homelab.local',
-                validity_years: '30'
-            };
-
-            Object.keys(defaultValues).forEach(id => {
-                document.getElementById(id).value = defaultValues[id];
-            });
+            document.getElementById('common_name').value = 'HomeLab Root CA';
+            document.getElementById('organization').value = 'my HomeLab';
+            document.getElementById('organizational_unit').value = 'private';
+            document.getElementById('country').value = 'DE';
+            document.getElementById('state').value = 'HomeState';
+            document.getElementById('locality').value = 'HomeCity';
+            document.getElementById('email').value = 'admin@homelab.local';
+            setRootValidity(30);
+            if (window.showToast) window.showToast('Pre-filled with recommended defaults', 'info');
         }
     </script>
 </body>

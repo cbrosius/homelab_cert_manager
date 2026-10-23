@@ -2,438 +2,571 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Certificate List</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificates - HomeLab Certificate Manager</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-    <!-- Materialize CSS -->
-    <link rel="stylesheet" href="/static/materialize/materialize.css">
-    <!-- Custom CSS -->
+    <!-- Modern Design System -->
     <link rel="stylesheet" href="/static/styles.css">
-    <style>
-        .collapsible-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .collapsible-header .left-content {
-            display: flex;
-            align-items: center;
-            flex-grow: 1;
-        }
-        .collapsible-header .spacer {
-            display: flex;
-            width: 100%;
-            flex-grow: 1;
-        }
-        .collapsible-header .right-content {
-            display: flex;
-            gap: 10px;
-            flex-grow: 1
-        }
-    </style>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            M.AutoInit();
-
-            // Initialize all collapsibles
-            var collapsibles = document.querySelectorAll('.collapsible');
-            collapsibles.forEach(function(collapsible) {
-                var toggleBtn = collapsible.querySelector('.toggle-view-btn');
-                if (toggleBtn) {  // Only for collapsibles with view buttons
-                    var btnText = toggleBtn.querySelector('.btn-text');
-                    var btnIcon = toggleBtn.querySelector('.material-icons');
-
-                    collapsible.addEventListener('click', function(e) {
-                        setTimeout(function() {
-                            var isOpen = collapsible.querySelector('li').classList.contains('active');
-                            btnText.textContent = isOpen ? 'Hide Certificate' : 'View Certificate';
-                            btnIcon.textContent = isOpen ? 'visibility_off' : 'visibility';
-                        }, 100);
-                    });
-                }
-            });
-
-            // Auto-open root certificate collapsible if it has the create button
-            var rootCollapsible = document.querySelector('.collapsible:not(.root-cert):not(.homelab-cert)');
-            if (rootCollapsible && rootCollapsible.querySelector('a[href="/"]')) {
-                var instance = M.Collapsible.getInstance(rootCollapsible);
-                instance.open(0);
-            }
-
-            // Auto-open self-signed certificate warning if it exists
-            var selfSignedCollapsible = document.querySelector('.self-signed');
-            if (selfSignedCollapsible) {
-                var instance = M.Collapsible.getInstance(selfSignedCollapsible);
-                instance.open(0);
-            }
-        });
-
-        function viewCertificate(certName) {
-            fetch(`/certificates/view/${certName}.pem`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById(`certDecodedContent-${certName}`).innerText = data.decoded;
-                    document.getElementById(`certRow-${certName}`).style.display = 'table-row';
-                    document.getElementById(`viewButton-${certName}`).style.display = 'none';
-                    document.getElementById(`hideButton-${certName}`).style.display = 'inline';
-                })
-                .catch(error => {
-                    new M.Toast({text: 'Error fetching certificate: ' + error, classes: 'red darken-1'});
-                });
-        }
-
-        function hideCertificate(certName) {
-            document.getElementById(`certRow-${certName}`).style.display = 'none';
-            document.getElementById(`viewButton-${certName}`).style.display = 'inline';
-            document.getElementById(`hideButton-${certName}`).style.display = 'none';
-        }
-        // Initialize theme before page load
-        const theme = localStorage.getItem('theme') || 'light';
+        const theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('theme', theme);
-        // document.body.setAttribute('theme', theme);
     </script>
 </head>
-<body class="{{.theme}}" theme="{{.theme}}">
-    <div class="certificate-page">
-        {{ template "header.html" . }}
-        <div class="container">
-            <h1 class="center-align">Certificates</h1>
-            <!-- Root Certificate Section -->
-            <div class="row">
-                <div class="col s12">
-                    {{if .rootCertificate}}
-                    <ul class="collapsible root-cert">
-                        <li>
-                            <div class="collapsible-header">
-                                    <div class="left-content">
-                                        <i class="material-icons">security</i>
-                                        <span style="margin-left: 8px; white-space: nowrap;">HomeLAB Root CA Certificate</span>
-                                    </div>
-                                    <div class="spacer"></div>
-                                    <div class="right-content">
-                                        <form action="/certificates/download/root-cert/HomeLab_Root_CA.pem" method="GET" style="margin-right: 10px;">
-                                            <button type="submit" class="btn blue">
-                                                <i class="material-icons left">download</i>
-                                                <span class="btn-text">Download</span>
-                                            </button>
-                                        </form>
-                                        <div class="spacer"></div>
-                                        <button class="waves-effect waves-light btn toggle-view-btn">
-                                            <i class="material-icons left">visibility</i>
-                                            <span class="btn-text">View Certificate</span>
-                                        </button>
-                                    </div>
-                            </div>
-                            <div class="collapsible-body">
-                                <p><strong>Issuer:</strong> {{.rootCertificate.Issuer}}</p>
-                                <p><strong>Subject:</strong> {{.rootCertificate.Subject}}</p>
-                                <p><strong>Validity:</strong> Not Before: {{.rootCertificate.NotBefore}}, Not After: {{.rootCertificate.NotAfter}}</p>
-                            </div>
-                        </li>
-                    </ul>
-                    {{else}}
-                    <ul class="collapsible">
-                        <li>
-                            <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <div style="display: flex; align-items: center;">
-                                    <i class="material-icons orange-text">warning</i>
-                                    <span style="margin-left: 8px;">Root Certificate</span>
-                                </div>
-                            </div>
-                            <div class="collapsible-body">
-                                <div class="card-panel yellow lighten-4" style="color: black; display: flex; align-items: center;">
-                                    <i class="material-icons left">info</i>
-                                    <span style="margin-left: 8px;">
-                                        No root certificate found. Please create one to start issuing certificates.
-                                    </span>
-                                    <a href="/" class="btn waves-effect waves-light orange white-text right-content" style="margin-left: auto;">
-                                        <i class="material-icons left" style="margin-right: 8px">add_moderator</i>
-                                        Create Root Certificate
-                                    </a>
-                                </div>
-                        </div>
-                        </li>
-                    </ul>
-                    {{end}}
+<body>
+    {{ template "header.html" . }}
 
-                <!-- HomeLAB Certificate Section -->
-                {{if .homelabCertificate}}
-                    <div class="row">
-                        <div class="col s12">
-                            <ul class="collapsible homelab-cert">
-                                <li>
-                                    <div class="collapsible-header">
-                                        <div class="left-content">
-                                            <i class="material-icons">verified_user</i>
-                                            <span style="margin-left: 8px; white-space: nowrap;">HomeLab Certificate Manager Certificate</span>
-                                        </div>
-                                        <div class="spacer"></div>
-                                        <div>
-                                            <button class="waves-effect waves-light btn toggle-view-btn">
-                                                <i class="material-icons left">visibility</i>
-                                                <span class="btn-text">View Certificate</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="collapsible-body">
-                                        <p><strong>Issuer:</strong> {{.homelabCertificate.Issuer}}</p>
-                                        <p><strong>Subject:</strong> {{.homelabCertificate.Subject}}</p>
-                                        <p><strong>Validity:</strong> Not Before: {{.homelabCertificate.NotBefore}}, Not After: {{.homelabCertificate.NotAfter}}</p>
-                                        <p><strong>DNSNames:</strong> {{.homelabCertificate.DNSNames}}</p>
-                                        <p><strong>IP-Addresses:</strong> {{.homelabCertificate.IPAddresses}}</p>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    {{else if .selfSignedExists}}
-                    <ul class="collapsible self-signed">
-                        <li>
-                            <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <div style="display: flex; align-items: center; white-space: nowrap;">
-                                    <i class="material-icons orange-text">warning</i>
-                                    <span style="margin-left: 8px;">Self-Signed Certificate</span>
-                                </div>
-                            </div>
-                            <div class="collapsible-body">
-                                <div class="card-panel yellow lighten-4" style="color: black; display: flex; align-items: center;">
-                                    <i class="material-icons left">info</i>
-                                    <span style="margin-left: 8px;">
-                                        This is a self-signed certificate. <br>
-                                        Recreate it using your Homelab Root CA Certificate.
-                                    </span>
-                                    {{if .rootCertificate}}
-                                    <a href="/settings" class="btn waves-effect waves-light orange white-text right-content" id="goSettingsBtn" style="margin-left: auto;">
-                                        <i class="material-icons left">settings</i>
-                                        Go to Settings
-                                    </a>
-                                    {{else}}
-                                    <span class="tooltipped right-content" data-position="top" data-tooltip="Create a Root CA first before recreating this certificate" style="margin-left: auto;">
-                                        <button class="btn disabled grey lighten-1 white-text" style="cursor: not-allowed; pointer-events: none;">
-                                            <i class="material-icons left">settings</i>
-                                            Go to Settings
-                                        </button>
-                                    </span>
-                                    {{end}}
-                                </div>                                
-                                <p><strong>Subject:</strong> HomeLab Certificate Manager</p>
-                                <p><strong>Type:</strong> Self-Signed Certificate</p>
-                            </div>
-                        </li>
-                    </ul>
-                    {{else}}
-                    <div class="card-panel yellow lighten-4" style="color: black;">
-                        <i class="material-icons left">warning</i>
-                        <span>No certificate found. A self-signed certificate will be generated automatically when service is restarted.</span>
-                    </div>
-                    {{end}}
+    <main class="container main-content">
+        <!-- Top Metrics Row -->
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-info">
+                    <div class="metric-label">Active Certificates</div>
+                    <div class="metric-value" id="metric-active-certs">{{ len .certificates }}</div>
+                </div>
+                <div class="metric-icon-badge">
+                    <i class="material-icons" style="font-size: 24px;">verified_user</i>
                 </div>
             </div>
 
-            <!-- Certificates Section -->
-            <div class="row">
-                <div class="col s12">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="row" style="display: flex; justify-content: space-between; align-items: center;">
-                                <span class="card-title">HomeLAB Certificates</span>
-                                {{if .rootCertificate}}
-                                <a href="/create-certificate-form" class="btn waves-effect green white-text">
-                                    <i class="material-icons left">add</i>Create New Certificate
-                                </a>
-                                {{else}}
-                                <span class="tooltipped" data-position="left" data-tooltip="HomeLab Root CA is required before issuing certificates">
-                                    <button class="btn disabled grey lighten-1 white-text" style="cursor: not-allowed; pointer-events: none;">
-                                        <i class="material-icons left">add</i>Create New Certificate
-                                    </button>
-                                </span>
-                                {{end}}
-                            </div>
+            <div class="metric-card">
+                <div class="metric-info">
+                    <div class="metric-label">Expiring Soon (30d)</div>
+                    <div class="metric-value" id="metric-expiring-certs">0</div>
+                </div>
+                <div class="metric-icon-badge amber">
+                    <i class="material-icons" style="font-size: 24px;">alarm</i>
+                </div>
+            </div>
 
-                            {{if not .rootCertificate}}
-                            <div class="card-panel orange lighten-5" style="border-left: 5px solid #ff9800; color: #b74700; margin: 15px 0; padding: 12px 18px; display: flex; align-items: center;">
-                                <i class="material-icons left" style="font-size: 2rem; margin-right: 12px;">info</i>
-                                <div>
-                                    <strong>Prerequisite Missing:</strong> You cannot issue certificates yet because no HomeLab Root CA exists.
-                                    Please <a href="/" class="btn-small orange darken-1 white-text waves-effect waves-light" style="margin-left: 8px;">Create Root CA</a> to get started.
-                                </div>
-                            </div>
-                            {{end}}
-                    
-                            <hr>
-                            <div class="search-container">
-                                <input type="text" id="searchInput" placeholder="Search for certificates..." onkeyup="filterTable()">
-                            </div>
-                            <table id="certTable" class="highlight centered">
-                                <thead>
-                                    <tr>
-                                        <th onclick="sortTable(0)">Certificate<i class="material-icons">arrow_drop_down</i></th>
-                                        <th onclick="sortTable(1)">Created<i class="material-icons">arrow_drop_down</i></th>
-                                        <th onclick="sortTable(2)">Valid Until<i class="material-icons">arrow_drop_down</i></th>
-                                        <th onclick="sortTable(3)">Subject Alternative Names<i class="material-icons">arrow_drop_down</i></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {{range .certificates}}
-                                    <tr>
-                                        <td><b>{{.Name}}</b></td>
-                                        <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
-                                        <td>{{.ValidUntil.Format "2006-01-02 15:04:05"}}</td>
-                                        <td>{{range .SANs}}{{.}}<br>{{end}}</td>
-                                        <td>
-                                            <button class="btn-small waves-effect waves-light dropdown-trigger blue" data-target="dropdown-{{.Name}}">
-                                                <i class="material-icons">download</i>
+            <div class="metric-card">
+                <div class="metric-info">
+                    <div class="metric-label">Root CA Status</div>
+                    <div class="metric-value" style="font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">
+                        {{ if .rootCertificate }}
+                        <span class="badge-pill status-active" style="font-size: 0.85rem;">Active</span>
+                        <span id="root-ca-days" style="font-size: 0.95rem; color: var(--text-secondary); font-weight: normal;"></span>
+                        {{ else }}
+                        <span class="badge-pill status-expired" style="font-size: 0.85rem;">Missing</span>
+                        {{ end }}
+                    </div>
+                </div>
+                <div class="metric-icon-badge {{ if .rootCertificate }}emerald{{ else }}amber{{ end }}">
+                    <i class="material-icons" style="font-size: 24px;">security</i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Root CA Showcase Banner -->
+        {{ if .rootCertificate }}
+        <section class="root-ca-card">
+            <div class="root-ca-header">
+                <div class="root-ca-title-group">
+                    <div class="root-ca-logo-glow">
+                        <i class="material-icons" style="color: var(--accent-primary); font-size: 24px;">security</i>
+                    </div>
+                    <div>
+                        <h2>HomeLab Root CA Certificate</h2>
+                        <div style="display: flex; align-items: center; gap: 0.6rem; margin-top: 2px;">
+                            <span class="badge-pill status-active">
+                                <i class="material-icons" style="font-size: 12px;">check_circle</i>
+                                Trusted Authority
+                            </span>
+                            <span style="font-size: 0.825rem; color: var(--text-secondary);">
+                                {{ .rootCertificate.Subject.CommonName }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                        <span style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase;">Validity Progress</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="root-ca-progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    <a href="/certificates/download/root-cert/HomeLab_Root_CA.pem" class="btn btn-primary" title="Download Root Certificate PEM to install into your trusted stores">
+                        <i class="material-icons">download</i>
+                        <span>Download Root CA</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="root-ca-meta">
+                <span><strong>Issued:</strong> {{ .rootCertificate.NotBefore.Format "2006-01-02" }}</span>
+                <span><strong>Expires:</strong> {{ .rootCertificate.NotAfter.Format "2006-01-02" }}</span>
+                <span><strong>Issuer:</strong> {{ .rootCertificate.Issuer.CommonName }}</span>
+                {{ if .rootCertificate.Subject.Organization }}
+                <span><strong>Organization:</strong> {{ range .rootCertificate.Subject.Organization }}{{ . }} {{ end }}</span>
+                {{ end }}
+            </div>
+        </section>
+        {{ else }}
+        <section class="card" style="border-left: 4px solid var(--accent-warning); background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), var(--bg-surface));">
+            <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <i class="material-icons" style="font-size: 2.2rem; color: var(--accent-warning);">warning</i>
+                    <div>
+                        <h3 style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Root CA Missing</h3>
+                        <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">You cannot issue service certificates yet because no HomeLab Root CA exists. Create one to begin.</p>
+                    </div>
+                </div>
+                <a href="/" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-warning), #d97706); box-shadow: 0 0 15px var(--accent-warning-glow);">
+                    <i class="material-icons">add_moderator</i>
+                    <span>Create Root Certificate</span>
+                </a>
+            </div>
+        </section>
+        {{ end }}
+
+        <!-- Self-Signed Alert Banner -->
+        {{ if .selfSignedExists }}
+        <section class="card" style="border-left: 4px solid var(--accent-warning); margin-bottom: 1.5rem;">
+            <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <i class="material-icons" style="color: var(--accent-warning); font-size: 1.8rem;">info</i>
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary);">Certificate Manager is using a temporary self-signed certificate</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Recreate it with your trusted HomeLab Root CA in settings to avoid browser TLS warnings.</div>
+                    </div>
+                </div>
+                {{ if .rootCertificate }}
+                <a href="/settings" class="btn btn-secondary">
+                    <i class="material-icons">settings</i>
+                    <span>Recreate in Settings</span>
+                </a>
+                {{ else }}
+                <button class="btn btn-secondary" disabled title="Create a Root CA first before recreating this certificate">
+                    <i class="material-icons">settings</i>
+                    <span>Recreate in Settings</span>
+                </button>
+                {{ end }}
+            </div>
+        </section>
+        {{ end }}
+
+        <!-- Main Issued Certificates Card -->
+        <section class="glass-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="material-icons" style="color: var(--accent-primary);">lock</i>
+                    <span>Issued Certificates</span>
+                    <span class="badge-pill status-active" style="margin-left: 0.5rem; font-size: 0.75rem;" id="cert-count-pill">{{ len .certificates }}</span>
+                </div>
+
+                {{ if .rootCertificate }}
+                <a href="/create-certificate-form" class="btn btn-primary">
+                    <i class="material-icons">add</i>
+                    <span>Create Certificate</span>
+                </a>
+                {{ else }}
+                <button class="btn btn-secondary" disabled title="Root CA required before issuing certificates">
+                    <i class="material-icons">add</i>
+                    <span>Create Certificate</span>
+                </button>
+                {{ end }}
+            </div>
+
+            <div class="card-body">
+                <!-- Table Search Toolbar -->
+                <div class="table-toolbar">
+                    <div class="search-box-wrapper">
+                        <i class="material-icons">search</i>
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search by certificate name or SAN domain..." onkeyup="filterTable()">
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);" id="table-filter-stats">
+                        Showing all certificates
+                    </div>
+                </div>
+
+                <!-- Modern Data Table -->
+                <div class="table-responsive">
+                    <table id="certTable" class="modern-table">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">
+                                    Certificate <i class="material-icons">unfold_more</i>
+                                </th>
+                                <th onclick="sortTable(1)">
+                                    Subject Alternative Names (SANs) <i class="material-icons">unfold_more</i>
+                                </th>
+                                <th onclick="sortTable(2)">
+                                    Status <i class="material-icons">unfold_more</i>
+                                </th>
+                                <th onclick="sortTable(3)">
+                                    Created <i class="material-icons">unfold_more</i>
+                                </th>
+                                <th onclick="sortTable(4)">
+                                    Valid Until <i class="material-icons">unfold_more</i>
+                                </th>
+                                <th style="text-align: right; cursor: default;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .certificates }}
+                            <tr class="cert-data-row" data-valid-until="{{ .ValidUntil.Format "2006-01-02T15:04:05Z07:00" }}">
+                                <td>
+                                    <div class="cert-name-cell">
+                                        <div class="cert-lock-icon">
+                                            <i class="material-icons" style="font-size: 16px;">lock</i>
+                                        </div>
+                                        <span>{{ .Name }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 320px;">
+                                        {{ range .SANs }}
+                                        <span class="san-tag">{{ . }}</span>
+                                        {{ else }}
+                                        <span style="color: var(--text-muted); font-size: 0.8rem;">None</span>
+                                        {{ end }}
+                                    </div>
+                                </td>
+                                <td class="status-cell">
+                                    <span class="badge-pill status-active">Valid</span>
+                                </td>
+                                <td style="font-variant-numeric: tabular-nums; font-size: 0.85rem; color: var(--text-secondary);">
+                                    {{ .CreatedAt.Format "2006-01-02 15:04" }}
+                                </td>
+                                <td style="font-variant-numeric: tabular-nums; font-size: 0.85rem;">
+                                    <div>{{ .ValidUntil.Format "2006-01-02 15:04" }}</div>
+                                    <span class="time-remaining-label" style="font-size: 0.75rem; color: var(--text-muted);"></span>
+                                </td>
+                                <td>
+                                    <div class="table-actions">
+                                        <!-- Download Dropdown -->
+                                        <div class="action-dropdown-wrapper">
+                                            <button class="btn-icon-action action-download" type="button" onclick="toggleDownloadMenu(event, '{{ .Name }}')" title="Download certificate files">
+                                                <i class="material-icons" style="font-size: 16px;">download</i>
                                             </button>
-                                            <ul id="dropdown-{{.Name}}" class="dropdown-content">
-                                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pem')">Download PEM</a></li>
-                                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'key')">Download KEY</a></li>
-                                                <li><a href="#" onclick="downloadCertificate('{{.Name}}', 'pfx')">Download PFX</a></li>
+                                            <ul id="download-menu-{{ .Name }}" class="dropdown-menu-box hidden">
+                                                <li>
+                                                    <a href="/certificates/download/{{ .Name }}.pem">
+                                                        <i class="material-icons" style="font-size: 16px;">file_download</i>
+                                                        <span>Certificate (.PEM)</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="/certificates/download/{{ .Name }}.key">
+                                                        <i class="material-icons" style="font-size: 16px;">vpn_key</i>
+                                                        <span>Private Key (.KEY)</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="/certificates/download/{{ .Name }}.pfx">
+                                                        <i class="material-icons" style="font-size: 16px;">archive</i>
+                                                        <span>PKCS#12 (.PFX)</span>
+                                                    </a>
+                                                </li>
                                             </ul>
-                                            <form id="delete-cert-form-{{.Name}}" action="/certificates/delete/{{.Name}}.pem" method="POST" style="display:inline;">
-                                                <input type="hidden" name="csrf_token" value="{{$.csrfToken}}">
-                                                <button type="button" class="btn-small red waves-effect waves-light" onclick="confirmDelete('{{.Name}}')">
-                                                    <i class="material-icons">delete</i>
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    <tr id="certRow-{{.Name}}" style="display:none;">
-                                        <td colspan="5">
-                                            <pre id="certContent-{{.Name}}" class="materialize-textarea left-align"></pre>
-                                            <pre id="certDecodedContent-{{.Name}}" class="materialize-textarea left-align"></pre>
-                                        </td>
-                                    </tr>
-                                    {{end}}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                                        </div>
+
+                                        <!-- Inspect View Button -->
+                                        <button class="btn-icon-action" type="button" onclick="openCertViewer('{{ .Name }}')" title="Inspect decoded certificate details">
+                                            <i class="material-icons" style="font-size: 16px;">visibility</i>
+                                        </button>
+
+                                        <!-- Delete Button -->
+                                        <button class="btn-icon-action action-delete" type="button" onclick="promptDelete('{{ .Name }}')" title="Delete this certificate">
+                                            <i class="material-icons" style="font-size: 16px;">delete_outline</i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{ else }}
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 3rem 1rem;">
+                                    <i class="material-icons" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 0.5rem;">lock_clock</i>
+                                    <h4 style="font-size: 1.1rem; color: var(--text-primary); font-weight: 600;">No certificates issued yet</h4>
+                                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+                                        Click "Create Certificate" above to generate your first SSL/TLS certificate.
+                                    </p>
+                                </td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </section>
+    </main>
+
+    <!-- Certificate Inspection Modal Dialog -->
+    <dialog id="certViewModal" class="modern-dialog">
+        <div class="modal-header">
+            <h3 id="modalCertTitle">Certificate Details</h3>
+            <button class="btn-icon-nav" type="button" onclick="closeCertViewer()" aria-label="Close modal">
+                <i class="material-icons">close</i>
+            </button>
         </div>
-    </div>
+        <div class="modal-body">
+            <div id="modalLoading" style="text-align: center; padding: 2rem;">
+                <i class="material-icons" style="font-size: 2rem; color: var(--accent-primary); animation: pulseDot 1s infinite;">refresh</i>
+                <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">Decoding certificate data...</p>
+            </div>
+            <pre id="modalCertContent" class="code-viewer" style="display: none;"></pre>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" type="button" onclick="copyCertContent()">
+                <i class="material-icons">content_copy</i>
+                <span id="copyBtnText">Copy Details</span>
+            </button>
+            <button class="btn btn-primary" type="button" onclick="closeCertViewer()">
+                <span>Done</span>
+            </button>
+        </div>
+    </dialog>
 
-<script>
-    M.AutoInit();
+    <!-- Delete Confirmation Modal Dialog -->
+    <dialog id="deleteModal" class="modern-dialog" style="max-width: 480px;">
+        <div class="modal-header">
+            <h3 style="color: var(--accent-danger); display: flex; align-items: center; gap: 0.5rem;">
+                <i class="material-icons">warning</i>
+                <span>Confirm Deletion</span>
+            </h3>
+            <button class="btn-icon-nav" type="button" onclick="closeDeleteModal()" aria-label="Close modal">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.925rem; color: var(--text-primary); margin-bottom: 0.5rem;">
+                Are you sure you want to delete certificate <strong id="deleteCertName" style="color: var(--accent-primary);"></strong>?
+            </p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                This will delete the certificate, private key, and PFX files permanently. This action cannot be undone.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" type="button" onclick="closeDeleteModal()">Cancel</button>
+            <form id="activeDeleteForm" method="POST" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                <button type="submit" class="btn btn-danger">
+                    <i class="material-icons">delete</i>
+                    <span>Delete Certificate</span>
+                </button>
+            </form>
+        </div>
+    </dialog>
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize theme
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        applyTheme(currentTheme);
-
-        // Initialize dropdowns
-        var dropdowns = document.querySelectorAll('.dropdown-trigger');
-        M.Dropdown.init(dropdowns, {
-            constrainWidth: false,
-            coverTrigger: false
-        });
-    });
-
-    function downloadCertificate(certName, type) {
-        window.location.href = `/certificates/download/${certName}.${type}`;
-    }
-
-    function confirmDelete(certName) {
-        if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
-            document.getElementById('delete-cert-form-' + certName).submit();
-        }
-    }
-
-    function sortTable(columnIndex) {
-    const table = document.getElementById("certTable");
-    if (!table || !table.tBodies.length) {
-        console.error("Tabelle oder tbody nicht gefunden.");
-        return;
-    }
-
-    const tbody = table.tBodies[0];
-    const rowsArray = Array.from(tbody.rows);
-
-    let ascending = table.getAttribute("data-sort-direction") !== "asc";
-
-    rowsArray.sort((a, b) => {
-        // Sicherstellen, dass die Zellen existieren, bevor darauf zugegriffen wird
-        const cellA = a.cells[columnIndex];
-        const cellB = b.cells[columnIndex];
-
-        const valueA = cellA ? cellA.textContent.trim().toLowerCase() : "";
-        const valueB = cellB ? cellB.textContent.trim().toLowerCase() : "";
-
-        if (valueA < valueB) {
-            return ascending ? -1 : 1;
-        }
-        if (valueA > valueB) {
-            return ascending ? 1 : -1;
-        }
-        return 0;
-    });
-
-    rowsArray.forEach(row => tbody.appendChild(row));
-
-    table.setAttribute("data-sort-direction", ascending ? "asc" : "desc");
-
-    updateSortIcons(columnIndex, ascending);
-}
-
-function updateSortIcons(sortedColumnIndex, ascending) {
-    const thElements = document.querySelectorAll("#certTable thead th");
-
-    thElements.forEach((th, index) => {
-        const icon = th.querySelector("i.material-icons");
-        if (icon) {
-            icon.textContent = "arrow_drop_down"; // Reset icons
-            if (index === sortedColumnIndex) {
-                icon.textContent = ascending ? "arrow_drop_up" : "arrow_drop_down"; // Update for sorted column
-            }
-        }
-    });
-}
-
-function filterTable() {
-    const input = document.getElementById("searchInput");
-    const filter = input ? input.value.toLowerCase() : "";
-    const table = document.getElementById("certTable");
-    const rows = table ? table.getElementsByTagName("tr") : [];
-
-    if (!table || !input) {
-        console.error("Tabelle oder Suchfeld nicht gefunden.");
-        return;
-    }
-
-    for (let i = 1; i < rows.length; i++) { // Überspringe Kopfzeile
-        const cells = rows[i].getElementsByTagName("td");
-        
-        // Verbergen oder zeigen spezifischer Zeilen (primär Datensätze, die Leerer Zustand haben)
-        if (cells.length < 4) {
-            // Macht deine speziellen versteckten Zeilen weiterhin unsichtbar
-            rows[i].style.display = "none";
-            continue;
-        }
-        
-        let rowContainsFilter = false;
-
-        // Alle Zeilen mit tatsächlichen Zertifikatsdaten wieder anzeigen, wenn der Filter leer ist
-        if (!filter) {
-            rows[i].style.display = "";
-            continue;
-        }
-
-        // Suche nur in der 1. und 4. Spalte (0 und 3)
-        [0, 3].forEach(index => {
-            const cell = cells[index];
-            if (cell && cell.textContent.toLowerCase().includes(filter)) {
-                rowContainsFilter = true;
-            }
-        });
-
-        // Zeilen basierend auf Filter zeigen oder ausblenden
-        rows[i].style.display = rowContainsFilter ? "" : "none";
-    }
-}
-
-</script>
-    <!-- Materialize JavaScript -->
-    <script src="/static/materialize/materialize.js"></script>
-    <!-- Custom JavaScript -->
+    <!-- Custom Scripts -->
     <script src="/static/script.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        computeCertificateLifetimes();
+        computeRootCAProgress();
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.action-dropdown-wrapper')) {
+                document.querySelectorAll('.action-dropdown-wrapper .dropdown-menu-box').forEach(menu => {
+                    menu.classList.add('hidden');
+                });
+            }
+        });
+    });
+
+    // Compute status badges and days remaining for certificates
+    function computeCertificateLifetimes() {
+        const rows = document.querySelectorAll('.cert-data-row');
+        const now = new Date();
+        let expiringCount = 0;
+
+        rows.forEach(row => {
+            const validUntilStr = row.getAttribute('data-valid-until');
+            if (!validUntilStr) return;
+
+            const expiry = new Date(validUntilStr);
+            const diffMs = expiry - now;
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+            const statusCell = row.querySelector('.status-cell');
+            const timeLabel = row.querySelector('.time-remaining-label');
+
+            if (diffDays <= 0) {
+                statusCell.innerHTML = '<span class="badge-pill status-expired">Expired</span>';
+                if (timeLabel) timeLabel.textContent = 'Expired';
+            } else if (diffDays <= 30) {
+                expiringCount++;
+                statusCell.innerHTML = `<span class="badge-pill status-expiring">${diffDays}d left</span>`;
+                if (timeLabel) timeLabel.textContent = `expires in ${diffDays} days`;
+            } else if (diffDays > 365) {
+                const years = (diffDays / 365.25).toFixed(1);
+                statusCell.innerHTML = '<span class="badge-pill status-active">Valid</span>';
+                if (timeLabel) timeLabel.textContent = `in ~${years} years`;
+            } else {
+                statusCell.innerHTML = '<span class="badge-pill status-active">Valid</span>';
+                if (timeLabel) timeLabel.textContent = `in ${diffDays} days`;
+            }
+        });
+
+        const expiringEl = document.getElementById('metric-expiring-certs');
+        if (expiringEl) {
+            expiringEl.textContent = expiringCount;
+            if (expiringCount > 0) {
+                expiringEl.style.color = 'var(--accent-warning)';
+            }
+        }
+    }
+
+    // Root CA Progress Bar & Remaining Days
+    function computeRootCAProgress() {
+        {{ if .rootCertificate }}
+        const notBefore = new Date("{{ .rootCertificate.NotBefore.Format "2006-01-02T15:04:05Z07:00" }}");
+        const notAfter = new Date("{{ .rootCertificate.NotAfter.Format "2006-01-02T15:04:05Z07:00" }}");
+        const now = new Date();
+
+        const totalSpan = notAfter - notBefore;
+        const remaining = notAfter - now;
+        const remainingDays = Math.max(0, Math.ceil(remaining / (1000 * 60 * 60 * 24)));
+
+        const daysEl = document.getElementById('root-ca-days');
+        if (daysEl) {
+            daysEl.textContent = `(${remainingDays.toLocaleString()}d remaining)`;
+        }
+
+        const elapsed = now - notBefore;
+        const progressPct = Math.min(100, Math.max(0, (elapsed / totalSpan) * 100));
+        const fillEl = document.getElementById('root-ca-progress-fill');
+        if (fillEl) {
+            fillEl.style.width = `${progressPct.toFixed(1)}%`;
+        }
+        {{ end }}
+    }
+
+    // Toggle Action Dropdowns
+    function toggleDownloadMenu(event, name) {
+        event.stopPropagation();
+        const menu = document.getElementById('download-menu-' + name);
+        if (!menu) return;
+
+        const isCurrentlyHidden = menu.classList.contains('hidden');
+        document.querySelectorAll('.action-dropdown-wrapper .dropdown-menu-box').forEach(m => m.classList.add('hidden'));
+
+        if (isCurrentlyHidden) {
+            menu.classList.remove('hidden');
+        }
+    }
+
+    // Inspection Modal Dialog
+    function openCertViewer(certName) {
+        const dialog = document.getElementById('certViewModal');
+        const titleEl = document.getElementById('modalCertTitle');
+        const loadingEl = document.getElementById('modalLoading');
+        const contentEl = document.getElementById('modalCertContent');
+        const copyBtnText = document.getElementById('copyBtnText');
+
+        titleEl.textContent = `${certName}.pem Details`;
+        loadingEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        copyBtnText.textContent = 'Copy Details';
+
+        dialog.showModal();
+
+        fetch(`/certificates/view/${encodeURIComponent(certName)}.pem`)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                loadingEl.style.display = 'none';
+                contentEl.textContent = data.decoded || 'No decoded content available.';
+                contentEl.style.display = 'block';
+            })
+            .catch(err => {
+                loadingEl.style.display = 'none';
+                contentEl.textContent = 'Error loading certificate: ' + err.message;
+                contentEl.style.display = 'block';
+            });
+    }
+
+    function closeCertViewer() {
+        const dialog = document.getElementById('certViewModal');
+        if (dialog) dialog.close();
+    }
+
+    function copyCertContent() {
+        const contentEl = document.getElementById('modalCertContent');
+        const copyBtnText = document.getElementById('copyBtnText');
+        if (!contentEl) return;
+
+        navigator.clipboard.writeText(contentEl.textContent)
+            .then(() => {
+                copyBtnText.textContent = 'Copied!';
+                if (window.showToast) window.showToast('Certificate details copied to clipboard', 'success');
+                setTimeout(() => { copyBtnText.textContent = 'Copy Details'; }, 2000);
+            })
+            .catch(err => {
+                console.error('Clipboard copy failed:', err);
+            });
+    }
+
+    // Delete Confirmation Modal
+    function promptDelete(certName) {
+        const dialog = document.getElementById('deleteModal');
+        const nameEl = document.getElementById('deleteCertName');
+        const form = document.getElementById('activeDeleteForm');
+
+        nameEl.textContent = certName;
+        form.action = `/certificates/delete/${encodeURIComponent(certName)}.pem`;
+        dialog.showModal();
+    }
+
+    function closeDeleteModal() {
+        const dialog = document.getElementById('deleteModal');
+        if (dialog) dialog.close();
+    }
+
+    // Table Search Filter
+    function filterTable() {
+        const input = document.getElementById('searchInput');
+        const filter = input ? input.value.toLowerCase().trim() : '';
+        const rows = document.querySelectorAll('#certTable tbody tr.cert-data-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (!filter || text.includes(filter)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const statsEl = document.getElementById('table-filter-stats');
+        if (statsEl) {
+            statsEl.textContent = filter ? `Showing ${visibleCount} of ${rows.length} certificates` : 'Showing all certificates';
+        }
+    }
+
+    // Table Column Sorting
+    function sortTable(columnIndex) {
+        const table = document.getElementById('certTable');
+        const tbody = table ? table.tBodies[0] : null;
+        if (!tbody) return;
+
+        const rows = Array.from(tbody.querySelectorAll('tr.cert-data-row'));
+        const isAscending = table.getAttribute('data-sort-dir') !== 'asc';
+
+        rows.sort((a, b) => {
+            const valA = a.cells[columnIndex] ? a.cells[columnIndex].textContent.trim().toLowerCase() : '';
+            const valB = b.cells[columnIndex] ? b.cells[columnIndex].textContent.trim().toLowerCase() : '';
+            return isAscending ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        });
+
+        rows.forEach(r => tbody.appendChild(r));
+        table.setAttribute('data-sort-dir', isAscending ? 'asc' : 'desc');
+
+        // Update header icon
+        const headers = table.querySelectorAll('thead th i.material-icons');
+        headers.forEach((icon, idx) => {
+            if (idx === columnIndex) {
+                icon.textContent = isAscending ? 'arrow_upward' : 'arrow_downward';
+            } else {
+                icon.textContent = 'unfold_more';
+            }
+        });
+    }
+    </script>
 </body>
 </html>
