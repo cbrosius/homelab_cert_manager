@@ -887,7 +887,16 @@ func changePassword(c *gin.Context, config *Config) {
 	}
 
 	// Check the old password
-	if !checkPasswordHash(req.OldPassword, config.Password) {
+	isBcrypt := strings.HasPrefix(config.Password, "$2a$") || strings.HasPrefix(config.Password, "$2b$")
+	passwordMatch := false
+	if isBcrypt {
+		passwordMatch = checkPasswordHash(req.OldPassword, config.Password)
+	} else {
+		hash := sha512.New()
+		hash.Write([]byte(req.OldPassword))
+		passwordMatch = hex.EncodeToString(hash.Sum(nil)) == config.Password
+	}
+	if !passwordMatch {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Old password is incorrect"})
 		return
 	}

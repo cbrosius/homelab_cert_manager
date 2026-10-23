@@ -7302,7 +7302,7 @@ var M = (function (exports) {
                 ...Toast.defaults,
                 ...options
             };
-            this.message = this.options.text;
+            this.message = this.options.text || this.options.html;
             this.panning = false;
             this.timeRemaining = this.options.displayLength;
             if (Toast._toasts.length === 0) {
@@ -7589,6 +7589,9 @@ var M = (function (exports) {
     exports.TapTarget = TapTarget;
     exports.Timepicker = Timepicker;
     exports.Toast = Toast;
+    exports.toast = function (opts) {
+        return new Toast(opts);
+    };
     exports.Tooltip = Tooltip;
     exports.Waves = Waves;
     exports.version = version;
