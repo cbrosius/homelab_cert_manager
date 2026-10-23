@@ -79,7 +79,7 @@ func saveViperConfig() error {
 	if err != nil {
 		return err
 	}
-	_ = os.Chmod(configFile, 0600)
+	_ = os.Chmod(configFile, 0660)
 	return nil
 }
 
