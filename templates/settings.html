@@ -2,316 +2,383 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Settings</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - HomeLab Certificate Manager</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-    <!-- Materialize CSS -->
-    <link rel="stylesheet" href="/static/materialize/materialize.css">
-    <!-- Custom CSS and Theme Settings -->
+    <!-- Modern Design System -->
     <link rel="stylesheet" href="/static/styles.css">
     <script>
-        const theme = localStorage.getItem('theme');
-        if (theme) document.documentElement.setAttribute('theme', theme);
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('theme', theme);
     </script>
 </head>
-<body class="{{.theme}}" theme="{{.theme}}">
+<body>
     {{ template "header.html" . }}
-    <div class="container">
-        <h1 class="center-align">Settings</h1>
-        <div class="row">
-            <div class="col s12">
-                <div class="card">
-                    <div class="card-content">
-                        <span class="card-title">Certificate Manager Certificate Defaults</span>
-                        <form id="certManagerForm" onsubmit="submitCertManagerSettings(event)">
-                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
-                            <div class="row">
-                                <!-- DNS Names -->
-                                <div class="col s12">
-                                    <h6>DNS Name(s) of the Certificate Manager</h6>
-                                    <div class="input-field">
-                                        <div id="dns_list" class="{{.textColor}}">
-                                        </div>
-                                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addDnsField()">
-                                            <i class="material-icons">add</i>
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <!-- IP Addresses -->
-                                <div class="col s12">
-                                    <h6>IP Address(es) of the Certificate Manager</h6>
-                                    <div class="input-field">
-                                        <div id="ip_list" class="{{.textColor}}">
-                                            <!-- Empty by default, will be populated by saved settings -->
-                                        </div>
-                                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addIpField()">
-                                            <i class="material-icons">add</i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row" style="margin-bottom: 20px;"></div>
-                            <div>
-                                <button id="saveAndRecreateHomelabCert" type="button" class="waves-effect waves-light btn orange" onclick="recreateHomelabCertButtonClick()" disabled>
-                                    <i class="material-icons left" style="margin-right: 8px";>autorenew</i>
-                                    Recreate HomeLAB Certificate Manager Certificate with this settings
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+    <main class="container main-content">
+        <!-- Page Title -->
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.6rem;">
+                <i class="material-icons" style="color: var(--accent-primary); font-size: 28px;">tune</i>
+                <span>Configuration & Settings</span>
+            </h1>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                Manage default values, server certificates, session timeouts, and administrator security
+            </p>
         </div>
 
-        <!-- Add spacing between the cards -->
-        <div class="row" style="margin-bottom: 20px;"></div>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Card 1: Certificate Manager Certificate Defaults -->
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="material-icons" style="color: var(--accent-primary);">router</i>
+                        <span>Certificate Manager Server Certificate</span>
+                    </div>
+                    <span class="badge-pill status-active" style="font-size: 0.75rem;">TLS 1.2+ HTTPS</span>
+                </div>
+                <div class="card-body">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                        Define the hostnames and IP addresses used to reach this Certificate Manager web interface. Recreating the certificate will issue a new TLS certificate signed by your HomeLab Root CA.
+                    </p>
 
-        <!-- New Card for General Certificate Options -->
-        <div class="row">
-            <div class="col s12">
-                <div class="card">
-                    <div class="card-content">
-                        <span class="card-title">General Certificate Defaults</span>
-                        <form id="generalCertOptionsForm" action="/settings/generalcertoptions" method="POST" onsubmit="submitGeneralCertOptions(event)">
-                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
-                            <!-- Form fields for General Cert Options -->
-                            <div class="row">
-                                <div class="input-field col s12">
-                                    <input type="text" id="validity_period" name="validity_period" class="validate" oninput="enableGeneralOptionsSaveButton()" required>
-                                    <label for="validity_period" class="active">Validity Period (Years)</label>
+                    <form id="certManagerForm">
+                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <!-- DNS Names -->
+                            <div class="form-group">
+                                <label class="form-label">
+                                    DNS Hostname(s) or FQDN
+                                </label>
+                                <div class="tag-input-box" id="cmDnsTagBox" onclick="focusCmInput('cmDnsInput')">
+                                    <div id="cmDnsTagsWrapper" style="display: inline-flex; flex-wrap: wrap; gap: 0.35rem;"></div>
+                                    <input 
+                                        type="text" 
+                                        id="cmDnsInput" 
+                                        class="tag-input-field" 
+                                        placeholder="e.g. certmanager.homelab.local (Press Enter)"
+                                        onkeydown="handleCmTagKeydown(event, 'dns')"
+                                    >
                                 </div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="organization" name="organization" class="validate" oninput="enableGeneralOptionsSaveButton()">
-                                    <label for="organization" class="active">Organization</label>
+                            </div>
+
+                            <!-- IP Addresses -->
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Server IP Address(es)
+                                </label>
+                                <div class="tag-input-box" id="cmIpTagBox" onclick="focusCmInput('cmIpInput')">
+                                    <div id="cmIpTagsWrapper" style="display: inline-flex; flex-wrap: wrap; gap: 0.35rem;"></div>
+                                    <input 
+                                        type="text" 
+                                        id="cmIpInput" 
+                                        class="tag-input-field" 
+                                        placeholder="e.g. 192.168.1.50 (Press Enter)"
+                                        onkeydown="handleCmTagKeydown(event, 'ip')"
+                                    >
                                 </div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="organization_unit" name="organization_unit" class="validate" oninput="enableGeneralOptionsSaveButton()">
-                                    <label for="organization_unit" class="active">Organization Unit</label>
-                                </div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="country" name="country" class="validate" oninput="enableGeneralOptionsSaveButton()">
-                                    <label for="country" class="active">Country</label>
-                                </div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="state" name="state" class="validate" oninput="enableGeneralOptionsSaveButton()">
-                                    <label for="state" class="active">State</label>
-                                </div>
-                                <div class="input-field col s12">
-                                    <input type="text" id="location" name="location" class="validate" oninput="enableGeneralOptionsSaveButton()">
-                                    <label for="location" class="active">Location</label>
-                                </div>
-                                <div class="input-field col s12">
-                                    <input type="email" id="email" name="email" class="validate" oninput="enableGeneralOptionsSaveButton()">
-                                    <label for="email" class="active">Email</label>
-                                </div>                            </div>
-                            <div class="card-action">
-                            <div class="row" style="margin-bottom: 20px;"></div>
-                            <button id="saveGeneralOptionsButton" type="submit" class="waves-effect waves-light btn green" disabled>
-                                <i class="material-icons left" style="margin-right: 8px;">save</i> 
-                                Save General Certificate Options                                
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.25rem; display: flex; align-items: center; justify-content: flex-end;">
+                            <button id="saveAndRecreateHomelabCert" type="button" class="btn btn-primary" onclick="recreateHomelabCertButtonClick()" disabled>
+                                <i class="material-icons">autorenew</i>
+                                <span>Recreate Server Certificate</span>
                             </button>
-                            </div>
-                        </form>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Card 2: General Certificate Defaults -->
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="material-icons" style="color: var(--accent-secondary);">auto_awesome</i>
+                        <span>General Certificate Defaults</span>
                     </div>
                 </div>
-            </div>
-        </div>
+                <div class="card-body">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                        These default values will pre-fill the certificate creation form for newly issued services.
+                    </p>
 
-        <!-- Add spacing between the cards -->
-        <div class="row" style="margin-bottom: 20px;"></div>
+                    <form id="generalCertOptionsForm" onsubmit="submitGeneralCertOptions(event)">
+                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
 
-        <!-- New Card for Session Settings -->
-        <div class="row">
-            <div class="col s12">
-                <div class="card">
-                    <div class="card-content">
-                        <span class="card-title">Session Inactivity Timeout</span>
-                        <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)">
-                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
-                            <div class="row">
-                                <div class="input-field col s12 m6">
-                                    <input type="number" id="timeout_minutes" name="timeout_minutes" value="{{.sessionTimeoutMinutes}}" min="1" max="30" class="validate" required oninput="enableSessionSettingsSaveButton()">
-                                    <label for="timeout_minutes" class="active">Timeout (Minutes, between 1 and 30)</label>
-                                    <span class="helper-text">Application will automatically log out after this period of inactivity.</span>
-                                </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="validity_period">Default Validity Period (Years) *</label>
+                                <input type="number" id="validity_period" name="validity_period" min="1" max="100" class="validate" oninput="enableGeneralOptionsSaveButton()" required>
                             </div>
-                            <div class="card-action">
-                                <button id="saveSessionSettingsButton" type="submit" class="waves-effect waves-light btn green" disabled>
-                                    <i class="material-icons left" style="margin-right: 8px;">save</i> 
-                                    Save Session Settings                                
-                                </button>
+                            <div class="form-group">
+                                <label class="form-label" for="organization">Default Organization</label>
+                                <input type="text" id="organization" name="organization" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. My HomeLab">
                             </div>
-                        </form>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="organization_unit">Unit (OU)</label>
+                                <input type="text" id="organization_unit" name="organization_unit" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. Infrastructure">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="country">Country (2-letter ISO)</label>
+                                <input type="text" id="country" name="country" maxlength="2" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase(); enableGeneralOptionsSaveButton()" placeholder="e.g. US, DE">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="state">State / Province</label>
+                                <input type="text" id="state" name="state" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. RLP">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="location">Locality / City</label>
+                                <input type="text" id="location" name="location" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. Home">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="email">Admin Email</label>
+                                <input type="email" id="email" name="email" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. admin@homelab.local">
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
+                            <button id="saveGeneralOptionsButton" type="submit" class="btn btn-primary" disabled>
+                                <i class="material-icons">save</i>
+                                <span>Save General Defaults</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Card 3: Session Inactivity Timeout -->
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="material-icons" style="color: var(--accent-warning);">timer</i>
+                        <span>Session Inactivity Timeout</span>
                     </div>
                 </div>
-            </div>
-        </div>
+                <div class="card-body">
+                    <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)">
+                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
 
-        <!-- Add spacing between the cards -->
-        <div class="row" style="margin-bottom: 20px;"></div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+                            <div style="max-width: 480px;">
+                                <label class="form-label" for="timeout_minutes">Inactivity Timeout (Minutes)</label>
+                                <input 
+                                    type="number" 
+                                    id="timeout_minutes" 
+                                    name="timeout_minutes" 
+                                    value="{{ .sessionTimeoutMinutes }}" 
+                                    min="1" 
+                                    max="30" 
+                                    required 
+                                    style="max-width: 140px;" 
+                                    oninput="enableSessionSettingsSaveButton()"
+                                >
+                                <span class="helper-text">
+                                    The web interface will automatically log out if no activity occurs for this duration (1 - 30 minutes).
+                                </span>
+                            </div>
 
-        <div class="card">
-            <div class="card-content">
-                <span class="card-title">Change Password</span>
-                <form id="changePasswordForm" onsubmit="changePassword(event)">
-                    <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
-                    <div class="input-field col s12">
-                        <input id="old_password" name="old_password" type="password" class="validate" required>
-                        <label for="old_password">Old Password</label>
+                            <button id="saveSessionSettingsButton" type="submit" class="btn btn-primary" disabled>
+                                <i class="material-icons">save</i>
+                                <span>Save Timeout Settings</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Card 4: Change Password -->
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="material-icons" style="color: var(--accent-danger);">lock_reset</i>
+                        <span>Change Administrator Password</span>
                     </div>
-                    <div class="row" style="margin-bottom: 20px;"></div>
-                    <div class="input-field col s12">
-                        <input id="new_password" name="new_password" type="password" class="validate" required>
-                        <label for="new_password">New Password</label>
-                    </div>
-                    <div class="row" style="margin-bottom: 20px;"></div>
-                    <div class="input-field col s12">
-                        <input id="confirm_password" name="confirm_password" type="password" class="validate" required>
-                        <label for="confirm_password">Confirm New Password</label>
-                    </div>
-                    <div class="row" style="margin-bottom: 20px;"></div>
-                    <button id="changePasswordButton" class="btn waves-effect waves-light" type="submit">
-                        <i class="material-icons left" style="margin-right: 8px;">lock_reset</i> 
-                        Change Password
-                    </button>
-                </form>
-            </div>
+                </div>
+                <div class="card-body">
+                    <form id="changePasswordForm" onsubmit="changePassword(event)" style="max-width: 540px;">
+                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+
+                        <div class="form-group">
+                            <label class="form-label" for="old_password">Current Password</label>
+                            <input id="old_password" name="old_password" type="password" required autocomplete="current-password">
+                        </div>
+
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label class="form-label" for="new_password">New Password (min 8 characters)</label>
+                            <input id="new_password" name="new_password" type="password" required minlength="8" autocomplete="new-password">
+                        </div>
+
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label class="form-label" for="confirm_password">Confirm New Password</label>
+                            <input id="confirm_password" name="confirm_password" type="password" required minlength="8" autocomplete="new-password">
+                        </div>
+
+                        <div style="margin-top: 1.5rem;">
+                            <button id="changePasswordButton" class="btn btn-danger" type="submit" disabled>
+                                <i class="material-icons">lock_reset</i>
+                                <span>Update Password</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
         </div>
-    </div>
-    
+    </main>
+
+    <script src="/static/script.js"></script>
     <script>
+        const cmDnsTags = [];
+        const cmIpTags = [];
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Materialize components
-            var elems = document.querySelectorAll('select');
-            M.FormSelect.init(elems);
-
-            // Initialize any existing values
-            const certManagerSettings = JSON.parse(`{{ .certManagerSettings | toJson }}`);
-            if (certManagerSettings) {
-                // Fill DNS names
-                if (certManagerSettings.DnsNames && certManagerSettings.DnsNames.length > 0) {
-                    certManagerSettings.DnsNames.forEach(dns => {
-                        if (dns !== "") {
-                            addDnsField(dns);
-                        }
-                    });
+            // Load Certificate Manager Settings
+            try {
+                const cmSettings = JSON.parse(`{{ .certManagerSettings | toJson }}`);
+                if (cmSettings) {
+                    if (cmSettings.DnsNames) cmSettings.DnsNames.forEach(dns => { if (dns) cmDnsTags.push(dns); });
+                    if (cmSettings.IpAddresses) cmSettings.IpAddresses.forEach(ip => { if (ip) cmIpTags.push(ip); });
+                    renderCmTags();
                 }
-                
-                // Fill IP addresses
-                if (certManagerSettings.IpAddresses && certManagerSettings.IpAddresses.length > 0) {
-                    certManagerSettings.IpAddresses.forEach(ip => {
-                        if (ip !== "") {
-                            addIpField(ip);
-                        }
-                    });
+            } catch (e) {
+                console.log('Error parsing CM settings:', e);
+            }
+
+            // Load General Certificate Defaults
+            try {
+                const generalOptions = JSON.parse(`{{ .generalCertOptions | toJson }}`);
+                if (generalOptions) {
+                    document.getElementById('validity_period').value = generalOptions.ValidityPeriod || '10';
+                    document.getElementById('organization').value = generalOptions.Organization || '';
+                    document.getElementById('organization_unit').value = generalOptions.OrganizationUnit || '';
+                    document.getElementById('country').value = generalOptions.Country || '';
+                    document.getElementById('state').value = generalOptions.State || '';
+                    document.getElementById('location').value = generalOptions.Location || '';
+                    document.getElementById('email').value = generalOptions.Email || '';
                 }
+            } catch (e) {
+                console.log('Error parsing general options:', e);
             }
 
-            // Initialize general certificate options
-            const generalCertOptions = JSON.parse(`{{ .generalCertOptions | toJson }}`);
-            if (generalCertOptions) {
-                document.querySelector('input[name="validity_period"]').value = generalCertOptions.ValidityPeriod || '';
-                document.querySelector('input[name="organization"]').value = generalCertOptions.Organization || '';
-                document.querySelector('input[name="organization_unit"]').value = generalCertOptions.OrganizationUnit || '';
-                document.querySelector('input[name="country"]').value = generalCertOptions.Country || '';
-                document.querySelector('input[name="state"]').value = generalCertOptions.State || '';
-                document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
-                document.querySelector('input[name="email"]').value = generalCertOptions.Email || '';
-            }
-
-            // Initialize session timeout
-            const sessionTimeout = {{ .sessionTimeoutMinutes }};
-            const sessionTimeoutInput = document.getElementById('timeout_minutes');
-            if (sessionTimeoutInput) {
-                sessionTimeoutInput.value = sessionTimeout || 2;
-            }
-            if (window.M && window.M.updateTextFields) {
-                M.updateTextFields();
-            }
-
-            // Initialize change password form
+            // Password Validation Listener
             const newPassword = document.getElementById('new_password');
             const confirmPassword = document.getElementById('confirm_password');
             const changePasswordButton = document.getElementById('changePasswordButton');
 
-            function validatePasswords() {
-                if (newPassword.value && confirmPassword.value) {
+            function checkPasswords() {
+                if (newPassword.value.length >= 8 && confirmPassword.value.length >= 8) {
                     changePasswordButton.disabled = false;
                 } else {
                     changePasswordButton.disabled = true;
                 }
             }
-            newPassword.addEventListener('input', validatePasswords);
-            confirmPassword.addEventListener('input', validatePasswords);
-
-            const saveButton = document.getElementById('saveAndRecreateHomelabCert');
-            saveButton.disabled = true;
+            newPassword.addEventListener('input', checkPasswords);
+            confirmPassword.addEventListener('input', checkPasswords);
         });
 
-        function addDnsField(value = '') {
-            const dnsList = document.getElementById('dns_list');
-            const entry = document.createElement('div');
-            entry.className = 'dns-entry input-field col s12';
-            entry.style.display = 'flex';
-            entry.style.alignItems = 'center';
-            entry.innerHTML = `
-                <input type="text" id="dns" name="dns_names[]" class="validate" value="${value}" placeholder="e.g., certmanager.local" style="flex: 1;" oninput="enableCertManagerSaveButton()">
-                <label for="dns" class="active">DNS Name or FQDN</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this); enableCertManagerSaveButton();" style="margin-left: 10px;">
-                    <i class="material-icons">remove</i>
-                </button>            
-            `;
-            dnsList.appendChild(entry);
+        // Certificate Manager Tag Handlers
+        function focusCmInput(id) {
+            const input = document.getElementById(id);
+            if (input) input.focus();
         }
 
-        function addIpField(value = '') {
-            const ipList = document.getElementById('ip_list');
-            const entry = document.createElement('div');
-            entry.className = 'ip-entry input-field col s12';
-            entry.style.display = 'flex';
-            entry.style.alignItems = 'center';
-            entry.innerHTML = `
-                <input type="text" id="ip" name="ip_addresses[]" class="validate" value="${value}" placeholder="e.g., 192.168.1.100" style="flex: 1;" oninput="enableCertManagerSaveButton()">
-                <label for="ip" class="active">IP-Address</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this); enableCertManagerSaveButton();" style="margin-left: 10px;">
-                    <i class="material-icons">remove</i>
-                </button>
-            `;
-            ipList.appendChild(entry);
+        function handleCmTagKeydown(e, type) {
+            if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+                e.preventDefault();
+                const input = e.target;
+                const val = input.value.trim();
+                if (!val) return;
+
+                if (type === 'dns') {
+                    if (!cmDnsTags.includes(val)) cmDnsTags.push(val);
+                } else {
+                    if (!cmIpTags.includes(val)) cmIpTags.push(val);
+                }
+                input.value = '';
+                renderCmTags();
+                enableCertManagerSaveButton();
+            } else if (e.key === 'Backspace' && e.target.value === '') {
+                if (type === 'dns' && cmDnsTags.length > 0) {
+                    cmDnsTags.pop();
+                    renderCmTags();
+                    enableCertManagerSaveButton();
+                } else if (type === 'ip' && cmIpTags.length > 0) {
+                    cmIpTags.pop();
+                    renderCmTags();
+                    enableCertManagerSaveButton();
+                }
+            }
         }
 
-        function removeField(button) {
-            button.parentElement.remove();
+        function removeCmTag(type, index) {
+            if (type === 'dns') cmDnsTags.splice(index, 1);
+            else cmIpTags.splice(index, 1);
+            renderCmTags();
             enableCertManagerSaveButton();
         }
 
+        function renderCmTags() {
+            const dnsWrapper = document.getElementById('cmDnsTagsWrapper');
+            const ipWrapper = document.getElementById('cmIpTagsWrapper');
+            dnsWrapper.innerHTML = '';
+            ipWrapper.innerHTML = '';
+
+            cmDnsTags.forEach((dns, idx) => {
+                const span = document.createElement('span');
+                span.className = 'tag-item';
+                span.innerHTML = `
+                    <span>${dns}</span>
+                    <button type="button" class="tag-remove-btn" onclick="removeCmTag('dns', ${idx})">✕</button>
+                `;
+                dnsWrapper.appendChild(span);
+            });
+
+            cmIpTags.forEach((ip, idx) => {
+                const span = document.createElement('span');
+                span.className = 'tag-item ip-tag';
+                span.innerHTML = `
+                    <span>${ip}</span>
+                    <button type="button" class="tag-remove-btn" onclick="removeCmTag('ip', ${idx})">✕</button>
+                `;
+                ipWrapper.appendChild(span);
+            });
+        }
+
         function enableCertManagerSaveButton() {
-            const saveButton = document.getElementById('saveAndRecreateHomelabCert');
-            saveButton.disabled = false;
+            const btn = document.getElementById('saveAndRecreateHomelabCert');
+            if (btn) btn.disabled = false;
         }
 
         function enableGeneralOptionsSaveButton() {
-            const saveButton = document.getElementById('saveGeneralOptionsButton');
-            saveButton.disabled = false;
+            const btn = document.getElementById('saveGeneralOptionsButton');
+            if (btn) btn.disabled = false;
         }
 
         function enableSessionSettingsSaveButton() {
-            const saveButton = document.getElementById('saveSessionSettingsButton');
-            if (saveButton) saveButton.disabled = false;
+            const btn = document.getElementById('saveSessionSettingsButton');
+            if (btn) btn.disabled = false;
         }
 
         function getCsrfToken() {
-            const el = document.querySelector('input[name="csrf_token"]');
+            const el = document.querySelector('input[name="csrf_token"]') || document.getElementById('session_csrf_token');
             return el ? el.value : '';
         }
 
+        // Submissions
         function recreateHomelabCertButtonClick() {
-            const dnsInputs = document.getElementsByName('dns_names[]');
-            const ipInputs = document.getElementsByName('ip_addresses[]');
-            const button = document.getElementById('saveAndRecreateHomelabCert');
-            const data = {
-                dns_names: Array.from(dnsInputs).map(input => input.value).filter(v => v),
-                ip_addresses: Array.from(ipInputs).map(input => input.value).filter(v => v)
+            const btn = document.getElementById('saveAndRecreateHomelabCert');
+            btn.disabled = true;
+
+            const payload = {
+                dns_names: cmDnsTags,
+                ip_addresses: cmIpTags
             };
 
             fetch('/settings/certmanager', {
@@ -320,35 +387,33 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': getCsrfToken()
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to save settings');
-                showToast('Settings saved successfully', 'green', button);
-                const saveButton = document.getElementById('saveAndRecreateHomelabCert');
-                saveButton.disabled = true;
-                setTimeout(() => {
-                        location.reload();
-                    }, 2000);
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to save settings');
+                if (window.showToast) window.showToast('Settings saved. Recreating server certificate...', 'info');
+                recreateHomelabCert();
             })
-            .catch(error => {
-                showToast(error.message, 'red', button);
+            .catch(err => {
+                btn.disabled = false;
+                if (window.showToast) window.showToast('Error saving settings: ' + err.message, 'error');
             });
-            recreateHomelabCert();
         }
 
         function submitGeneralCertOptions(event) {
             event.preventDefault();
             const form = event.target;
-            const button = document.getElementById('saveGeneralOptionsButton');
-            const data = {
+            const btn = document.getElementById('saveGeneralOptionsButton');
+            btn.disabled = true;
+
+            const payload = {
                 validity_period: form.validity_period.value,
                 organization: form.organization.value,
                 organization_unit: form.organization_unit.value,
                 country: form.country.value,
                 state: form.state.value,
                 location: form.location.value,
-                email: form.email.value,
+                email: form.email.value
             };
 
             fetch('/settings/generalcertoptions', {
@@ -357,28 +422,30 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': getCsrfToken()
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to save settings');
-                showToast('Settings saved successfully', 'green', button);
-                const saveButton = document.getElementById('saveGeneralOptionsButton');
-                saveButton.disabled = true;
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to save general options');
+                if (window.showToast) window.showToast('General certificate defaults saved successfully', 'success');
             })
-            .catch(error => {
-                showToast(error.message, 'red', button);
+            .catch(err => {
+                btn.disabled = false;
+                if (window.showToast) window.showToast('Error: ' + err.message, 'error');
             });
         }
 
         function submitSessionSettings(event) {
             event.preventDefault();
             const form = event.target;
-            const button = document.getElementById('saveSessionSettingsButton');
+            const btn = document.getElementById('saveSessionSettingsButton');
             const val = parseInt(form.timeout_minutes.value, 10);
+
             if (isNaN(val) || val < 1 || val > 30) {
-                showToast('Session timeout must be between 1 and 30 minutes', 'red', button);
+                if (window.showToast) window.showToast('Session timeout must be between 1 and 30 minutes', 'warning');
                 return;
             }
+
+            btn.disabled = true;
 
             fetch('/settings/session', {
                 method: 'POST',
@@ -386,40 +453,36 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': getCsrfToken()
                 },
-                body: JSON.stringify({
-                    timeout_minutes: val
-                })
+                body: JSON.stringify({ timeout_minutes: val })
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => { throw new Error(data.error || 'Failed to save settings'); });
-                }
-                return response.json();
+            .then(res => {
+                if (!res.ok) return res.json().then(d => { throw new Error(d.error || 'Failed to update session'); });
+                return res.json();
             })
-            .then(data => {
-                showToast('Session timeout saved successfully', 'green', button);
-                if (button) button.disabled = true;
-                if (window.initSessionTimer) {
-                    window.initSessionTimer();
-                }
+            .then(() => {
+                if (window.showToast) window.showToast('Session inactivity timeout updated to ' + val + ' minutes', 'success');
+                if (window.initSessionTimer) window.initSessionTimer();
             })
-            .catch(error => {
-                showToast(error.message, 'red', button);
+            .catch(err => {
+                btn.disabled = false;
+                if (window.showToast) window.showToast('Error: ' + err.message, 'error');
             });
         }
 
         function changePassword(event) {
             event.preventDefault();
             const form = document.getElementById('changePasswordForm');
-            const oldPassword = form.old_password.value;
-            const newPassword = form.new_password.value;
-            const confirmPassword = form.confirm_password.value;
-            const button = document.getElementById('changePasswordButton');
+            const oldPwd = form.old_password.value;
+            const newPwd = form.new_password.value;
+            const confirmPwd = form.confirm_password.value;
+            const btn = document.getElementById('changePasswordButton');
 
-            if (newPassword !== confirmPassword) {
-                showToast('New passwords do not match', 'red', button);
+            if (newPwd !== confirmPwd) {
+                if (window.showToast) window.showToast('New passwords do not match', 'error');
                 return;
             }
+
+            btn.disabled = true;
 
             fetch('/change-password', {
                 method: 'POST',
@@ -428,47 +491,26 @@
                     'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify({
-                    old_password: oldPassword,
-                    new_password: newPassword
+                    old_password: oldPwd,
+                    new_password: newPwd
                 })
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    showToast('Password changed successfully', 'green', button);
+                    if (window.showToast) window.showToast('Password updated successfully! Reloading...', 'success');
                     form.reset();
-                    changePasswordButton.disabled = true;
-                    setTimeout(() => {
-                        location.reload();
-                    }, 2000); // Wait 2 seconds before refreshing the page
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    showToast(data.message, 'red', button);
+                    btn.disabled = false;
+                    if (window.showToast) window.showToast(data.message || 'Password update failed', 'error');
                 }
             })
-            .catch(error => {
-                showToast('Error changing password', 'red', button);
+            .catch(err => {
+                btn.disabled = false;
+                if (window.showToast) window.showToast('Error changing password: ' + err.message, 'error');
             });
         }
-        
-        function showToast(message, classes, button) {
-            const toast = document.createElement('div');
-            toast.className = `toast-custom ${classes}`;
-            toast.innerText = message;
-            document.body.appendChild(toast);
-
-            const rect = button.getBoundingClientRect();
-            toast.style.top = `${rect.top + window.scrollY}px`;
-            toast.style.left = `${rect.left + window.scrollX}px`;
-
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        }
-
     </script>
-    <!-- Materialize JavaScript -->
-    <script src="/static/materialize/materialize.js"></script>
-    <!-- Custom JavaScript -->
-    <script src="/static/script.js"></script>
 </body>
 </html>

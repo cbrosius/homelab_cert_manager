@@ -1406,6 +1406,138 @@ dialog.modern-dialog::backdrop {
 }
 
 /* ==========================================================================
+   Login & Authentication Screen
+   ========================================================================== */
+.login-page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    position: relative;
+    background-image: 
+        radial-gradient(ellipse at 50% 20%, rgba(6, 182, 212, 0.15), transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.1), transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+}
+
+.login-card-glass {
+    width: 100%;
+    max-width: 440px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(6, 182, 212, 0.12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    animation: fadeIn 0.3s ease-out;
+}
+
+[theme='light'] .login-card-glass {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(15, 23, 42, 0.1);
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.1), 0 0 30px rgba(8, 145, 178, 0.1);
+}
+
+.login-emblem {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.25rem;
+    border-radius: var(--border-radius-lg);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(99, 102, 241, 0.25));
+    border: 1px solid var(--border-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.35);
+}
+
+.login-emblem i.material-icons {
+    font-size: 34px;
+    color: var(--accent-primary);
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-leading-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    font-size: 18px;
+    pointer-events: none;
+}
+
+.input-with-icon input {
+    padding-left: 2.4rem !important;
+    padding-right: 2.4rem !important;
+}
+
+.input-trailing-btn {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: var(--border-radius-sm);
+    transition: color var(--transition-fast);
+}
+
+.input-trailing-btn:hover {
+    color: var(--text-primary);
+}
+
+/* Password Requirements Checklist */
+.password-requirements-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--border-radius-md);
+    padding: 0.85rem 1.15rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.825rem;
+}
+
+.password-requirements-card ul {
+    list-style: none;
+    margin-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.password-requirements-card li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-secondary);
+}
+
+.password-requirements-card li i.material-icons {
+    font-size: 15px;
+    color: var(--text-muted);
+}
+
+.password-requirements-card li.valid {
+    color: var(--accent-success);
+}
+
+.password-requirements-card li.valid i.material-icons {
+    color: var(--accent-success);
+}
+
+/* ==========================================================================
    Responsive Breakpoints
    ========================================================================== */
 @media (max-width: 992px) {
