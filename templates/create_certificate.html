@@ -19,73 +19,99 @@
 </head>
 <body>
     {{ template "header.html" . }}
-    <div class="container">
+    <div class="container" style="margin-top: 30px;">
         <h1 class="center-align">Create Certificate</h1>
+
+        {{if not .rootCertExists}}
+        <div class="card-panel orange lighten-5" style="border-left: 5px solid #ff9800; color: #b74700; display: flex; align-items: center; margin-bottom: 25px;">
+            <i class="material-icons left" style="font-size: 2.5rem; margin-right: 15px;">warning</i>
+            <div style="flex-grow: 1;">
+                <h5 style="margin: 0 0 8px 0; font-weight: 600;">Root CA Missing</h5>
+                <p style="margin: 0;">You cannot issue service certificates yet because no HomeLab Root CA exists. Please create the Root CA certificate first.</p>
+            </div>
+            <a href="/" class="btn orange darken-1 white-text waves-effect waves-light" style="margin-left: 15px;">
+                <i class="material-icons left">add_moderator</i>Create Root CA
+            </a>
+        </div>
+        {{end}}
+
         <form id="createCertificateForm" action="/create-certificate" method="POST" onsubmit="submitCreateCertificateForm(event)">
             <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
             <div class="row">
                 <div class="input-field col s12">
-                    <input type="text" id="common_name" name="common_name" class="validate" required>
-                    <label for="common_name" class="active">Common Name (CN)</label>
+                    <input type="text" id="common_name" name="common_name" class="validate" required maxlength="64" oninput="validateCertificateForm()" {{if not .rootCertExists}}disabled{{end}}>
+                    <label for="common_name" class="active">Common Name (CN) *</label>
+                    <span class="helper-text" data-error="Common Name is required (max 64 characters)">Hostname, domain, or service identifier (e.g. proxmox, nas.homelab.local)</span>
                 </div>
+
                 <!-- DNS Names -->
-                <div class="col s12">
-                    <h6>DNS Name(s) of the Certificate</h6>
+                <div class="col s12" style="margin-top: 15px;">
+                    <h6>Subject Alternative Names: DNS Hostnames</h6>
+                    <p class="grey-text" style="font-size: 0.9rem; margin-top: 0;">Add DNS hostnames or wildcards (e.g. *.homelab.local, pihole, service.local)</p>
                     <div class="input-field">
-                        <div id="dns_list" class="{{.textColor}}">
-                        </div>
-                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addDnsField()">
+                        <div id="dns_list"></div>
+                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addDnsField()" {{if not .rootCertExists}}disabled{{end}}>
                             <i class="material-icons">add</i>
                         </button>
                     </div>
                 </div>
 
                 <!-- IP Addresses -->
-                <div class="col s12">
-                    <h6>IP Address(es) of the Certificate</h6>
+                <div class="col s12" style="margin-top: 15px;">
+                    <h6>Subject Alternative Names: IP Addresses</h6>
+                    <p class="grey-text" style="font-size: 0.9rem; margin-top: 0;">Add IPv4 or IPv6 addresses (e.g. 192.168.1.50, 10.0.0.1)</p>
                     <div class="input-field">
-                        <div id="ip_list" class="{{.textColor}}">
-                        </div>
-                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addIpField()">
+                        <div id="ip_list"></div>
+                        <button type="button" class="btn-floating waves-effect waves-light green" onclick="addIpField()" {{if not .rootCertExists}}disabled{{end}}>
                             <i class="material-icons">add</i>
                         </button>
                     </div>
                 </div>
+
+                <div class="input-field col s12" style="margin-top: 20px;">
+                    <input type="number" id="validity_years" name="validity_years" class="validate" required min="1" max="100" oninput="validateCertificateForm()" {{if not .rootCertExists}}disabled{{end}}>
+                    <label for="validity_years" class="active">Validity Period (Years) *</label>
+                    <span class="helper-text" data-error="Please enter a validity period between 1 and 100 years">Duration in years (e.g. 5, 10)</span>
+                </div>
+
                 <div class="input-field col s12">
-                    <input type="text" id="validity_years" name="validity_years" class="validate" required oninput="enableCreateCertButton()">
-                    <label for="validity_years" class="active">Validity Period (Years)</label>
+                    <input type="text" id="organization" name="organization" class="validate" {{if not .rootCertExists}}disabled{{end}}>
+                    <label for="organization" class="active">Organization (Optional)</label>
                 </div>
                 <div class="input-field col s12">
-                    <input type="text" id="organization" name="organization" class="validate" oninput="enableCreateCertButton()">
-                    <label for="organization" class="active">Organization</label>
+                    <input type="text" id="organization_unit" name="organization_unit" class="validate" {{if not .rootCertExists}}disabled{{end}}>
+                    <label for="organization_unit" class="active">Organization Unit (Optional)</label>
                 </div>
                 <div class="input-field col s12">
-                    <input type="text" id="organization_unit" name="organization_unit" class="validate" oninput="enableCreateCertButton()">
-                    <label for="organization_unit" class="active">Organization Unit</label>
+                    <input type="text" id="country" name="country" class="validate" maxlength="2" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase(); validateCertificateForm();" {{if not .rootCertExists}}disabled{{end}}>
+                    <label for="country" class="active">Country Code (Optional, 2-letter ISO e.g. US, DE)</label>
+                    <span class="helper-text" data-error="Country code must be exactly 2 letters"></span>
                 </div>
                 <div class="input-field col s12">
-                    <input type="text" id="country" name="country" class="validate" oninput="enableCreateCertButton()">
-                    <label for="country" class="active">Country</label>
+                    <input type="text" id="state" name="state" class="validate" {{if not .rootCertExists}}disabled{{end}}>
+                    <label for="state" class="active">State or Province (Optional)</label>
                 </div>
                 <div class="input-field col s12">
-                    <input type="text" id="state" name="state" class="validate" oninput="enableCreateCertButton()">
-                    <label for="state" class="active">State</label>
+                    <input type="text" id="location" name="location" class="validate" {{if not .rootCertExists}}disabled{{end}}>
+                    <label for="location" class="active">Locality / City (Optional)</label>
                 </div>
                 <div class="input-field col s12">
-                    <input type="text" id="location" name="location" class="validate" oninput="enableCreateCertButton()">
-                    <label for="location" class="active">Location</label>
-                </div>
-                <div class="input-field col s12">
-                    <input type="text" id="email" name="email" class="validate" required>
-                    <label for="email" class="active">Email</label>
+                    <input type="email" id="email" name="email" class="validate" oninput="validateCertificateForm()" {{if not .rootCertExists}}disabled{{end}}>
+                    <label for="email" class="active">Email (Optional)</label>
+                    <span class="helper-text" data-error="Please enter a valid email address (or leave empty)"></span>
                 </div>
             </div>
-            <div class="row" style="margin-bottom: 20px;"></div>
-            <div class="row">
-                <button id="createCertButton" type="submit" class="waves-effect waves-light btn green" disabled>
-                    Create Certificate                                
-                </button>
-</div>
+
+            <div class="row" style="margin-top: 25px; margin-bottom: 40px;">
+                <div class="col s12">
+                    <button id="createCertButton" type="submit" class="waves-effect waves-light btn green" disabled>
+                        <i class="material-icons left">verified</i>Create Certificate
+                    </button>
+                    <a href="/certificates" class="waves-effect waves-light btn grey lighten-1 white-text" style="margin-left: 10px;">
+                        Cancel
+                    </a>
+                </div>
+            </div>
         </form>
     </div>
     
@@ -93,15 +119,16 @@
     <script src="/static/materialize/materialize.js"></script>
     <script src="/static/script.js"></script>
     <script>
+        const rootCertExists = {{ .rootCertExists }};
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Materialize components
             var elems = document.querySelectorAll('select');
             M.FormSelect.init(elems);
 
-            // Initialize general certificate options
+            // Initialize general certificate options from settings
             const generalCertOptions = JSON.parse(`{{ .generalCertOptions | toJson }}`);
             if (generalCertOptions) {
-                document.querySelector('input[name="validity_years"]').value = generalCertOptions.ValidityPeriod || '';
+                document.querySelector('input[name="validity_years"]').value = generalCertOptions.ValidityPeriod || '10';
                 document.querySelector('input[name="organization"]').value = generalCertOptions.Organization || '';
                 document.querySelector('input[name="organization_unit"]').value = generalCertOptions.OrganizationUnit || '';
                 document.querySelector('input[name="country"]').value = generalCertOptions.Country || '';
@@ -109,6 +136,8 @@
                 document.querySelector('input[name="location"]').value = generalCertOptions.Location || '';
                 document.querySelector('input[name="email"]').value = generalCertOptions.Email || '';
             }
+
+            validateCertificateForm();
         });
 
         function addDnsField(value = '') {
@@ -117,14 +146,17 @@
             entry.className = 'dns-entry input-field col s12';
             entry.style.display = 'flex';
             entry.style.alignItems = 'center';
+            entry.style.marginBottom = '8px';
             entry.innerHTML = `
-                <input type="text" id="dns" name="dns" class="validate" oninput="enableCreateCertButton()">
-                <label for="dns" class="active">DNS Name or FQDN</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px;">
+                <div style="flex-grow: 1;">
+                    <input type="text" name="dns" class="validate" value="${value}" placeholder="e.g. service.local or *.homelab.local" oninput="validateCertificateForm()">
+                </div>
+                <button type="button" class="btn-floating waves-effect waves-light red btn-small" onclick="removeField(this)" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>
             `;
             dnsList.appendChild(entry);
+            validateCertificateForm();
         }
 
         function addIpField(value = '') {
@@ -133,24 +165,54 @@
             entry.className = 'ip-entry input-field col s12';
             entry.style.display = 'flex';
             entry.style.alignItems = 'center';
+            entry.style.marginBottom = '8px';
             entry.innerHTML = `
-                <input type="text" id="ip" name="ip" class="validate" oninput="enableCreateCertButton()">
-                <label for="ip" class="active">IP-Address</label>
-                <button type="button" class="btn-floating waves-effect waves-light red" onclick="removeField(this)" style="margin-left: 10px;">
+                <div style="flex-grow: 1;">
+                    <input type="text" name="ip" class="validate" value="${value}" placeholder="e.g. 192.168.1.100" oninput="validateCertificateForm()">
+                </div>
+                <button type="button" class="btn-floating waves-effect waves-light red btn-small" onclick="removeField(this)" style="margin-left: 10px;">
                     <i class="material-icons">remove</i>
                 </button>            
             `;
             ipList.appendChild(entry);
+            validateCertificateForm();
         }
 
         function removeField(button) {
-            button.parentElement.remove();
-            enableCertManagerSaveButton();
+            const entry = button.closest('.dns-entry, .ip-entry');
+            if (entry) {
+                entry.remove();
+            }
+            validateCertificateForm();
         }
 
-        function enableCreateCertButton() {
+        function validateCertificateForm() {
             const saveButton = document.getElementById('createCertButton');
-            saveButton.disabled = false;
+            if (!rootCertExists) {
+                saveButton.disabled = true;
+                return;
+            }
+
+            const cnInput = document.getElementById('common_name');
+            const yearsInput = document.getElementById('validity_years');
+            const emailInput = document.getElementById('email');
+            const countryInput = document.getElementById('country');
+
+            const isCnValid = cnInput && cnInput.value.trim().length > 0 && cnInput.value.trim().length <= 64;
+            const yearsVal = parseInt(yearsInput ? yearsInput.value : '0', 10);
+            const isYearsValid = !isNaN(yearsVal) && yearsVal >= 1 && yearsVal <= 100;
+
+            let isEmailValid = true;
+            if (emailInput && emailInput.value.trim().length > 0) {
+                isEmailValid = emailInput.checkValidity();
+            }
+
+            let isCountryValid = true;
+            if (countryInput && countryInput.value.trim().length > 0) {
+                isCountryValid = countryInput.value.trim().length === 2;
+            }
+
+            saveButton.disabled = !(isCnValid && isYearsValid && isEmailValid && isCountryValid);
         }
 
         function submitCreateCertificateForm(event) {
@@ -162,31 +224,39 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    if (confirm(data.error + " Do you want to overwrite it?")) {
+            .then(response => response.json().then(data => ({ status: response.status, data: data })))
+            .then(result => {
+                const data = result.data;
+                if (data.needsConfirmation) {
+                    if (confirm(data.error)) {
                         formData.set('overwrite', 'yes');
                         fetch('/create-certificate', {
                             method: 'POST',
                             body: formData
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.message) {
-                                window.location.href = data.redirect;
-                            } else {
-                                new M.Toast({text: 'Error creating certificate'});
+                        .then(r => r.json())
+                        .then(overwriteResult => {
+                            if (overwriteResult.redirect) {
+                                window.location.href = overwriteResult.redirect;
+                            } else if (overwriteResult.error) {
+                                new M.Toast({html: overwriteResult.error, classes: 'red darken-1'});
                             }
+                        })
+                        .catch(err => {
+                            new M.Toast({html: 'Error overwriting certificate: ' + err, classes: 'red darken-1'});
                         });
                     }
-                } else {
+                } else if (data.error) {
+                    new M.Toast({html: data.error, classes: 'red darken-1'});
+                } else if (data.redirect) {
                     window.location.href = data.redirect;
+                } else {
+                    window.location.href = '/certificates';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                new M.Toast({text: 'Error creating certificate'});
+                new M.Toast({html: 'Network error creating certificate', classes: 'red darken-1'});
             });
         }
     </script>

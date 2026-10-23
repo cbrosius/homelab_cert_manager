@@ -203,10 +203,19 @@
                                         This is a self-signed certificate. <br>
                                         Recreate it using your Homelab Root CA Certificate.
                                     </span>
-                                    <a href="/settings" class="btn waves-effect waves-light orange white-text right-content" id="goSettingsBtn" {{if not .rootCertificate}}disabled{{end}} style="margin-left: auto;">
+                                    {{if .rootCertificate}}
+                                    <a href="/settings" class="btn waves-effect waves-light orange white-text right-content" id="goSettingsBtn" style="margin-left: auto;">
                                         <i class="material-icons left">settings</i>
                                         Go to Settings
                                     </a>
+                                    {{else}}
+                                    <span class="tooltipped right-content" data-position="top" data-tooltip="Create a Root CA first before recreating this certificate" style="margin-left: auto;">
+                                        <button class="btn disabled grey lighten-1 white-text" style="cursor: not-allowed; pointer-events: none;">
+                                            <i class="material-icons left">settings</i>
+                                            Go to Settings
+                                        </button>
+                                    </span>
+                                    {{end}}
                                 </div>                                
                                 <p><strong>Subject:</strong> HomeLab Certificate Manager</p>
                                 <p><strong>Type:</strong> Self-Signed Certificate</p>
@@ -222,7 +231,6 @@
                 </div>
             </div>
 
-            
             <!-- Certificates Section -->
             <div class="row">
                 <div class="col s12">
@@ -230,8 +238,28 @@
                         <div class="card-content">
                             <div class="row" style="display: flex; justify-content: space-between; align-items: center;">
                                 <span class="card-title">HomeLAB Certificates</span>
-                                <a href="/create-certificate-form" class="btn waves-effect green white-text" {{if not .rootCertificate}}disabled{{end}}>Create New Certificate</a>
+                                {{if .rootCertificate}}
+                                <a href="/create-certificate-form" class="btn waves-effect green white-text">
+                                    <i class="material-icons left">add</i>Create New Certificate
+                                </a>
+                                {{else}}
+                                <span class="tooltipped" data-position="left" data-tooltip="HomeLab Root CA is required before issuing certificates">
+                                    <button class="btn disabled grey lighten-1 white-text" style="cursor: not-allowed; pointer-events: none;">
+                                        <i class="material-icons left">add</i>Create New Certificate
+                                    </button>
+                                </span>
+                                {{end}}
                             </div>
+
+                            {{if not .rootCertificate}}
+                            <div class="card-panel orange lighten-5" style="border-left: 5px solid #ff9800; color: #b74700; margin: 15px 0; padding: 12px 18px; display: flex; align-items: center;">
+                                <i class="material-icons left" style="font-size: 2rem; margin-right: 12px;">info</i>
+                                <div>
+                                    <strong>Prerequisite Missing:</strong> You cannot issue certificates yet because no HomeLab Root CA exists.
+                                    Please <a href="/" class="btn-small orange darken-1 white-text waves-effect waves-light" style="margin-left: 8px;">Create Root CA</a> to get started.
+                                </div>
+                            </div>
+                            {{end}}
                     
                             <hr>
                             <div class="search-container">

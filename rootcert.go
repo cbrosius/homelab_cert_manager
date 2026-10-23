@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -29,14 +28,24 @@ func createRootCertificate(c *gin.Context) {
 	email := c.PostForm("email")
 	validityYearsStr := c.PostForm("validity_years")
 
-	if commonName == "" || validityYearsStr == "" {
-		c.String(http.StatusBadRequest, "Common Name and Validity Period are mandatory fields.")
+	if err := validateCommonName(commonName); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	validityYears, err := strconv.Atoi(validityYearsStr)
+	validityYears, err := validateValidityYears(validityYearsStr, 1, 100)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid validity period: %v", err)
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validateEmail(email); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validateCountry(country); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 

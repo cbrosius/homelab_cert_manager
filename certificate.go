@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -205,10 +204,64 @@ func createCertificate(c *gin.Context) {
 		return
 	}
 
-	validityYears, err := strconv.Atoi(form.ValidityYears)
+	// Ensure Root CA exists before attempting certificate creation
+	rootCert, rootKey, err := findRootCertAndKey()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid validity period"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No Root CA certificate found. Please create a Root CA before issuing certificates."})
 		return
+	}
+
+	form.CommonName = strings.TrimSpace(form.CommonName)
+	if err := validateCommonName(form.CommonName); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	validityYears, err := validateValidityYears(form.ValidityYears, 1, 100)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateEmail(form.Email); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateCountry(form.Country); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate and collect DNS names
+	var validDNSNames []string
+	for _, dns := range form.DnsNames {
+		dns = strings.TrimSpace(dns)
+		if dns == "" {
+			continue
+		}
+		if err := validateDNSName(dns); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		validDNSNames = append(validDNSNames, dns)
+	}
+
+	// Validate and collect IP addresses
+	var validIPAddresses []net.IP
+	for _, ipStr := range form.IpAddresses {
+		ipStr = strings.TrimSpace(ipStr)
+		if ipStr == "" {
+			continue
+		}
+		parsedIP, err := validateIPAddress(ipStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if parsedIP != nil {
+			validIPAddresses = append(validIPAddresses, parsedIP)
+		}
 	}
 
 	// Use sanitized paths to prevent path traversal attacks
@@ -223,7 +276,10 @@ func createCertificate(c *gin.Context) {
 		// Certificate already exists, prompt user for confirmation
 		overwrite := c.PostForm("overwrite")
 		if overwrite != "yes" {
-			c.JSON(http.StatusOK, gin.H{"error": "A certificate with the same common name already exists. Do you want to overwrite it?"})
+			c.JSON(http.StatusOK, gin.H{
+				"error":             "A certificate with the same common name already exists. Do you want to overwrite it?",
+				"needsConfirmation": true,
+			})
 			return
 		}
 	}
@@ -256,32 +312,17 @@ func createCertificate(c *gin.Context) {
 		KeyUsage:              x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
+		DNSNames:              validDNSNames,
+		IPAddresses:           validIPAddresses,
 	}
+
+	debugLog("DNS-Names: %v", certTemplate.DNSNames)
+	debugLog("IP Addresses: %v", certTemplate.IPAddresses)
 
 	// Generate private key and certificate
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating private key"})
-		return
-	}
-
-	for _, dns := range form.DnsNames {
-		if dns != "" {
-			certTemplate.DNSNames = append(certTemplate.DNSNames, dns)
-		}
-	}
-	debugLog("DNS-Names: %v", certTemplate.DNSNames)
-
-	for _, ip := range form.IpAddresses {
-		if parsedIP := net.ParseIP(ip); parsedIP != nil {
-			certTemplate.IPAddresses = append(certTemplate.IPAddresses, parsedIP)
-		}
-	}
-	debugLog("IP Addresses: %v", certTemplate.IPAddresses)
-
-	rootCert, rootKey, err := findRootCertAndKey()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding root certificate or key"})
 		return
 	}
 

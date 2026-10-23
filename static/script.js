@@ -42,8 +42,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function recreateHomelabCert() {
     if (confirm('Are you sure you want to recreate the Homelab Certificate Manager certificate? The server will need to be restarted afterwards.')) {
+        const csrfTokenEl = document.querySelector('input[name="csrf_token"]');
+        const csrfHeaders = csrfTokenEl ? { 'X-CSRF-Token': csrfTokenEl.value } : {};
         fetch('/recreate-homelab-cert', {
             method: 'POST',
+            headers: csrfHeaders,
         })
         .then(response => {
             if (response.ok) {

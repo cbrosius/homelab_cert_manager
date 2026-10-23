@@ -95,9 +95,9 @@
                                 </div>
                                 <div class="row" style="margin-bottom: 20px;"></div>
                                 <div class="input-field col s12">
-                                    <input type="text" id="country" name="country" class="validate">
-                                    <label for="country" class="active">Country (C)</label>
-                                    <span class="helper-text" data-error="Please enter the country" data-success="Looks good!"></span>
+                                    <input type="text" id="country" name="country" class="validate" maxlength="2" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();">
+                                    <label for="country" class="active">Country Code (C) - 2-letter ISO</label>
+                                    <span class="helper-text" data-error="Please enter a 2-letter country code (e.g. US, DE)" data-success="Looks good!">Optional 2-letter code</span>
                                 </div>
                                 <div class="row" style="margin-bottom: 20px;"></div>
                                 <div class="input-field col s12">
@@ -157,10 +157,10 @@
                 common_name: 'HomeLab Root CA',
                 organization: 'my HomeLab',
                 organizational_unit: 'private',
-                country: '<YOUR COUNTRY>',
-                state: '<YOUR STATE>',
-                locality: '<YOUR LOCATION>',
-                email: 'admin@homelab.private',
+                country: 'US',
+                state: 'HomeState',
+                locality: 'HomeCity',
+                email: 'admin@homelab.local',
                 validity_years: '30'
             };
 

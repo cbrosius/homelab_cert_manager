@@ -257,8 +257,12 @@
             saveButton.disabled = false;
         }
 
-        function recreateHomelabCertButtonClick() {
+        function getCsrfToken() {
+            const el = document.querySelector('input[name="csrf_token"]');
+            return el ? el.value : '';
+        }
 
+        function recreateHomelabCertButtonClick() {
             const dnsInputs = document.getElementsByName('dns_names[]');
             const ipInputs = document.getElementsByName('ip_addresses[]');
             const button = document.getElementById('saveAndRecreateHomelabCert');
@@ -270,22 +274,21 @@
             fetch('/settings/certmanager', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(data)
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
                 showToast('Settings saved successfully', 'green', button);
-                // new M.Toast({text:'Settings saved successfully'});
                 const saveButton = document.getElementById('saveAndRecreateHomelabCert');
                 saveButton.disabled = true;
                 setTimeout(() => {
                         location.reload();
-                    }, 2000); // Wait 2 seconds before refreshing the page
+                    }, 2000);
             })
             .catch(error => {
-                // new M.Toast({text: error.message, classes: 'red'});
                 showToast(error.message, 'red', button);
             });
             recreateHomelabCert();
@@ -308,19 +311,18 @@
             fetch('/settings/generalcertoptions', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(data)
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to save settings');
                 showToast('Settings saved successfully', 'green', button);
-                // new M.Toast({text: 'Settings saved successfully', classes: 'green'});
                 const saveButton = document.getElementById('saveGeneralOptionsButton');
                 saveButton.disabled = true;
             })
             .catch(error => {
-                // new M.Toast({text: error.message, classes: 'red'});
                 showToast(error.message, 'red', button);
             });
         }
@@ -341,7 +343,8 @@
             fetch('/change-password', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify({
                     old_password: oldPassword,

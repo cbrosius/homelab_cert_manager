@@ -2,9 +2,9 @@ Features:
 - implement versioning for the sources
 - add more description how to use the service
 - add screenshots and better descriptions to the README.md
-- check for correct entries for all input fields in all forms
-- Create Certificate button only available when all requirements are met Signed
-- display missing information somewhere so you know why it is not working yet
+- [x] check for correct entries for all input fields in all forms
+- [x] Create Certificate button only available when all requirements are met Signed
+- [x] display missing information somewhere so you know why it is not working yet
 - automatic docker service restart if necessary
 - provide icons locally
 

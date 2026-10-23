@@ -290,6 +290,11 @@ func showHomePage(c *gin.Context) {
 }
 
 func showCreateCertificateForm(c *gin.Context) {
+	rootCertExists := false
+	if _, err := os.Stat("data/root-cert/HomeLab_Root_CA.pem"); err == nil {
+		rootCertExists = true
+	}
+
 	generalCertOptions := gin.H{
 		"ValidityPeriod":   viper.GetString("general_cert_options.validity_period"),
 		"Organization":     viper.GetString("general_cert_options.organization"),
@@ -300,6 +305,7 @@ func showCreateCertificateForm(c *gin.Context) {
 		"Email":            viper.GetString("general_cert_options.email"),
 	}
 	renderTemplate(c, "create_certificate.html", gin.H{
+		"rootCertExists":     rootCertExists,
 		"generalCertOptions": generalCertOptions,
 		"csrfToken":          getCSRFToken(c.Request),
 	})
@@ -372,6 +378,20 @@ func handleCertManagerSettings(c *gin.Context) {
 		return
 	}
 
+	for _, dns := range certSettings.DnsNames {
+		if err := validateDNSName(dns); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	for _, ip := range certSettings.IpAddresses {
+		if _, err := validateIPAddress(ip); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
 	if err := saveCertManagerSettings(certSettings.DnsNames, certSettings.IpAddresses); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -407,6 +427,21 @@ func handleGeneralCertOptions(c *gin.Context) {
 	}
 
 	if err := c.BindJSON(&generalCertOptions); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if _, err := validateValidityYears(generalCertOptions.ValidityPeriod, 1, 100); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateEmail(generalCertOptions.Email); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateCountry(generalCertOptions.Country); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -471,19 +506,28 @@ func handleLogin(c *gin.Context, config *Config) {
 		session, err := store.Get(c.Request, "session")
 		if err != nil {
 			log.Printf("Session error during login: %v", err)
-			c.HTML(http.StatusInternalServerError, "login.html", gin.H{"error": "Session error"})
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"error":     "Session error",
+				"csrfToken": getCSRFToken(c.Request),
+			})
 			return
 		}
 
 		session.Values["authenticated"] = true
 		if err := session.Save(c.Request, c.Writer); err != nil {
 			log.Printf("Failed to save session: %v", err)
-			c.HTML(http.StatusInternalServerError, "login.html", gin.H{"error": "Session error"})
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"error":     "Session error",
+				"csrfToken": getCSRFToken(c.Request),
+			})
 			return
 		}
 		c.Redirect(http.StatusSeeOther, "/certificates")
 	} else {
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "Invalid credentials"})
+		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+			"error":     "Invalid credentials",
+			"csrfToken": getCSRFToken(c.Request),
+		})
 	}
 }
 
