@@ -25,9 +25,9 @@ import (
 )
 
 type Config struct {
-	Password           string `json:"password"`
-	SessionKey         string `json:"session_key"`
-	MustChangePassword bool   `json:"must_change_password"`
+	Password           string `json:"password" mapstructure:"password"`
+	SessionKey         string `json:"session_key" mapstructure:"session_key"`
+	MustChangePassword bool   `json:"must_change_password" mapstructure:"must_change_password"`
 }
 
 // create variable for session handling (login/logout)
@@ -505,12 +505,20 @@ func handleLogin(c *gin.Context, config *Config) {
 
 		session, err := store.Get(c.Request, "session")
 		if err != nil {
-			log.Printf("Session error during login: %v", err)
-			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
-				"error":     "Session error",
-				"csrfToken": getCSRFToken(c.Request),
-			})
-			return
+			// An error here usually indicates an invalid, expired, or rotated cookie from an older session.
+			// Since the user is authenticating with valid credentials, we replace the invalid session.
+			log.Printf("Notice: replacing invalid/expired session cookie during login: %v", err)
+		}
+		if session == nil {
+			session, err = store.New(c.Request, "session")
+			if err != nil || session == nil {
+				log.Printf("Fatal: failed to create session during login: %v", err)
+				c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+					"error":     "Session error",
+					"csrfToken": getCSRFToken(c.Request),
+				})
+				return
+			}
 		}
 
 		session.Values["authenticated"] = true
@@ -533,15 +541,15 @@ func handleLogin(c *gin.Context, config *Config) {
 
 func handleLogout(c *gin.Context) {
 	session, err := store.Get(c.Request, "session")
-	if err != nil {
-		log.Printf("Session error during logout: %v", err)
-		c.Redirect(http.StatusSeeOther, "/login")
-		return
-	}
-
-	session.Values["authenticated"] = false
-	if err := session.Save(c.Request, c.Writer); err != nil {
-		log.Printf("Failed to save session during logout: %v", err)
+	if session != nil {
+		if err != nil {
+			log.Printf("Notice: session error during logout: %v", err)
+		}
+		session.Values["authenticated"] = false
+		session.Options.MaxAge = -1 // expire cookie
+		if err := session.Save(c.Request, c.Writer); err != nil {
+			log.Printf("Failed to save session during logout: %v", err)
+		}
 	}
 	c.Redirect(http.StatusSeeOther, "/login")
 }

@@ -6,6 +6,6 @@ Features:
 - [x] Create Certificate button only available when all requirements are met Signed
 - [x] display missing information somewhere so you know why it is not working yet
 - automatic docker service restart if necessary
-- provide icons locally
+- [x] provide icons locally
 
 Bugs:

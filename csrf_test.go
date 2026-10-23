@@ -106,3 +106,44 @@ func TestCSRFLoginPost(t *testing.T) {
 		t.Errorf("Unexpected body: %s", postW.Body.String())
 	}
 }
+
+func TestLoadConfig(t *testing.T) {
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+	if cfg.SessionKey == "" {
+		t.Errorf("Expected non-empty SessionKey")
+	}
+}
+
+func TestLoginWithInvalidSessionCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	r := gin.New()
+	r.POST("/login", func(c *gin.Context) {
+		handleLogin(c, cfg)
+	})
+
+	formData := url.Values{}
+	formData.Set("username", "admin")
+	formData.Set("password", "admin") // In default test config
+
+	postReq, _ := http.NewRequest(http.MethodPost, "/login", strings.NewReader(formData.Encode()))
+	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// Send an invalid/corrupted session cookie
+	postReq.Header.Set("Cookie", "session=corrupted_or_outdated_cookie_value")
+
+	postW := httptest.NewRecorder()
+	r.ServeHTTP(postW, postReq)
+
+	// Even if password does not match (if changed in settings.json), it shouldn't return 500 session error
+	if postW.Code == http.StatusInternalServerError {
+		t.Fatalf("Login failed with 500 session error when invalid cookie sent!")
+	}
+	t.Logf("Response code with invalid cookie: %d", postW.Code)
+}
