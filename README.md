@@ -27,7 +27,20 @@ Then your internal sites show secure connections (without warnings) in all moder
 
 ## Screenshots
 
-![Screenshot](static/screenshot.png)
+### Certificates Dashboard
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Dashboard Dark](static/screenshots/dashboard_dark.png) | ![Dashboard Light](static/screenshots/dashboard_light.png) |
+
+### Interactive Certificate Creator
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Create Certificate Dark](static/screenshots/create_cert_dark.png) | ![Create Certificate Light](static/screenshots/create_cert_light.png) |
+
+### Login & Authentication
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Login Dark](static/screenshots/login_dark.png) | ![Login Light](static/screenshots/login_light.png) |
 
 ## Security Features
 
