@@ -120,6 +120,36 @@
         <!-- Add spacing between the cards -->
         <div class="row" style="margin-bottom: 20px;"></div>
 
+        <!-- New Card for Session Settings -->
+        <div class="row">
+            <div class="col s12">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title">Session Inactivity Timeout</span>
+                        <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)">
+                            <input type="hidden" name="csrf_token" value="{{.csrfToken}}">
+                            <div class="row">
+                                <div class="input-field col s12 m6">
+                                    <input type="number" id="timeout_minutes" name="timeout_minutes" min="1" max="30" class="validate" required oninput="enableSessionSettingsSaveButton()">
+                                    <label for="timeout_minutes" class="active">Timeout (Minutes, between 1 and 30)</label>
+                                    <span class="helper-text">Application will automatically log out after this period of inactivity.</span>
+                                </div>
+                            </div>
+                            <div class="card-action">
+                                <button id="saveSessionSettingsButton" type="submit" class="waves-effect waves-light btn green" disabled>
+                                    <i class="material-icons left" style="margin-right: 8px;">save</i> 
+                                    Save Session Settings                                
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add spacing between the cards -->
+        <div class="row" style="margin-bottom: 20px;"></div>
+
         <div class="card">
             <div class="card-content">
                 <span class="card-title">Change Password</span>
@@ -189,6 +219,13 @@
                 document.querySelector('input[name="email"]').value = generalCertOptions.Email || '';
             }
 
+            // Initialize session timeout
+            const sessionTimeout = {{ .sessionTimeoutMinutes }};
+            const sessionTimeoutInput = document.getElementById('timeout_minutes');
+            if (sessionTimeoutInput) {
+                sessionTimeoutInput.value = sessionTimeout || 15;
+            }
+
             // Initialize change password form
             const newPassword = document.getElementById('new_password');
             const confirmPassword = document.getElementById('confirm_password');
@@ -255,6 +292,11 @@
             saveButton.disabled = false;
         }
 
+        function enableSessionSettingsSaveButton() {
+            const saveButton = document.getElementById('saveSessionSettingsButton');
+            if (saveButton) saveButton.disabled = false;
+        }
+
         function getCsrfToken() {
             const el = document.querySelector('input[name="csrf_token"]');
             return el ? el.value : '';
@@ -319,6 +361,44 @@
                 showToast('Settings saved successfully', 'green', button);
                 const saveButton = document.getElementById('saveGeneralOptionsButton');
                 saveButton.disabled = true;
+            })
+            .catch(error => {
+                showToast(error.message, 'red', button);
+            });
+        }
+
+        function submitSessionSettings(event) {
+            event.preventDefault();
+            const form = event.target;
+            const button = document.getElementById('saveSessionSettingsButton');
+            const val = parseInt(form.timeout_minutes.value, 10);
+            if (isNaN(val) || val < 1 || val > 30) {
+                showToast('Session timeout must be between 1 and 30 minutes', 'red', button);
+                return;
+            }
+
+            fetch('/settings/session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    timeout_minutes: val
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => { throw new Error(data.error || 'Failed to save settings'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                showToast('Session timeout saved successfully', 'green', button);
+                if (button) button.disabled = true;
+                if (window.initSessionTimer) {
+                    window.initSessionTimer();
+                }
             })
             .catch(error => {
                 showToast(error.message, 'red', button);

@@ -226,6 +226,11 @@ func main() {
 		authorized.GET("/settings/generalcertoptions", handleGeneralCertOptions)
 		authorized.POST("/settings/generalcertoptions", handleGeneralCertOptions)
 
+		authorized.GET("/settings/session", handleSessionSettings)
+		authorized.POST("/settings/session", handleSessionSettings)
+		authorized.GET("/api/session/status", handleSessionStatus)
+		authorized.POST("/api/session/ping", handleSessionPing)
+
 		authorized.POST("/change-password", func(c *gin.Context) {
 			changePassword(c, config)
 		})
@@ -334,8 +339,9 @@ func showSettingsPage(c *gin.Context) {
 			"Location":         viper.GetString("general_cert_options.location"),
 			"Email":            viper.GetString("general_cert_options.email"),
 		},
-		"defaultPassword": isDefaultPassword,
-		"csrfToken":       getCSRFToken(c.Request),
+		"sessionTimeoutMinutes": getSessionTimeoutMinutes(),
+		"defaultPassword":       isDefaultPassword,
+		"csrfToken":             getCSRFToken(c.Request),
 	})
 }
 
@@ -469,6 +475,89 @@ func handleGeneralCertOptions(c *gin.Context) {
 	c.JSON(http.StatusOK, generalCertOptions)
 }
 
+func handleSessionSettings(c *gin.Context) {
+	debugLog("handleSessionSettings called")
+
+	if c.Request.Method == "GET" {
+		c.JSON(http.StatusOK, gin.H{
+			"timeout_minutes": getSessionTimeoutMinutes(),
+		})
+		return
+	}
+
+	var req struct {
+		TimeoutMinutes int `json:"timeout_minutes"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := saveSessionSettings(req.TimeoutMinutes); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"timeout_minutes": req.TimeoutMinutes,
+	})
+}
+
+func handleSessionStatus(c *gin.Context) {
+	session, err := store.Get(c.Request, "session")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_session"})
+		return
+	}
+
+	timeoutMinutes := getSessionTimeoutMinutes()
+	var lastActivity int64
+	switch v := session.Values["last_activity"].(type) {
+	case int64:
+		lastActivity = v
+	case int:
+		lastActivity = int64(v)
+	case float64:
+		lastActivity = int64(v)
+	default:
+		lastActivity = time.Now().Unix()
+	}
+
+	elapsed := int(time.Since(time.Unix(lastActivity, 0)).Seconds())
+	totalSeconds := timeoutMinutes * 60
+	remainingSeconds := totalSeconds - elapsed
+	if remainingSeconds < 0 {
+		remainingSeconds = 0
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"timeout_minutes":   timeoutMinutes,
+		"total_seconds":     totalSeconds,
+		"remaining_seconds": remainingSeconds,
+	})
+}
+
+func handleSessionPing(c *gin.Context) {
+	session, err := store.Get(c.Request, "session")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_session"})
+		return
+	}
+
+	timeoutMinutes := getSessionTimeoutMinutes()
+	session.Values["last_activity"] = time.Now().Unix()
+	if err := session.Save(c.Request, c.Writer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed_to_save_session"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":            "ok",
+		"timeout_minutes":   timeoutMinutes,
+		"remaining_seconds": timeoutMinutes * 60,
+	})
+}
+
 func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 	if data == nil {
 		data = gin.H{}
@@ -477,7 +566,12 @@ func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 }
 
 func showLoginPage(c *gin.Context) {
+	var errorMsg string
+	if c.Query("timeout") == "1" {
+		errorMsg = "Your session expired due to inactivity. Please log in again."
+	}
 	c.HTML(http.StatusOK, "login.html", gin.H{
+		"error":     errorMsg,
 		"csrfToken": getCSRFToken(c.Request),
 	})
 }
@@ -529,6 +623,7 @@ func handleLogin(c *gin.Context, config *Config) {
 		}
 
 		session.Values["authenticated"] = true
+		session.Values["last_activity"] = time.Now().Unix()
 		if err := session.Save(c.Request, c.Writer); err != nil {
 			log.Printf("Failed to save session: %v", err)
 			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
@@ -555,6 +650,7 @@ func handleLogout(c *gin.Context) {
 			log.Printf("Notice: session error during logout: %v", err)
 		}
 		session.Values["authenticated"] = false
+		session.Values["last_activity"] = int64(0)
 		session.Options.MaxAge = -1 // expire cookie
 		if err := session.Save(c.Request, c.Writer); err != nil {
 			log.Printf("Failed to save session during logout: %v", err)
@@ -573,10 +669,57 @@ func AuthRequired(c *gin.Context) {
 	}
 
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		c.Redirect(http.StatusSeeOther, "/login")
+		if c.GetHeader("X-Requested-With") == "XMLHttpRequest" || strings.HasPrefix(c.Request.URL.Path, "/api/") || strings.Contains(c.GetHeader("Accept"), "application/json") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		} else {
+			c.Redirect(http.StatusSeeOther, "/login")
+		}
 		c.Abort()
 		return
 	}
+
+	// Inactivity session timeout check
+	var lastActivity int64
+	switch v := session.Values["last_activity"].(type) {
+	case int64:
+		lastActivity = v
+	case int:
+		lastActivity = int64(v)
+	case float64:
+		lastActivity = int64(v)
+	default:
+		lastActivity = 0
+	}
+
+	timeoutMinutes := getSessionTimeoutMinutes()
+	timeoutDuration := time.Duration(timeoutMinutes) * time.Minute
+
+	if lastActivity == 0 {
+		lastActivity = time.Now().Unix()
+		session.Values["last_activity"] = lastActivity
+		_ = session.Save(c.Request, c.Writer)
+	} else if time.Since(time.Unix(lastActivity, 0)) > timeoutDuration {
+		log.Printf("Session timed out after %v of inactivity", time.Since(time.Unix(lastActivity, 0)))
+		session.Values["authenticated"] = false
+		session.Values["last_activity"] = int64(0)
+		session.Options.MaxAge = -1
+		_ = session.Save(c.Request, c.Writer)
+
+		if c.GetHeader("X-Requested-With") == "XMLHttpRequest" || strings.HasPrefix(c.Request.URL.Path, "/api/") || strings.Contains(c.GetHeader("Accept"), "application/json") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "session_expired", "message": "Session expired due to inactivity"})
+		} else {
+			c.Redirect(http.StatusSeeOther, "/login?timeout=1")
+		}
+		c.Abort()
+		return
+	}
+
+	// Update last_activity on user interactions (do not refresh on passive status polling)
+	if c.Request.URL.Path != "/api/session/status" {
+		session.Values["last_activity"] = time.Now().Unix()
+		_ = session.Save(c.Request, c.Writer)
+	}
+
 	c.Next()
 }
 

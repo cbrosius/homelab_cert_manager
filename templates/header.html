@@ -8,6 +8,12 @@
                     HomeLab Certificate Manager
                 </a>
                 <ul id="nav-mobile" class="right">
+                    <li id="session-timer-li" style="display: flex; align-items: center; height: 64px; margin-right: 8px;">
+                        <span id="session-timer-badge" title="Session timeout countdown (resets on interaction)" style="display: inline-flex; align-items: center; font-size: 0.85rem; padding: 4px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.15); line-height: 1.2; user-select: none;">
+                            <i class="material-icons tiny" style="margin-right: 4px; font-size: 1.1rem; line-height: 1; vertical-align: middle;">timer</i>
+                            <span id="session-countdown">--:--</span>
+                        </span>
+                    </li>
                     <li>
                         <a id="theme-switch" href="#" onclick="toggleTheme()" class="waves-effect waves-light">
                             <i class="material-icons">dark_mode</i>
@@ -28,6 +34,7 @@
             {{ end }}
         </nav>
     </div>
+    <input type="hidden" id="session_csrf_token" value="{{.csrfToken}}">
 
     <!-- Dropdown Structure -->
     <ul id="dropdown1" class="dropdown-content">
@@ -60,4 +67,134 @@ function toggleTheme() {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     applyTheme(newTheme);
 }
+
+// Session Inactivity Countdown & Ping Management
+(function() {
+    let remainingSeconds = 0;
+    let totalTimeoutSeconds = 900;
+    let timerInterval = null;
+    let lastPingTime = Date.now();
+    let isRedirecting = false;
+
+    function getSessionCsrf() {
+        const el = document.getElementById('session_csrf_token') || document.querySelector('input[name="csrf_token"]');
+        return el ? el.value : '';
+    }
+
+    function updateDisplay() {
+        const countdownEl = document.getElementById('session-countdown');
+        const badgeEl = document.getElementById('session-timer-badge');
+        if (!countdownEl) return;
+
+        const mins = Math.floor(Math.max(0, remainingSeconds) / 60);
+        const secs = Math.max(0, remainingSeconds) % 60;
+        countdownEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+        if (badgeEl) {
+            if (remainingSeconds <= 60) {
+                badgeEl.style.background = 'rgba(244, 67, 54, 0.8)';
+                badgeEl.style.color = '#ffffff';
+                badgeEl.style.fontWeight = 'bold';
+            } else {
+                badgeEl.style.background = 'rgba(0, 0, 0, 0.15)';
+                badgeEl.style.color = 'inherit';
+                badgeEl.style.fontWeight = 'normal';
+            }
+        }
+    }
+
+    function handleExpiry() {
+        if (isRedirecting) return;
+        isRedirecting = true;
+        if (timerInterval) clearInterval(timerInterval);
+        window.location.href = '/login?timeout=1';
+    }
+
+    function sendPing() {
+        const csrfToken = getSessionCsrf();
+        const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+        if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+        }
+        fetch('/api/session/ping', {
+            method: 'POST',
+            headers: headers
+        })
+        .then(res => {
+            if (res.status === 401) {
+                handleExpiry();
+                return null;
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data && typeof data.remaining_seconds === 'number') {
+                remainingSeconds = data.remaining_seconds;
+                if (data.timeout_minutes) {
+                    totalTimeoutSeconds = data.timeout_minutes * 60;
+                }
+                updateDisplay();
+            }
+        })
+        .catch(err => {
+            console.error('Session ping error:', err);
+        });
+    }
+
+    function onUserInteraction() {
+        if (isRedirecting) return;
+        // Instantly reset the visible countdown on interaction
+        remainingSeconds = totalTimeoutSeconds;
+        updateDisplay();
+
+        // Throttle background ping to the server (at most once every 15s)
+        const now = Date.now();
+        if (now - lastPingTime > 15000) {
+            lastPingTime = now;
+            sendPing();
+        }
+    }
+
+    window.initSessionTimer = function() {
+        fetch('/api/session/status', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => {
+            if (res.status === 401) {
+                handleExpiry();
+                return null;
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!data) return;
+            totalTimeoutSeconds = (data.timeout_minutes || 15) * 60;
+            remainingSeconds = (typeof data.remaining_seconds === 'number') ? data.remaining_seconds : totalTimeoutSeconds;
+            updateDisplay();
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(function() {
+                if (remainingSeconds > 0) {
+                    remainingSeconds--;
+                    updateDisplay();
+                } else {
+                    handleExpiry();
+                }
+            }, 1000);
+        })
+        .catch(err => {
+            console.error('Failed to get session status:', err);
+        });
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        window.initSessionTimer();
+
+        // Listen for user interaction events to refresh countdown
+        const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+        activityEvents.forEach(evt => {
+            window.addEventListener(evt, onUserInteraction, { passive: true });
+        });
+    });
+})();
 </script>

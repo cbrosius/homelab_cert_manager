@@ -115,3 +115,12 @@ func validatePassword(newPassword, oldPassword string) error {
 	}
 	return nil
 }
+
+// validateSessionTimeout ensures the timeout is between 1 and 30 minutes.
+func validateSessionTimeout(minutes int) error {
+	if minutes < 1 || minutes > 30 {
+		return fmt.Errorf("session timeout must be between 1 and 30 minutes")
+	}
+	return nil
+}
+

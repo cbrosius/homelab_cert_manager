@@ -190,3 +190,28 @@ func TestValidatePassword(t *testing.T) {
 	}
 }
 
+func TestValidateSessionTimeout(t *testing.T) {
+	tests := []struct {
+		name    string
+		minutes int
+		wantErr bool
+	}{
+		{"Valid 1 minute", 1, false},
+		{"Valid 15 minutes", 15, false},
+		{"Valid 30 minutes", 30, false},
+		{"Zero minutes (too short)", 0, true},
+		{"Negative minutes", -5, true},
+		{"31 minutes (too long)", 31, true},
+		{"60 minutes (too long)", 60, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateSessionTimeout(tt.minutes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateSessionTimeout(%d) error = %v, wantErr %v", tt.minutes, err, tt.wantErr)
+			}
+		})
+	}
+}
+

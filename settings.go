@@ -21,6 +21,10 @@ type Settings struct {
 		Location         string `mapstructure:"location"`
 		Email            string `mapstructure:"email"`
 	} `mapstructure:"general_cert_options"`
+
+	SessionSettings struct {
+		TimeoutMinutes int `mapstructure:"timeout_minutes"`
+	} `mapstructure:"session_settings"`
 }
 
 func initSettings() error {
@@ -41,6 +45,8 @@ func initSettings() error {
 	viper.SetDefault("general_cert_options.location", "")
 	viper.SetDefault("general_cert_options.email", "")
 
+	viper.SetDefault("session_settings.timeout_minutes", 15)
+
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			return viper.SafeWriteConfig()
@@ -48,6 +54,25 @@ func initSettings() error {
 		return err
 	}
 	return nil
+}
+
+// getSessionTimeoutMinutes returns the configured session timeout between 1 and 30 minutes (default 15).
+func getSessionTimeoutMinutes() int {
+	mins := viper.GetInt("session_settings.timeout_minutes")
+	if mins < 1 || mins > 30 {
+		return 15
+	}
+	return mins
+}
+
+// saveSessionSettings saves the session timeout setting after validation.
+func saveSessionSettings(timeoutMinutes int) error {
+	debugLog("saveSessionSettings called with %d", timeoutMinutes)
+	if err := validateSessionTimeout(timeoutMinutes); err != nil {
+		return err
+	}
+	viper.Set("session_settings.timeout_minutes", timeoutMinutes)
+	return viper.WriteConfig()
 }
 
 func saveCertManagerSettings(dnsNames []string, ipAddresses []string) error {
