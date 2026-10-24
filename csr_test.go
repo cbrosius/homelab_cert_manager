@@ -368,4 +368,3 @@ func TestCheckRootCertAndListCerts_HasPrivateKey(t *testing.T) {
 		t.Errorf("Expected cert list to contain CSR badge for CSR certificate")
 	}
 }
-

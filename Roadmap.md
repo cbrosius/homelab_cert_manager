@@ -49,35 +49,35 @@
 **Goal:** Support Passkey/SSO login via Pocket ID (or any standard OIDC provider) as a strictly optional opt-in feature, while preventing lockouts if the OIDC provider's own certificate expires.
 
 ### 2.1 Configuration (`settings.go` & `templates/settings.html`)
-- [ ] **Extend `Settings` Struct**:
+- [x] **Extend `Settings` Struct**:
   - `OidcEnabled bool`
   - `OidcIssuerURL string`
   - `OidcClientID string`
   - `OidcClientSecret string`
   - `OidcRedirectURL string`
-- [ ] **Environment Variable Overrides**: Allow optional configuration via Docker environment variables (`OIDC_ENABLED`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URL`).
-- [ ] **Settings UI**: Add an OIDC configuration section to `templates/settings.html` (with a toggle switch and input fields).
+- [x] **Environment Variable Overrides**: Allow optional configuration via Docker environment variables (`OIDC_ENABLED`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URL`).
+- [x] **Settings UI**: Add an OIDC configuration section to `templates/settings.html` (with a toggle switch and input fields).
 
 ### 2.2 Custom Root CA Trust Pool (`oidc.go`)
-- [ ] **Create Custom HTTP Client for OIDC**:
+- [x] **Create Custom HTTP Client for OIDC**:
   - Load `x509.SystemCertPool()`.
-  - Automatically read and append the local Homelab Root CA (`data/rootCA.crt`) to the `RootCAs` pool if it exists.
+  - Automatically read and append the local Homelab Root CA (`data/rootCA.crt`, `data/root-cert/*.pem`) to the `RootCAs` pool if it exists.
   - Inject this `http.Client` into the OIDC context (`oidc.ClientContext`) so the container trusts a Pocket ID instance secured by a Homelab Cert Manager certificate out of the box.
 
 ### 2.3 OIDC Authentication Flow (`oidc.go` & `main.go`)
-- [ ] **Add Dependencies**: Add `github.com/coreos/go-oidc/v3/oidc` and `golang.org/x/oauth2`.
-- [ ] **Implement `GET /auth/oidc/login`**:
+- [x] **Add Dependencies**: Add `github.com/coreos/go-oidc/v3/oidc` and `golang.org/x/oauth2`.
+- [x] **Implement `GET /auth/oidc/login`**:
   - Verify `OidcEnabled` is true.
   - Generate a cryptographically random `state` cookie (CSRF protection) and redirect the user to the Pocket ID authorization endpoint.
-- [ ] **Implement `GET /auth/oidc/callback`**:
+- [x] **Implement `GET /auth/oidc/callback`**:
   - Validate the `state` cookie.
   - Exchange authorization code for tokens using the custom HTTP client.
   - Verify the ID token using the OIDC verifier.
   - Issue the standard authenticated session cookie used by the existing auth middleware and redirect to `/`.
 
 ### 2.4 Login UI & Emergency Fallback (`templates/login.html`)
-- [ ] **Conditional OIDC Button**: When `OidcEnabled` is true, render a prominent "Sign in with Pocket ID / OIDC" button at the top of the login card.
-- [ ] **Keep Local Admin Fallback**: Keep the standard username/password form accessible (e.g., in a collapsible section "Local Admin Login (Fallback)") to prevent chicken-and-egg lockouts when renewing an expired Pocket ID certificate.
+- [x] **Conditional OIDC Button**: When `OidcEnabled` is true, render a prominent "Sign in with Pocket ID / OIDC" button at the top of the login card.
+- [x] **Keep Local Admin Fallback**: Keep the standard username/password form accessible (e.g., in a collapsible section "Local Admin Login (Fallback)") to prevent chicken-and-egg lockouts when renewing an expired Pocket ID certificate.
 
 ---
 

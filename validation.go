@@ -123,4 +123,3 @@ func validateSessionTimeout(minutes int) error {
 	}
 	return nil
 }
-

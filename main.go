@@ -220,6 +220,10 @@ func main() {
 	})
 	r.GET("/logout", handleLogout)
 
+	// OIDC authentication routes
+	r.GET("/auth/oidc/login", handleOIDCLogin)
+	r.GET("/auth/oidc/callback", handleOIDCCallback)
+
 	authorized := r.Group("/")
 	authorized.Use(AuthRequired)
 	authorized.Use(CheckPasswordChange(config))
@@ -256,6 +260,9 @@ func main() {
 		authorized.POST("/settings/session", handleSessionSettings)
 		authorized.GET("/api/session/status", handleSessionStatus)
 		authorized.POST("/api/session/ping", handleSessionPing)
+
+		authorized.GET("/settings/oidc", handleOIDCSettings)
+		authorized.POST("/settings/oidc", handleOIDCSettings)
 
 		authorized.POST("/change-password", func(c *gin.Context) {
 			changePassword(c, config)
@@ -456,6 +463,7 @@ func showSettingsPage(c *gin.Context) {
 			"Email":            viper.GetString("general_cert_options.email"),
 		},
 		"sessionTimeoutMinutes": getSessionTimeoutMinutes(),
+		"oidcSettings":          getOidcSettings(),
 		"defaultPassword":       isDefaultPassword,
 		"csrfToken":             getCSRFToken(c.Request),
 	})
@@ -687,10 +695,13 @@ func showLoginPage(c *gin.Context) {
 		errorMsg = "Your session expired due to inactivity. Please log in again."
 	} else if c.Query("csrf_error") == "1" {
 		errorMsg = "Your security token expired. Please log in again."
+	} else if qErr := c.Query("error"); qErr != "" {
+		errorMsg = qErr
 	}
 	c.HTML(http.StatusOK, "login.html", gin.H{
-		"error":     errorMsg,
-		"csrfToken": getCSRFToken(c.Request),
+		"error":       errorMsg,
+		"oidcEnabled": isOidcEnabled(),
+		"csrfToken":   getCSRFToken(c.Request),
 	})
 }
 
@@ -846,6 +857,11 @@ func AuthRequired(c *gin.Context) {
 
 func CheckPasswordChange(config *Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		session, _ := store.Get(c.Request, "session")
+		if session != nil && session.Values["auth_provider"] == "oidc" {
+			c.Next()
+			return
+		}
 		if config.MustChangePassword {
 			if c.Request.URL.Path != "/change-password" {
 				c.Redirect(http.StatusSeeOther, "/change-password")

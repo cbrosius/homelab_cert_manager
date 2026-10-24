@@ -214,4 +214,3 @@ func TestValidateSessionTimeout(t *testing.T) {
 		})
 	}
 }
-

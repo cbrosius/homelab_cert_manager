@@ -46,6 +46,23 @@
             </div>
             {{ end }}
 
+            {{ if .oidcEnabled }}
+            <!-- Pocket ID / OIDC Primary Login Action -->
+            <div style="margin-bottom: 1.5rem;">
+                <a href="/auth/oidc/login" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem; text-decoration: none; box-sizing: border-box; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.35);">
+                    <i class="material-icons" style="font-size: 20px;">fingerprint</i>
+                    <span style="font-weight: 600;">Sign in with Pocket ID / OIDC</span>
+                </a>
+            </div>
+
+            <!-- Emergency Fallback Divider -->
+            <div style="display: flex; align-items: center; margin: 1.5rem 0 1.25rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;">
+                <span style="flex: 1; border-bottom: 1px solid var(--border-subtle);"></span>
+                <span style="padding: 0 0.75rem; font-weight: 500;">or local admin fallback</span>
+                <span style="flex: 1; border-bottom: 1px solid var(--border-subtle);"></span>
+            </div>
+            {{ end }}
+
             <!-- Login Form -->
             <form action="/login" method="POST" id="loginForm">
                 <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
