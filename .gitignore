@@ -11,6 +11,5 @@ app.log
 data/*
 !data/.gitkeep
 
-gemini.md
-homelab_cert_manager
-cert_manager
+/homelab_cert_manager
+/cert_manager

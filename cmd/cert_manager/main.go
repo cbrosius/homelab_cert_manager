@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -62,6 +63,12 @@ func toJson(v interface{}) (string, error) {
 }
 
 func main() {
+	if err := Run(); err != nil {
+		log.Fatalf("Application error: %v", err)
+	}
+}
+
+func Run() error {
 	os.MkdirAll("data/certs", 0750)
 	os.MkdirAll("data/root-cert", 0700)
 	os.MkdirAll("data/certmanager-cert", 0750)
@@ -69,13 +76,13 @@ func main() {
 
 	// Initialize settings
 	if conf_error := initSettings(); conf_error != nil {
-		log.Fatalf("Failed to initialize settings: %v", conf_error)
+		return fmt.Errorf("failed to initialize settings: %w", conf_error)
 	}
 
 	// Load configuration
 	config, conf_error := loadConfig()
 	if conf_error != nil {
-		log.Fatalf("Error loading configuration: %v", conf_error)
+		return fmt.Errorf("error loading configuration: %w", conf_error)
 	}
 
 	// Initialize logging defaults
@@ -106,14 +113,12 @@ func main() {
 		// Generate self-signed certificate for Certificate Manager
 		certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
-			log.Printf("Failed to generate private key: %v", err)
-			return
+			return fmt.Errorf("failed to generate private key: %w", err)
 		}
 
 		serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 		if err != nil {
-			log.Printf("Failed to generate serial number: %v", err)
-			return
+			return fmt.Errorf("failed to generate serial number: %w", err)
 		}
 
 		template := x509.Certificate{
@@ -132,15 +137,13 @@ func main() {
 
 		certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &certKey.PublicKey, certKey)
 		if err != nil {
-			log.Printf("Failed to create certificate: %v", err)
-			return
+			return fmt.Errorf("failed to create certificate: %w", err)
 		}
 
 		// Save private key with restricted permissions
 		keyFile, err := createFileWithPermissions("data/certmanager-cert/selfsigned.key", 0600)
 		if err != nil {
-			log.Printf("Failed to create key file: %v", err)
-			return
+			return fmt.Errorf("failed to create key file: %w", err)
 		}
 		defer keyFile.Close()
 
@@ -149,15 +152,13 @@ func main() {
 			Bytes: x509.MarshalPKCS1PrivateKey(certKey),
 		})
 		if err != nil {
-			log.Printf("Failed to write key file: %v", err)
-			return
+			return fmt.Errorf("failed to write key file: %w", err)
 		}
 
 		// Save certificate with standard read permissions
 		certFile, err := createFileWithPermissions("data/certmanager-cert/selfsigned.pem", 0644)
 		if err != nil {
-			log.Printf("Failed to create certificate file: %v", err)
-			return
+			return fmt.Errorf("failed to create certificate file: %w", err)
 		}
 		defer certFile.Close()
 
@@ -166,8 +167,7 @@ func main() {
 			Bytes: certBytes,
 		})
 		if err != nil {
-			log.Printf("Failed to write certificate file: %v", err)
-			return
+			return fmt.Errorf("failed to write certificate file: %w", err)
 		}
 
 		log.Println("Certificate Manager certificate generated successfully")
@@ -298,7 +298,7 @@ func main() {
 		certFile = selfSignedCert
 		keyFile = selfSignedKey
 	} else {
-		log.Fatal("No valid certificate found. Please generate either selfsigned.pem or homelab_certificate_manager.pem")
+		return fmt.Errorf("no valid certificate found: please generate either selfsigned.pem or homelab_certificate_manager.pem")
 	}
 
 	// Start the server with hardened TLS configuration and timeouts (Slowloris protection)
@@ -316,8 +316,9 @@ func main() {
 
 	log.Printf("Starting secure server on https://localhost:8443 (TLS 1.2+)")
 	if err := srv.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Server failed to start: %v", err)
+		return fmt.Errorf("server failed to start: %w", err)
 	}
+	return nil
 }
 
 func showHomePage(c *gin.Context) {
