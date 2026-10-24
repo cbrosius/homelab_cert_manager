@@ -231,15 +231,15 @@
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1rem;">
                                 <div class="form-group">
-                                    <label class="form-label" for="oidc_client_secret">Client Secret</label>
+                                    <label class="form-label" for="oidc_client_secret">Client Secret (Optional for Public Clients / PKCE)</label>
                                     <div class="input-with-icon">
                                         <i class="material-icons input-leading-icon">key</i>
-                                        <input type="password" id="oidc_client_secret" name="oidc_client_secret" value="{{ .oidcSettings.ClientSecret }}" placeholder="Client secret (if required by provider)" oninput="enableOidcSaveButton()">
+                                        <input type="password" id="oidc_client_secret" name="oidc_client_secret" value="{{ .oidcSettings.ClientSecret }}" placeholder="Optional for Pocket ID public clients / PKCE" oninput="enableOidcSaveButton()">
                                         <button type="button" class="input-trailing-btn" onclick="toggleOidcSecretVisibility()" aria-label="Toggle secret visibility">
                                             <i id="oidcSecretToggleIcon" class="material-icons" style="font-size: 18px;">visibility</i>
                                         </button>
                                     </div>
-                                    <span class="helper-text">Optional for public clients (e.g. PKCE) or confidential client secret.</span>
+                                    <span class="helper-text">Optional when using Pocket ID Public Clients with PKCE (S256), or enter client secret for confidential clients.</span>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="oidc_redirect_url">Redirect / Callback URL (Optional)</label>
@@ -760,8 +760,8 @@
             })
             .then(data => {
                 btn.disabled = false;
-                if (data.config && data.config.client_secret) {
-                    form.oidc_client_secret.value = data.config.client_secret;
+                if (data.config) {
+                    form.oidc_client_secret.value = data.config.client_secret || '';
                 }
                 if (window.showToast) window.showToast('Pocket ID / OIDC settings saved successfully', 'success');
             })

@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -162,6 +163,34 @@ func TestOidcSettings_SaveAndValidation(t *testing.T) {
 	if savedCfg.ClientSecret != "supe••••••••" {
 		t.Fatalf("Expected masked client secret 'supe••••••••', got %s", savedCfg.ClientSecret)
 	}
+
+	// 5. Valid payload with empty client secret (Public Client / PKCE)
+	publicClientBody, _ := json.Marshal(OidcConfig{
+		Enabled:      true,
+		IssuerURL:    "https://auth.homelab.local",
+		ClientID:     "cert-manager-public",
+		ClientSecret: "",
+		RedirectURL:  "https://certmanager.homelab.local:8443/auth/oidc/callback",
+	})
+	req, _ = http.NewRequest(http.MethodPost, "/settings/oidc", bytes.NewReader(publicClientBody))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK for public client with empty secret, got %d: %s", w.Code, w.Body.String())
+	}
+
+	req, _ = http.NewRequest(http.MethodGet, "/settings/oidc", nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if err := json.Unmarshal(w.Body.Bytes(), &savedCfg); err != nil {
+		t.Fatalf("Failed to parse GET /settings/oidc response: %v", err)
+	}
+	if savedCfg.ClientID != "cert-manager-public" || savedCfg.ClientSecret != "" {
+		t.Fatalf("Expected empty client secret for public client, got %+v", savedCfg)
+	}
 }
 
 func TestOIDCHTTPClient_TrustPool(t *testing.T) {
@@ -278,6 +307,10 @@ func TestOIDCCallback_StateValidation(t *testing.T) {
 		Name:  "oidc_state",
 		Value: "test_state",
 	})
+	req.AddCookie(&http.Cookie{
+		Name:  "oidc_verifier",
+		Value: "test_verifier",
+	})
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -294,6 +327,10 @@ func TestOIDCCallback_StateValidation(t *testing.T) {
 		Name:  "oidc_state",
 		Value: "test_state",
 	})
+	req.AddCookie(&http.Cookie{
+		Name:  "oidc_verifier",
+		Value: "test_verifier",
+	})
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -302,6 +339,115 @@ func TestOIDCCallback_StateValidation(t *testing.T) {
 	}
 	if !strings.Contains(w.Header().Get("Location"), "Missing+authorization+code") {
 		t.Fatalf("Expected missing authorization code error, got %s", w.Header().Get("Location"))
+	}
+
+	// 5. Missing PKCE verifier cookie
+	req, _ = http.NewRequest(http.MethodGet, "/auth/oidc/callback?state=test_state&code=test_code", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "oidc_state",
+		Value: "test_state",
+	})
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("Expected 303 redirect, got %d", w.Code)
+	}
+	if !strings.Contains(w.Header().Get("Location"), "Invalid+or+expired+PKCE") {
+		t.Fatalf("Expected invalid PKCE verifier error, got %s", w.Header().Get("Location"))
+	}
+}
+
+func TestOIDCLogin_PKCEChallenge(t *testing.T) {
+	backupAndRestoreSettings(t)
+	os.Unsetenv("OIDC_ENABLED")
+	os.Unsetenv("OIDC_ISSUER_URL")
+
+	// Spin up mock OIDC discovery server
+	var mockIdP *httptest.Server
+	mockIdP = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/.well-known/openid-configuration" {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"issuer":                                mockIdP.URL,
+				"authorization_endpoint":                mockIdP.URL + "/auth",
+				"token_endpoint":                        mockIdP.URL + "/token",
+				"jwks_uri":                              mockIdP.URL + "/jwks",
+				"response_types_supported":              []string{"code"},
+				"subject_types_supported":               []string{"public"},
+				"id_token_signing_alg_values_supported": []string{"RS256"},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer mockIdP.Close()
+
+	viper.Set("oidc_settings.enabled", true)
+	viper.Set("oidc_settings.issuer_url", mockIdP.URL)
+	viper.Set("oidc_settings.client_id", "pkce-test-client")
+	viper.Set("oidc_settings.client_secret", "") // public client
+	viper.Set("oidc_settings.redirect_url", "https://app.homelab.local:8443/auth/oidc/callback")
+
+	r := setupTestOidcRouter()
+
+	req, _ := http.NewRequest(http.MethodGet, "/auth/oidc/login", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("Expected 303 redirect, got %d", w.Code)
+	}
+
+	loc := w.Header().Get("Location")
+	if loc == "" {
+		t.Fatal("Expected Location header in redirect")
+	}
+
+	parsedLoc, err := url.Parse(loc)
+	if err != nil {
+		t.Fatalf("Failed to parse redirect location: %v", err)
+	}
+
+	q := parsedLoc.Query()
+	if q.Get("response_type") != "code" {
+		t.Errorf("Expected response_type=code, got %q", q.Get("response_type"))
+	}
+	if q.Get("client_id") != "pkce-test-client" {
+		t.Errorf("Expected client_id=pkce-test-client, got %q", q.Get("client_id"))
+	}
+	if q.Get("code_challenge_method") != "S256" {
+		t.Errorf("Expected code_challenge_method=S256, got %q", q.Get("code_challenge_method"))
+	}
+	if challenge := q.Get("code_challenge"); challenge == "" {
+		t.Error("Expected non-empty code_challenge in auth URL query")
+	}
+
+	// Verify cookies
+	var verifierCookie, stateCookie *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "oidc_verifier" {
+			verifierCookie = c
+		} else if c.Name == "oidc_state" {
+			stateCookie = c
+		}
+	}
+
+	if verifierCookie == nil {
+		t.Fatal("Expected oidc_verifier cookie to be set")
+	}
+	if verifierCookie.Value == "" {
+		t.Error("Expected non-empty oidc_verifier cookie value")
+	}
+	if !verifierCookie.HttpOnly {
+		t.Error("Expected oidc_verifier cookie to be HttpOnly")
+	}
+
+	if stateCookie == nil {
+		t.Fatal("Expected oidc_state cookie to be set")
+	}
+	if stateCookie.Value != q.Get("state") {
+		t.Errorf("State cookie value %q does not match state query param %q", stateCookie.Value, q.Get("state"))
 	}
 }
 

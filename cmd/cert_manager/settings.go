@@ -239,7 +239,7 @@ func saveOidcSettings(enabled bool, issuerURL, clientID, clientSecret, redirectU
 		} else {
 			viper.Set("oidc_settings.client_secret", enc)
 		}
-	} else if !enabled {
+	} else {
 		viper.Set("oidc_settings.client_secret", "")
 	}
 
