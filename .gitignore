@@ -2,11 +2,15 @@
 *.bak
 *.key
 *.pem
+*.pfx
+*.csr
 *.json
+app.log
+
+# Local data & certificates
 data/*
+!data/.gitkeep
+
 gemini.md
 homelab_cert_manager
 cert_manager
-
-# Security: Never commit settings with password hashes
-data/settings.json

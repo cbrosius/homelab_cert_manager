@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha512"
@@ -11,11 +12,14 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"html/template"
+	"io"
 	"log"
 	"math/big"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -235,6 +239,7 @@ func main() {
 		})
 		authorized.GET("/create-certificate-form", showCreateCertificateForm) // Route for certificate form
 		authorized.POST("/create-certificate", createCertificate)
+		authorized.POST("/sign-csr", handleSignCSR)
 
 		authorized.POST("/certificates/delete/root-cert/:filename", deleteRootCertificate) // Route for deleting root certificate
 		authorized.GET("/settings", showSettingsPage)                                      // Route for settings page
@@ -357,6 +362,81 @@ func showCreateCertificateForm(c *gin.Context) {
 		"generalCertOptions": generalCertOptions,
 		"csrfToken":          getCSRFToken(c.Request),
 	})
+}
+
+func handleSignCSR(c *gin.Context) {
+	debugLog("handleSignCSR called")
+
+	// Check if Root CA exists
+	if _, err := os.Stat("data/root-cert/HomeLab_Root_CA.pem"); err != nil {
+		isAjax := strings.Contains(c.GetHeader("Accept"), "application/json") || c.GetHeader("X-Requested-With") == "XMLHttpRequest"
+		if isAjax {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "No Root CA certificate found. Please create a Root CA before signing CSRs."})
+		} else {
+			c.Redirect(http.StatusSeeOther, "/certificates?error="+url.QueryEscape("No Root CA certificate found. Please create a Root CA first."))
+		}
+		return
+	}
+
+	validityDays := 365
+	validityYearsStr := c.PostForm("validity_years")
+	validityDaysStr := c.PostForm("validity_days")
+	if validityYearsStr != "" {
+		if years, err := strconv.Atoi(validityYearsStr); err == nil && years > 0 && years <= 100 {
+			validityDays = years * 365
+		}
+	} else if validityDaysStr != "" {
+		if days, err := strconv.Atoi(validityDaysStr); err == nil && days > 0 && days <= 36500 {
+			validityDays = days
+		}
+	} else {
+		periodYears := viper.GetInt("general_cert_options.validity_period")
+		if periodYears > 0 {
+			validityDays = periodYears * 365
+		}
+	}
+
+	var csrBytes []byte
+	file, err := c.FormFile("csr_file")
+	if err == nil && file != nil {
+		f, err := file.Open()
+		if err == nil {
+			defer f.Close()
+			csrBytes, _ = io.ReadAll(f)
+		}
+	}
+
+	if len(bytes.TrimSpace(csrBytes)) == 0 {
+		csrText := c.PostForm("csr_text")
+		csrBytes = []byte(strings.TrimSpace(csrText))
+	}
+
+	isAjax := strings.Contains(c.GetHeader("Accept"), "application/json") || c.GetHeader("X-Requested-With") == "XMLHttpRequest"
+
+	if len(csrBytes) == 0 {
+		if isAjax {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a CSR via file upload or by pasting the PEM content."})
+		} else {
+			c.Redirect(http.StatusSeeOther, "/certificates?error="+url.QueryEscape("Please provide a CSR via file upload or paste"))
+		}
+		return
+	}
+
+	if err := SignCSR(csrBytes, validityDays); err != nil {
+		log.Printf("Error signing CSR: %v", err)
+		if isAjax {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.Redirect(http.StatusSeeOther, "/certificates?error="+url.QueryEscape(err.Error()))
+		}
+		return
+	}
+
+	if isAjax {
+		c.JSON(http.StatusOK, gin.H{"message": "CSR signed successfully", "redirect": "/certificates"})
+	} else {
+		c.Redirect(http.StatusSeeOther, "/certificates?signed=1")
+	}
 }
 
 func showSettingsPage(c *gin.Context) {

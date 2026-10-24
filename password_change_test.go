@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -61,6 +62,15 @@ func TestCheckPasswordChangeMiddleware(t *testing.T) {
 
 func TestChangePasswordHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+
+	// Backup existing settings.json so test doesn't overwrite real user password
+	originalContent, err := os.ReadFile("data/settings.json")
+	if err == nil {
+		defer func() {
+			_ = os.WriteFile("data/settings.json", originalContent, 0600)
+			_ = viper.ReadInConfig()
+		}()
+	}
 
 	// Set temporary test config in viper
 	viper.Set("password", "")

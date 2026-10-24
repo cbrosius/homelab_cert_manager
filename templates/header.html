@@ -17,18 +17,6 @@
                     <span>Certificates</span>
                 </a>
             </li>
-            <li>
-                <a href="/create-certificate-form" class="nav-link" id="nav-link-create">
-                    <i class="material-icons">add_circle_outline</i>
-                    <span>Create</span>
-                </a>
-            </li>
-            <li>
-                <a href="/settings" class="nav-link" id="nav-link-settings">
-                    <i class="material-icons">tune</i>
-                    <span>Settings</span>
-                </a>
-            </li>
         </ul>
 
         <!-- Right Side Actions -->
@@ -102,12 +90,6 @@
     const currentPath = window.location.pathname;
     if (currentPath === '/certificates' || currentPath === '/') {
         const el = document.getElementById('nav-link-certs');
-        if (el) el.classList.add('active');
-    } else if (currentPath === '/create-certificate-form' || currentPath === '/create-certificate') {
-        const el = document.getElementById('nav-link-create');
-        if (el) el.classList.add('active');
-    } else if (currentPath.startsWith('/settings')) {
-        const el = document.getElementById('nav-link-settings');
         if (el) el.classList.add('active');
     }
 })();

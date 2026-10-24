@@ -86,29 +86,63 @@ func checkRootCertAndListCerts(c *gin.Context) {
 	}
 
 	type CertInfo struct {
-		Name       string
-		CreatedAt  time.Time
-		ValidUntil time.Time
-		SANs       []string
+		Name          string
+		CreatedAt     time.Time
+		ValidUntil    time.Time
+		SANs          []string
+		HasPrivateKey bool
+		Ext           string
 	}
 
 	certs := []CertInfo{}
+	seen := make(map[string]bool)
 	for _, file := range files {
-		if file.Type().IsRegular() && strings.HasSuffix(file.Name(), ".pem") {
-			name := strings.TrimSuffix(file.Name(), ".pem")
-			cert, err := readCertificate(filepath.Join("./data/certs", file.Name()))
-			if err != nil {
-				log.Printf("Error reading certificate %s: %v", file.Name(), err)
-				continue
-			}
-			certInfo := CertInfo{
-				Name:       name,
-				CreatedAt:  cert.NotBefore,
-				ValidUntil: cert.NotAfter,
-				SANs:       append(cert.DNSNames, convertIPsToStrings(cert.IPAddresses)...),
-			}
-			certs = append(certs, certInfo)
+		if !file.Type().IsRegular() {
+			continue
 		}
+		var name string
+		var ext string
+		if strings.HasSuffix(file.Name(), ".pem") {
+			name = strings.TrimSuffix(file.Name(), ".pem")
+			ext = "pem"
+		} else if strings.HasSuffix(file.Name(), ".crt") {
+			name = strings.TrimSuffix(file.Name(), ".crt")
+			// Migrate legacy .crt file to .pem if .pem doesn't exist yet
+			pemPath := filepath.Join("./data/certs", name+".pem")
+			crtPath := filepath.Join("./data/certs", file.Name())
+			if _, err := os.Stat(pemPath); os.IsNotExist(err) {
+				_ = os.Rename(crtPath, pemPath)
+			}
+			ext = "pem"
+		} else {
+			continue
+		}
+
+		if seen[name] {
+			continue
+		}
+		seen[name] = true
+
+		cert, err := readCertificate(filepath.Join("./data/certs", file.Name()))
+		if err != nil {
+			log.Printf("Error reading certificate %s: %v", file.Name(), err)
+			continue
+		}
+
+		hasKey := false
+		if _, err := os.Stat(filepath.Join("./data/certs", name+".key")); err == nil {
+			hasKey = true
+		}
+
+		certInfo := CertInfo{
+			Name:          name,
+			CreatedAt:     cert.NotBefore,
+			ValidUntil:    cert.NotAfter,
+			SANs:          append(cert.DNSNames, convertIPsToStrings(cert.IPAddresses)...),
+			HasPrivateKey: hasKey,
+			Ext:           ext,
+		}
+		certs = append(certs, certInfo)
 	}
 
 	var rootCertDetails map[string]interface{}
@@ -129,14 +163,22 @@ func checkRootCertAndListCerts(c *gin.Context) {
 
 	isDefaultPassword := checkPasswordHash("admin", viper.GetString("password"))
 
+	defaultValidityYears := 1
+	if period := viper.GetInt("general_cert_options.validity_period"); period > 0 {
+		defaultValidityYears = period
+	}
+	defaultValidityDays := defaultValidityYears * 365
+
 	c.HTML(http.StatusOK, "cert_list.html", gin.H{
-		"defaultPassword":    isDefaultPassword,
-		"rootCertificate":    rootCertInfo,
-		"homelabCertificate": homelabCertInfo,
-		"certificates":       certs,
-		"selfSignedExists":   selfSignedExists,
-		"homelabCertExists":  homelabCertExists,
-		"csrfToken":          getCSRFToken(c.Request),
+		"defaultPassword":      isDefaultPassword,
+		"rootCertificate":      rootCertInfo,
+		"homelabCertificate":   homelabCertInfo,
+		"certificates":         certs,
+		"selfSignedExists":     selfSignedExists,
+		"homelabCertExists":    homelabCertExists,
+		"defaultValidityDays":  defaultValidityDays,
+		"defaultValidityYears": defaultValidityYears,
+		"csrfToken":            getCSRFToken(c.Request),
 	})
 }
 
@@ -449,6 +491,21 @@ func downloadCertificate(c *gin.Context) {
 	}
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		// Fallback check between .pem and .crt on disk without altering the requested download filename
+		if ext == ".pem" {
+			altPath := filepath.Join(baseDir, safeBaseName+".crt")
+			if _, err := os.Stat(altPath); err == nil {
+				filePath = altPath
+			}
+		} else if ext == ".crt" {
+			altPath := filepath.Join(baseDir, safeBaseName+".pem")
+			if _, err := os.Stat(altPath); err == nil {
+				filePath = altPath
+			}
+		}
+	}
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.String(http.StatusNotFound, "File not found")
 		return
 	}
@@ -473,13 +530,16 @@ func deleteCertificate(c *gin.Context) {
 		return
 	}
 
-	certFilePath := filepath.Join("data", "certs", safeBaseName+".pem")
+	certPemPath := filepath.Join("data", "certs", safeBaseName+".pem")
+	certCrtPath := filepath.Join("data", "certs", safeBaseName+".crt")
 	keyFilePath := filepath.Join("data", "certs", safeBaseName+".key")
 	pfxFilePath := filepath.Join("data", "certs", safeBaseName+".pfx")
 
-	// Delete the certificate file
-	if err := os.Remove(certFilePath); err != nil {
-		log.Printf("Error deleting certificate %s: %v", certFilePath, err)
+	// Delete the certificate file (.pem or .crt)
+	errPem := os.Remove(certPemPath)
+	errCrt := os.Remove(certCrtPath)
+	if errPem != nil && errCrt != nil && !os.IsNotExist(errPem) && !os.IsNotExist(errCrt) {
+		log.Printf("Error deleting certificate %s: %v / %v", safeBaseName, errPem, errCrt)
 		c.String(http.StatusInternalServerError, "Error deleting certificate")
 		return
 	}
@@ -522,7 +582,21 @@ func viewCertificate(c *gin.Context) {
 		filePath = filepath.Join("data", "certs", safeFileName)
 	}
 
-	// Check if the file exists
+	// Check if the file exists, with fallback between .pem and .crt
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		if ext == ".pem" {
+			altPath := filepath.Join(filepath.Dir(filePath), safeBaseName+".crt")
+			if _, err := os.Stat(altPath); err == nil {
+				filePath = altPath
+			}
+		} else if ext == ".crt" {
+			altPath := filepath.Join(filepath.Dir(filePath), safeBaseName+".pem")
+			if _, err := os.Stat(altPath); err == nil {
+				filePath = altPath
+			}
+		}
+	}
+
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.String(http.StatusNotFound, "File not found")
 		return
@@ -679,3 +753,94 @@ func recreateHomelabCertificate(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Certificate recreated successfully"})
 }
+
+// SignCSR parses a PEM-encoded Certificate Signing Request (CSR), validates its signature,
+// and signs a new certificate using the Homelab Root CA. The resulting certificate is saved as a .crt file.
+func SignCSR(csrPEM []byte, validDays int) error {
+	block, _ := pem.Decode(csrPEM)
+	if block == nil {
+		return fmt.Errorf("failed to parse PEM block: no valid PEM data found")
+	}
+
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse certificate request: %w", err)
+	}
+
+	if err := csr.CheckSignature(); err != nil {
+		return fmt.Errorf("invalid CSR signature: %w", err)
+	}
+
+	rootCert, rootKey, err := loadRootCertAndKey()
+	if err != nil {
+		return fmt.Errorf("failed to load Root CA: %w", err)
+	}
+
+	commonName := strings.TrimSpace(csr.Subject.CommonName)
+	if commonName == "" {
+		if len(csr.DNSNames) > 0 {
+			commonName = csr.DNSNames[0]
+		} else if len(csr.IPAddresses) > 0 {
+			commonName = csr.IPAddresses[0].String()
+		} else {
+			return fmt.Errorf("CSR does not specify a CommonName or SAN")
+		}
+	}
+
+	safeName := sanitizeFilename(commonName)
+	if safeName == "" {
+		return fmt.Errorf("invalid CommonName in CSR")
+	}
+
+	if validDays <= 0 {
+		validDays = 365
+	}
+
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return fmt.Errorf("failed to generate serial number: %w", err)
+	}
+
+	subject := csr.Subject
+	if subject.CommonName == "" {
+		subject.CommonName = commonName
+	}
+
+	certTemplate := &x509.Certificate{
+		SerialNumber:          serialNumber,
+		Subject:               subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(0, 0, validDays),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		BasicConstraintsValid: true,
+		DNSNames:              csr.DNSNames,
+		IPAddresses:           csr.IPAddresses,
+		EmailAddresses:        csr.EmailAddresses,
+		URIs:                  csr.URIs,
+		ExtraExtensions:       csr.ExtraExtensions,
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, rootCert, csr.PublicKey, rootKey)
+	if err != nil {
+		return fmt.Errorf("failed to create certificate: %w", err)
+	}
+
+	if err := os.MkdirAll(filepath.Join("data", "certs"), 0755); err != nil {
+		return fmt.Errorf("failed to create certs directory: %w", err)
+	}
+
+	certFilePath := filepath.Join("data", "certs", safeName+".pem")
+	certFile, err := createFileWithPermissions(certFilePath, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to save certificate file: %w", err)
+	}
+	defer certFile.Close()
+
+	if err := pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes}); err != nil {
+		return fmt.Errorf("failed to encode certificate: %w", err)
+	}
+
+	return nil
+}
+
