@@ -398,11 +398,48 @@
                     <textarea id="csr_text" name="csr_text" class="form-input code-viewer" rows="6" placeholder="-----BEGIN CERTIFICATE REQUEST-----&#10;...&#10;-----END CERTIFICATE REQUEST-----" style="resize: vertical; font-size: 0.825rem; font-family: monospace;"></textarea>
                 </div>
 
-                <!-- Validity period input -->
-                <div class="form-group">
-                    <label class="form-label" for="validity_days">Validity Period (Days)</label>
-                    <input type="number" id="validity_days" name="validity_days" min="1" max="3650" value="{{ if .defaultValidityDays }}{{ .defaultValidityDays }}{{ else }}365{{ end }}" class="form-input" required>
-                    <span style="font-size: 0.775rem; color: var(--text-muted); margin-top: 4px; display: block;">Default is 365 days (1 year).</span>
+                <!-- Validity Period Slider & Presets -->
+                <div class="form-group" style="margin-top: 0.25rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <label class="form-label" for="csr_validity_years" style="margin-bottom: 0;">
+                            Validity Period <span style="color: var(--accent-danger);">*</span>
+                        </label>
+                        <span id="csrValidityDisplayBadge" class="badge-pill status-active" style="font-size: 0.8rem; text-transform: none;">
+                            {{ if .defaultValidityYears }}{{ .defaultValidityYears }}{{ else }}10{{ end }} Year{{ if and .defaultValidityYears (ne .defaultValidityYears 1) }}s{{ end }}
+                        </span>
+                    </div>
+
+                    <div class="validity-controls">
+                        <div class="slider-row">
+                            <input 
+                                type="range" 
+                                id="csr_validity_years_slider" 
+                                class="range-slider" 
+                                min="1" 
+                                max="30" 
+                                value="{{ if .defaultValidityYears }}{{ .defaultValidityYears }}{{ else }}10{{ end }}" 
+                                oninput="onCsrValiditySliderChange(this.value)"
+                            >
+                            <input 
+                                type="number" 
+                                id="csr_validity_years" 
+                                name="validity_years" 
+                                value="{{ if .defaultValidityYears }}{{ .defaultValidityYears }}{{ else }}10{{ end }}" 
+                                min="1" 
+                                max="100" 
+                                required 
+                                style="width: 80px; text-align: center;" 
+                                oninput="onCsrValidityNumberChange(this.value)"
+                            >
+                        </div>
+                        <div class="preset-pill-group" id="csrPresetPillGroup">
+                            <button type="button" class="preset-pill-btn{{ if eq .defaultValidityYears 1 }} active{{ end }}" onclick="setCsrValidityYears(1)">1 Year</button>
+                            <button type="button" class="preset-pill-btn{{ if eq .defaultValidityYears 2 }} active{{ end }}" onclick="setCsrValidityYears(2)">2 Years</button>
+                            <button type="button" class="preset-pill-btn{{ if eq .defaultValidityYears 5 }} active{{ end }}" onclick="setCsrValidityYears(5)">5 Years</button>
+                            <button type="button" class="preset-pill-btn{{ if or (eq .defaultValidityYears 10) (not .defaultValidityYears) }} active{{ end }}" onclick="setCsrValidityYears(10)">10 Years</button>
+                            <button type="button" class="preset-pill-btn{{ if eq .defaultValidityYears 30 }} active{{ end }}" onclick="setCsrValidityYears(30)">30 Years</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -430,6 +467,9 @@
                 });
             }
         });
+
+        const initialCsrSlider = document.getElementById('csr_validity_years_slider');
+        if (initialCsrSlider) updateCsrSliderTrack(initialCsrSlider);
     });
 
     // Compute status badges and days remaining for certificates
@@ -635,11 +675,56 @@
         });
     }
 
+    // CSR Validity Slider & Presets
+    function updateCsrSliderTrack(slider) {
+        if (!slider) return;
+        const min = parseFloat(slider.min) || 1;
+        const max = parseFloat(slider.max) || 30;
+        const val = parseFloat(slider.value) || min;
+        const percentage = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+        slider.style.setProperty('--slider-percent', `${percentage}%`);
+    }
+
+    function setCsrValidityYears(years) {
+        const valid = Math.max(1, Math.min(100, years));
+        const numInput = document.getElementById('csr_validity_years');
+        if (numInput) numInput.value = valid;
+
+        const slider = document.getElementById('csr_validity_years_slider');
+        if (slider) {
+            slider.value = Math.min(30, valid);
+            updateCsrSliderTrack(slider);
+        }
+
+        const badge = document.getElementById('csrValidityDisplayBadge');
+        if (badge) badge.textContent = `${valid} ${valid === 1 ? 'Year' : 'Years'}`;
+
+        const pillGroup = document.getElementById('csrPresetPillGroup');
+        if (pillGroup) {
+            pillGroup.querySelectorAll('.preset-pill-btn').forEach(btn => {
+                const btnYears = parseInt(btn.textContent, 10);
+                if (btnYears === valid) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+        }
+    }
+
+    function onCsrValiditySliderChange(val) {
+        setCsrValidityYears(parseInt(val, 10));
+    }
+
+    function onCsrValidityNumberChange(val) {
+        const parsed = parseInt(val, 10) || 1;
+        setCsrValidityYears(parsed);
+    }
+
     // Sign CSR Modal
     function openSignCsrModal() {
         const dialog = document.getElementById('signCsrModal');
         const alertBox = document.getElementById('signCsrAlert');
         if (alertBox) alertBox.style.display = 'none';
+        const slider = document.getElementById('csr_validity_years_slider');
+        if (slider) updateCsrSliderTrack(slider);
         if (dialog) dialog.showModal();
     }
 

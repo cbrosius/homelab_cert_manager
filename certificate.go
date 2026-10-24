@@ -157,20 +157,22 @@ func checkRootCertAndListCerts(c *gin.Context) {
 
 	isDefaultPassword := checkPasswordHash("admin", viper.GetString("password"))
 
-	defaultValidityDays := 365
+	defaultValidityYears := 1
 	if period := viper.GetInt("general_cert_options.validity_period"); period > 0 {
-		defaultValidityDays = period * 365
+		defaultValidityYears = period
 	}
+	defaultValidityDays := defaultValidityYears * 365
 
 	c.HTML(http.StatusOK, "cert_list.html", gin.H{
-		"defaultPassword":     isDefaultPassword,
-		"rootCertificate":     rootCertInfo,
-		"homelabCertificate":  homelabCertInfo,
-		"certificates":        certs,
-		"selfSignedExists":    selfSignedExists,
-		"homelabCertExists":   homelabCertExists,
-		"defaultValidityDays": defaultValidityDays,
-		"csrfToken":           getCSRFToken(c.Request),
+		"defaultPassword":      isDefaultPassword,
+		"rootCertificate":      rootCertInfo,
+		"homelabCertificate":   homelabCertInfo,
+		"certificates":         certs,
+		"selfSignedExists":     selfSignedExists,
+		"homelabCertExists":    homelabCertExists,
+		"defaultValidityDays":  defaultValidityDays,
+		"defaultValidityYears": defaultValidityYears,
+		"csrfToken":            getCSRFToken(c.Request),
 	})
 }
 

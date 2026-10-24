@@ -379,8 +379,13 @@ func handleSignCSR(c *gin.Context) {
 	}
 
 	validityDays := 365
+	validityYearsStr := c.PostForm("validity_years")
 	validityDaysStr := c.PostForm("validity_days")
-	if validityDaysStr != "" {
+	if validityYearsStr != "" {
+		if years, err := strconv.Atoi(validityYearsStr); err == nil && years > 0 && years <= 100 {
+			validityDays = years * 365
+		}
+	} else if validityDaysStr != "" {
 		if days, err := strconv.Atoi(validityDaysStr); err == nil && days > 0 && days <= 36500 {
 			validityDays = days
 		}

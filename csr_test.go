@@ -214,6 +214,49 @@ func TestHandleSignCSR_MultipartUpload(t *testing.T) {
 	}
 }
 
+func TestHandleSignCSR_ValidityYears(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/sign-csr", handleSignCSR)
+
+	cn := "validity-years-test.local"
+	csrPEM, _, err := generateTestCSR(cn, []string{cn}, nil)
+	if err != nil {
+		t.Fatalf("Failed to generate test CSR: %v", err)
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("csr_text", string(csrPEM))
+	writer.WriteField("validity_years", "5")
+	writer.Close()
+
+	req, _ := http.NewRequest(http.MethodPost, "/sign-csr", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	certPath := filepath.Join("data", "certs", cn+".crt")
+	defer os.Remove(certPath)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+	}
+
+	cert, err := readCertificate(certPath)
+	if err != nil {
+		t.Fatalf("Failed to read signed cert: %v", err)
+	}
+
+	// Verify expiry is approximately 5 years out
+	approxDays := cert.NotAfter.Sub(cert.NotBefore).Hours() / 24
+	if approxDays < 1800 || approxDays > 1850 {
+		t.Errorf("Expected ~1825 days for 5 years, got %f", approxDays)
+	}
+}
+
 func TestCheckRootCertAndListCerts_HasPrivateKey(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
