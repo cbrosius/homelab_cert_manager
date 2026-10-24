@@ -7,6 +7,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"html/template"
+	"math/big"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -15,10 +17,82 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"html/template"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+func setupEphemeralRootCA(certPath, keyPath string) error {
+	_ = os.MkdirAll(filepath.Dir(certPath), 0700)
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return err
+	}
+
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return err
+	}
+
+	tmpl := &x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			CommonName:   "HomeLab Test Root CA",
+			Organization: []string{"HomeLab Test CA"},
+		},
+		NotBefore:             time.Now().Add(-1 * time.Hour),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+	}
+
+	certDER, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		return err
+	}
+
+	certOut, err := os.OpenFile(certPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer certOut.Close()
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certDER}); err != nil {
+		return err
+	}
+
+	keyOut, err := os.OpenFile(keyPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer keyOut.Close()
+	return pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+}
+
+func TestMain(m *testing.M) {
+	_ = os.MkdirAll(filepath.Join("data", "certs"), 0750)
+	rootCertDir := filepath.Join("data", "root-cert")
+	_ = os.MkdirAll(rootCertDir, 0700)
+
+	certPath := filepath.Join(rootCertDir, "HomeLab_Root_CA.pem")
+	keyPath := filepath.Join(rootCertDir, "HomeLab_Root_CA.key")
+
+	created := false
+	if _, err := os.Stat(certPath); os.IsNotExist(err) {
+		if err := setupEphemeralRootCA(certPath, keyPath); err == nil {
+			created = true
+		}
+	}
+
+	code := m.Run()
+
+	if created {
+		_ = os.Remove(certPath)
+		_ = os.Remove(keyPath)
+	}
+
+	os.Exit(code)
+}
 
 func generateTestCSR(commonName string, dnsNames []string, ips []net.IP) ([]byte, *rsa.PrivateKey, error) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
