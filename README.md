@@ -19,6 +19,7 @@ Then your internal sites show secure connections (without warnings) in all moder
 - **Internal Certificate Management:** Generate and manage internal SSL/TLS certificates.
 - **CSR Signing (Certificate Signing Requests):** Upload or paste external CSRs from third-party appliances, switches, and servers (Proxmox, TrueNAS, etc.) to sign them with your Root CA without handling private keys.
 - **Pocket ID / OIDC SSO Authentication:** Optional Passkey and Single Sign-On support via Pocket ID or any OpenID Connect provider with built-in Root CA trust and emergency local fallback.
+- **PKCE & Secret Encryption:** RFC 7636 (S256) PKCE enforcement for OIDC authorization flows, support for public clients with optional client secret, AES-256-GCM encryption at rest for stored secrets, and UI secret masking.
 - **Configurable Session Timeout:** Inactivity timeout (1–30 minutes, default 2 minutes) with live top-bar countdown badge that automatically resets upon user activity.
 - **Robust Security:** CSRF protection, brute-force login rate limiter, strong password policies, and path traversal prevention.
 - **Hardened HTTP & TLS:** Modern security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options), Slowloris protection, request body size limits, and TLS 1.2+ encryption.
@@ -108,6 +109,8 @@ Homelab Cert Manager includes comprehensive security measures:
 - **CSRF Protection:** All forms and state-changing API endpoints require persistent, cryptographically secure CSRF tokens.
 - **Path Traversal Prevention:** Sanitizes all user inputs and certificate filenames to prevent directory traversal attacks.
 - **Root CA Protection:** Prevents unauthorized download or disclosure of Root CA private key files.
+- **OIDC Secret Encryption at Rest:** Client secrets stored in `data/settings.json` are encrypted using authenticated AES-256-GCM with automatic transparent migration of plaintext secrets.
+- **PKCE (RFC 7636):** Enforces SHA-256 code challenges (`S256`) for OpenID Connect authorization flows, preventing authorization code interception attacks and enabling secure integration with Public Clients.
 - **HTTP Security Headers:**
   - `Strict-Transport-Security` (HSTS) with 1-year max-age and subdomains
   - `Content-Security-Policy` (CSP)

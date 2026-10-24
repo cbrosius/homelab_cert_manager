@@ -49,10 +49,13 @@ Features:
 - UI: Removed obsolete 'Create Certificate' action from admin dropdown menu
 - REFACTOR: Single-package architecture consolidation and directory cleanup (cmd/cert_manager/)
 - DOCS: Added developer guidelines and defined English as default UI development language in AGENTS.md
-- SECURITY: Encrypted OIDC client secret at rest in settings.json using AES-256-GCM
-- SECURITY: Masked OIDC client secret in settings UI (displaying only first 4 characters like Pocket ID, e.g. LRnX••••••••)
+
+2026/10/24 v0.6 - OIDC PKCE & Secret Encryption Hardening
+Features:
 - SECURITY: Implemented PKCE (RFC 7636, S256) for OIDC authentication flows with short-lived HttpOnly SameSite=Lax verifier cookie
+- SECURITY: Encrypted OIDC client secret at rest in settings.json using authenticated AES-256-GCM with automatic transparent migration of plaintext secrets
+- SECURITY: Masked OIDC client secret in settings UI (displaying only the first 4 characters like Pocket ID, e.g. LRnX••••••••)
 - FEAT: Made OIDC client secret optional to support Pocket ID and generic OIDC Public Clients
+- DOCS: Added official Project Wiki link to README for setup guides, Root CA trust installation, and appliance CSR workflows
+- DOCS: Added automated UI screenshot test suite and comprehensive dark/light mode documentation gallery
 - FIX: Protected live settings.json and OIDC settings from being overwritten during go test execution
-
-
