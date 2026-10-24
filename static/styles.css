@@ -774,6 +774,25 @@ select:focus {
     box-shadow: 0 0 15px rgba(8, 145, 178, 0.12);
 }
 
+/* Certificate Manager Emblem Glow */
+.certmanager-logo-glow {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius-md);
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+}
+
+[theme='light'] .certmanager-logo-glow {
+    background: rgba(79, 70, 229, 0.1);
+    border: 1px solid rgba(79, 70, 229, 0.3);
+    box-shadow: 0 0 15px rgba(79, 70, 229, 0.12);
+}
+
 /* SAN Domain Badges */
 .san-tag {
     display: inline-flex;
@@ -997,6 +1016,73 @@ select:focus {
 }
 
 [theme='light'] .root-ca-meta span strong {
+    color: #0f172a;
+}
+
+/* Certificate Manager Showcase Card */
+.certmanager-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(17, 24, 39, 0.85) 60%);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+[theme='light'] .certmanager-card {
+    background: linear-gradient(135deg, #eef2ff 0%, #ffffff 50%, #f8fafc 100%);
+    border: 1px solid rgba(79, 70, 229, 0.3);
+    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+.certmanager-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.certmanager-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.certmanager-title-group h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+[theme='light'] .certmanager-title-group h2 {
+    color: #0f172a;
+}
+
+.certmanager-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-subtle);
+}
+
+[theme='light'] .certmanager-meta {
+    color: #475569;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.certmanager-meta span strong {
+    color: var(--text-primary);
+}
+
+[theme='light'] .certmanager-meta span strong {
     color: #0f172a;
 }
 

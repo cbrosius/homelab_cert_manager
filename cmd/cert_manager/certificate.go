@@ -460,6 +460,14 @@ func downloadCertificate(c *gin.Context) {
 		}
 		baseDir = filepath.Join("data", "root-cert")
 
+	case "certmanager-cert":
+		// Security: Under NO circumstances allow downloading Certificate Manager private keys (.key)
+		if ext != ".pem" && ext != ".crt" {
+			c.String(http.StatusForbidden, "Downloading this file type is forbidden for Certificate Manager")
+			return
+		}
+		baseDir = filepath.Join("data", "certmanager-cert")
+
 	case "certs":
 		// Security: Only allow downloading authorized certificate and key formats
 		allowedExts := map[string]bool{
@@ -473,7 +481,11 @@ func downloadCertificate(c *gin.Context) {
 			c.String(http.StatusBadRequest, "Invalid certificate file extension")
 			return
 		}
-		baseDir = filepath.Join("data", "certs")
+		if safeFileName == "homelab_certificate_manager.pem" || safeFileName == "homelab_certificate_manager.crt" {
+			baseDir = filepath.Join("data", "certmanager-cert")
+		} else {
+			baseDir = filepath.Join("data", "certs")
+		}
 
 	default:
 		c.String(http.StatusBadRequest, "Invalid certificate type")
@@ -578,6 +590,8 @@ func viewCertificate(c *gin.Context) {
 	var filePath string
 	if safeFileName == "homelab_certificate_manager.pem" {
 		filePath = filepath.Join("data", "certmanager-cert", safeFileName)
+	} else if safeFileName == "HomeLab_Root_CA.pem" {
+		filePath = filepath.Join("data", "root-cert", safeFileName)
 	} else {
 		filePath = filepath.Join("data", "certs", safeFileName)
 	}
@@ -750,6 +764,10 @@ func recreateHomelabCertificate(c *gin.Context) {
 	}
 	defer certFile.Close()
 	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+
+	// Also remove obsolete selfsigned certificate files so selfSignedExists is immediately cleared
+	_ = os.Remove("data/certmanager-cert/selfsigned.pem")
+	_ = os.Remove("data/certmanager-cert/selfsigned.key")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Certificate recreated successfully"})
 }

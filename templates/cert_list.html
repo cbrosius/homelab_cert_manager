@@ -119,8 +119,67 @@
         </section>
         {{ end }}
 
+        <!-- HomeLab Certificate Manager Certificate Card -->
+        {{ if .homelabCertificate }}
+        <section class="certmanager-card">
+            <div class="certmanager-header">
+                <div class="certmanager-title-group">
+                    <div class="certmanager-logo-glow">
+                        <i class="material-icons" style="color: var(--accent-secondary); font-size: 24px;">verified_user</i>
+                    </div>
+                    <div>
+                        <h2>HomeLab Certificate Manager Certificate</h2>
+                        <div style="display: flex; align-items: center; gap: 0.6rem; margin-top: 2px;">
+                            <span class="badge-pill status-active">
+                                <i class="material-icons" style="font-size: 12px;">check_circle</i>
+                                CA Service Certificate
+                            </span>
+                            <span style="font-size: 0.825rem; color: var(--text-secondary);">
+                                {{ .homelabCertificate.Subject.CommonName }}
+                            </span>
+                            <span id="certmanager-days" style="font-size: 0.825rem; color: var(--text-secondary);"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-right: 0.5rem;">
+                        <span style="font-size: 0.775rem; color: var(--text-muted); text-transform: uppercase;">Validity Progress</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="certmanager-progress-fill" style="width: 100%; background: linear-gradient(90deg, var(--accent-secondary), var(--accent-success));"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="openCertViewer('homelab_certificate_manager')" title="View certificate details and decoded X.509 fields">
+                        <i class="material-icons">visibility</i>
+                        <span>View Details</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="certmanager-meta">
+                <span><strong>Issued:</strong> {{ .homelabCertificate.NotBefore.Format "2006-01-02" }}</span>
+                <span><strong>Expires:</strong> {{ .homelabCertificate.NotAfter.Format "2006-01-02" }}</span>
+                <span><strong>Issuer:</strong> {{ .homelabCertificate.Issuer.CommonName }}</span>
+                {{ if .homelabCertificate.DNSNames }}
+                <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                    <strong>DNS Names:</strong>
+                    {{ range .homelabCertificate.DNSNames }}
+                    <span class="san-tag"><i class="material-icons" style="font-size: 11px;">dns</i>{{ . }}</span>
+                    {{ end }}
+                </div>
+                {{ end }}
+                {{ if .homelabCertificate.IPAddresses }}
+                <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                    <strong>IP Addresses:</strong>
+                    {{ range .homelabCertificate.IPAddresses }}
+                    <span class="san-tag"><i class="material-icons" style="font-size: 11px;">lan</i>{{ . }}</span>
+                    {{ end }}
+                </div>
+                {{ end }}
+            </div>
+        </section>
+        {{ else if .selfSignedExists }}
         <!-- Self-Signed Alert Banner -->
-        {{ if .selfSignedExists }}
         <section class="card" style="border-left: 4px solid var(--accent-warning); margin-bottom: 1.5rem;">
             <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                 <div style="display: flex; align-items: center; gap: 0.85rem;">
@@ -458,6 +517,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         computeCertificateLifetimes();
         computeRootCAProgress();
+        computeCertManagerProgress();
 
         // Close dropdowns on outside click
         document.addEventListener('click', function(e) {
@@ -534,6 +594,31 @@
         const elapsed = now - notBefore;
         const progressPct = Math.min(100, Math.max(0, (elapsed / totalSpan) * 100));
         const fillEl = document.getElementById('root-ca-progress-fill');
+        if (fillEl) {
+            fillEl.style.width = `${progressPct.toFixed(1)}%`;
+        }
+        {{ end }}
+    }
+
+    // Certificate Manager Progress Bar & Remaining Days
+    function computeCertManagerProgress() {
+        {{ if .homelabCertificate }}
+        const notBefore = new Date("{{ .homelabCertificate.NotBefore.Format "2006-01-02T15:04:05Z07:00" }}");
+        const notAfter = new Date("{{ .homelabCertificate.NotAfter.Format "2006-01-02T15:04:05Z07:00" }}");
+        const now = new Date();
+
+        const totalSpan = notAfter - notBefore;
+        const remaining = notAfter - now;
+        const remainingDays = Math.max(0, Math.ceil(remaining / (1000 * 60 * 60 * 24)));
+
+        const daysEl = document.getElementById('certmanager-days');
+        if (daysEl) {
+            daysEl.textContent = `(${remainingDays.toLocaleString()}d remaining)`;
+        }
+
+        const elapsed = now - notBefore;
+        const progressPct = Math.min(100, Math.max(0, (elapsed / totalSpan) * 100));
+        const fillEl = document.getElementById('certmanager-progress-fill');
         if (fillEl) {
             fillEl.style.width = `${progressPct.toFixed(1)}%`;
         }

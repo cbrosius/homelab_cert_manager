@@ -241,6 +241,10 @@ func Run() error {
 			c.Params = append(c.Params, gin.Param{Key: "certType", Value: "root-cert"})
 			downloadCertificate(c)
 		})
+		authorized.GET("/certificates/download/certmanager-cert/:filename", func(c *gin.Context) {
+			c.Params = append(c.Params, gin.Param{Key: "certType", Value: "certmanager-cert"})
+			downloadCertificate(c)
+		})
 		authorized.GET("/create-certificate-form", showCreateCertificateForm) // Route for certificate form
 		authorized.POST("/create-certificate", createCertificate)
 		authorized.POST("/sign-csr", handleSignCSR)

@@ -26,6 +26,24 @@ func TestDownloadRootCertKeyBlocked(t *testing.T) {
 	}
 }
 
+func TestDownloadCertManagerCertKeyBlocked(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/certificates/download/certmanager-cert/:filename", func(c *gin.Context) {
+		c.Params = append(c.Params, gin.Param{Key: "certType", Value: "certmanager-cert"})
+		downloadCertificate(c)
+	})
+
+	// Attempt to download the Certificate Manager private key
+	req, _ := http.NewRequest(http.MethodGet, "/certificates/download/certmanager-cert/homelab_certificate_manager.key", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("Expected 403 Forbidden when downloading Certificate Manager key, got %d. Body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestDownloadCertInvalidExtensionsBlocked(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

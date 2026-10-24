@@ -36,5 +36,6 @@ Features:
 - FEAT: Emergency local admin fallback on the sign-in screen to prevent lockouts during IdP renewal
 - FEAT: Interactive OIDC settings card with real-time toggle switch and client secret mask toggle
 - UI: Modern glassmorphic styling updates, toggle switches, and responsive layout improvements
+- UI: Restored dedicated showcase card for the Certificate Manager service certificate in certificate dashboard
 - SECURITY: Unprivileged Docker container execution (appuser, UID 10001) with automatic legacy permission migration
 
