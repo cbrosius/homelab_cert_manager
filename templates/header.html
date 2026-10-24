@@ -40,6 +40,12 @@
                             <span>Settings</span>
                         </a>
                     </li>
+                    <li role="none">
+                        <a href="/change-password" role="menuitem">
+                            <i class="material-icons">lock_reset</i>
+                            <span>Change Password</span>
+                        </a>
+                    </li>
                     <li class="divider" role="separator"></li>
                     <li role="none">
                         <a href="/logout" class="logout-link" role="menuitem">
@@ -56,7 +62,7 @@
     {{ if .defaultPassword }}
     <div class="security-warning-bar" role="alert">
         <i class="material-icons" style="color: var(--accent-warning);">warning</i>
-        <span>Security Warning: The default password is active. Please update your password immediately in <a href="/settings#security">Settings</a>.</span>
+        <span>Security Warning: The default password is active. Please update your password immediately in <a href="/change-password">Change Password</a>.</span>
     </div>
     {{ end }}
 

@@ -46,8 +46,8 @@
                 <span>Single Sign-On (OIDC)</span>
             </button>
             <button class="settings-tab-btn" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" onclick="switchSettingsTab('security')">
-                <i class="material-icons">security</i>
-                <span>Security &amp; Session</span>
+                <i class="material-icons">timer</i>
+                <span>Session Timeout</span>
             </button>
         </nav>
 
@@ -268,115 +268,76 @@
             </section>
         </div>
 
-        <!-- Tab 4: Security & Session -->
+        <!-- Tab 4: Session Timeout -->
         <div class="settings-tab-panel" id="panel-security" role="tabpanel" aria-labelledby="tab-security">
-            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <!-- Card 3: Session Inactivity Timeout -->
-                <section class="glass-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <i class="material-icons" style="color: var(--accent-warning);">timer</i>
-                            <span>Session Inactivity Timeout</span>
-                        </div>
-                        <span id="sessionTimeoutDisplayBadge" class="badge-pill status-active" style="font-size: 0.8rem; text-transform: none;">
-                            {{ .sessionTimeoutMinutes }} Minutes
-                        </span>
+            <!-- Card 3: Session Inactivity Timeout -->
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="material-icons" style="color: var(--accent-warning);">timer</i>
+                        <span>Session Inactivity Timeout</span>
                     </div>
-                    <div class="card-body">
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-                            The web interface will automatically log out if no user interaction occurs for this duration (1 – 30 minutes).
-                        </p>
+                    <span id="sessionTimeoutDisplayBadge" class="badge-pill status-active" style="font-size: 0.8rem; text-transform: none;">
+                        {{ .sessionTimeoutMinutes }} Minutes
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                        The web interface will automatically log out if no user interaction occurs for this duration (1 – 30 minutes).
+                    </p>
 
-                        <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)" style="max-width: 600px;">
-                            <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                    <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)" style="max-width: 600px;">
+                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
 
-                            <div class="form-group">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                                    <label class="form-label" for="timeout_minutes" style="margin-bottom: 0;">
-                                        Inactivity Timeout (Minutes) <span style="color: var(--accent-danger);">*</span>
-                                    </label>
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                                <label class="form-label" for="timeout_minutes" style="margin-bottom: 0;">
+                                    Inactivity Timeout (Minutes) <span style="color: var(--accent-danger);">*</span>
+                                </label>
+                            </div>
+
+                            <div class="validity-controls">
+                                <div class="slider-row">
+                                    <input 
+                                        type="range" 
+                                        id="session_timeout_slider" 
+                                        class="range-slider" 
+                                        min="1" 
+                                        max="30" 
+                                        value="{{ .sessionTimeoutMinutes }}" 
+                                        oninput="onSessionTimeoutSliderChange(this.value)"
+                                    >
+                                    <input 
+                                        type="number" 
+                                        id="timeout_minutes" 
+                                        name="timeout_minutes" 
+                                        value="{{ .sessionTimeoutMinutes }}" 
+                                        min="1" 
+                                        max="30" 
+                                        required 
+                                        style="width: 80px; text-align: center;" 
+                                        oninput="onSessionTimeoutNumberChange(this.value)"
+                                    >
                                 </div>
-
-                                <div class="validity-controls">
-                                    <div class="slider-row">
-                                        <input 
-                                            type="range" 
-                                            id="session_timeout_slider" 
-                                            class="range-slider" 
-                                            min="1" 
-                                            max="30" 
-                                            value="{{ .sessionTimeoutMinutes }}" 
-                                            oninput="onSessionTimeoutSliderChange(this.value)"
-                                        >
-                                        <input 
-                                            type="number" 
-                                            id="timeout_minutes" 
-                                            name="timeout_minutes" 
-                                            value="{{ .sessionTimeoutMinutes }}" 
-                                            min="1" 
-                                            max="30" 
-                                            required 
-                                            style="width: 80px; text-align: center;" 
-                                            oninput="onSessionTimeoutNumberChange(this.value)"
-                                        >
-                                    </div>
-                                    <div class="preset-pill-group">
-                                        <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 5 }}active{{ end }}" onclick="setSessionTimeoutMinutes(5)">5 Minutes</button>
-                                        <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 10 }}active{{ end }}" onclick="setSessionTimeoutMinutes(10)">10 Minutes</button>
-                                        <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 15 }}active{{ end }}" onclick="setSessionTimeoutMinutes(15)">15 Minutes</button>
-                                        <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 20 }}active{{ end }}" onclick="setSessionTimeoutMinutes(20)">20 Minutes</button>
-                                        <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 30 }}active{{ end }}" onclick="setSessionTimeoutMinutes(30)">30 Minutes</button>
-                                    </div>
+                                <div class="preset-pill-group">
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 5 }}active{{ end }}" onclick="setSessionTimeoutMinutes(5)">5 Minutes</button>
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 10 }}active{{ end }}" onclick="setSessionTimeoutMinutes(10)">10 Minutes</button>
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 15 }}active{{ end }}" onclick="setSessionTimeoutMinutes(15)">15 Minutes</button>
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 20 }}active{{ end }}" onclick="setSessionTimeoutMinutes(20)">20 Minutes</button>
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 30 }}active{{ end }}" onclick="setSessionTimeoutMinutes(30)">30 Minutes</button>
                                 </div>
                             </div>
-
-                            <div style="margin-top: 1.5rem;">
-                                <button id="saveSessionSettingsButton" type="submit" class="btn btn-primary" disabled>
-                                    <i class="material-icons">save</i>
-                                    <span>Save Timeout Settings</span>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </section>
-
-                <!-- Card 5: Change Password -->
-                <section class="glass-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <i class="material-icons" style="color: var(--accent-danger);">lock_reset</i>
-                            <span>Change Administrator Password</span>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <form id="changePasswordForm" onsubmit="changePassword(event)" style="max-width: 540px;">
-                            <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
 
-                            <div class="form-group">
-                                <label class="form-label" for="old_password">Current Password</label>
-                                <input id="old_password" name="old_password" type="password" required autocomplete="current-password">
-                            </div>
-
-                            <div class="form-group" style="margin-top: 1rem;">
-                                <label class="form-label" for="new_password">New Password (min 8 characters)</label>
-                                <input id="new_password" name="new_password" type="password" required minlength="8" autocomplete="new-password">
-                            </div>
-
-                            <div class="form-group" style="margin-top: 1rem;">
-                                <label class="form-label" for="confirm_password">Confirm New Password</label>
-                                <input id="confirm_password" name="confirm_password" type="password" required minlength="8" autocomplete="new-password">
-                            </div>
-
-                            <div style="margin-top: 1.5rem;">
-                                <button id="changePasswordButton" class="btn btn-danger" type="submit" disabled>
-                                    <i class="material-icons">lock_reset</i>
-                                    <span>Update Password</span>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </section>
-            </div>
+                        <div style="margin-top: 1.5rem;">
+                            <button id="saveSessionSettingsButton" type="submit" class="btn btn-primary" disabled>
+                                <i class="material-icons">save</i>
+                                <span>Save Timeout Settings</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
         </div>
     </main>
 
@@ -491,20 +452,6 @@
                 console.log('Error parsing general options:', e);
             }
 
-            // Password Validation Listener
-            const newPassword = document.getElementById('new_password');
-            const confirmPassword = document.getElementById('confirm_password');
-            const changePasswordButton = document.getElementById('changePasswordButton');
-
-            function checkPasswords() {
-                if (newPassword.value.length >= 8 && confirmPassword.value.length >= 8) {
-                    changePasswordButton.disabled = false;
-                } else {
-                    changePasswordButton.disabled = true;
-                }
-            }
-            newPassword.addEventListener('input', checkPasswords);
-            confirmPassword.addEventListener('input', checkPasswords);
         });
 
         // Certificate Manager Tag Handlers
@@ -820,48 +767,7 @@
             });
         }
 
-        function changePassword(event) {
-            event.preventDefault();
-            const form = document.getElementById('changePasswordForm');
-            const oldPwd = form.old_password.value;
-            const newPwd = form.new_password.value;
-            const confirmPwd = form.confirm_password.value;
-            const btn = document.getElementById('changePasswordButton');
 
-            if (newPwd !== confirmPwd) {
-                if (window.showToast) window.showToast('New passwords do not match', 'error');
-                return;
-            }
-
-            btn.disabled = true;
-
-            fetch('/change-password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': getCsrfToken()
-                },
-                body: JSON.stringify({
-                    old_password: oldPwd,
-                    new_password: newPwd
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    if (window.showToast) window.showToast('Password updated successfully! Reloading...', 'success');
-                    form.reset();
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    btn.disabled = false;
-                    if (window.showToast) window.showToast(data.message || 'Password update failed', 'error');
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                if (window.showToast) window.showToast('Error changing password: ' + err.message, 'error');
-            });
-        }
     </script>
 </body>
 </html>
