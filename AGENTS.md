@@ -53,8 +53,13 @@
 - Run all tests from the repository root: `go test ./...`
 - Verify builds: `go build ./cmd/cert_manager`
 
-## 8. Git & Workflow Hygiene
-- **Never commit runtime files:** Ensure `app.log`, `data/*.crt`, `data/*.pem`, `data/*.key`, and local `data/settings.json` are never staged or committed.
-- **Pre-Commit Verification:** Before finishing any task, always run:
+## 8. Documentation, Changelog & Git Hygiene (Definition of Done)
+- **Keep `CHANGELOG` Updated:** Every user-facing change, new feature, bugfix, or security improvement must be added to `CHANGELOG` following its existing format.
+- **Keep `README.md` & `todo.txt` in Sync:**
+  - Whenever new features, environment variables, ports, or workflows (like CSR signing or Pocket ID / OIDC setup) are added, update `README.md` accordingly. Make surgical updates rather than rewriting unrelated sections.
+  - If a completed task is listed in `todo.txt`, mark it as done or remove it.
+- **Never Commit Runtime Files:** Ensure `app.log`, `data/*.crt`, `data/*.key`, and local `data/settings.json` are never staged or committed.
+- **Pre-Commit Verification:** Before considering any task complete, always run:
   1. `go vet ./...`
-  2. `go build ./cmd/cert_manager`
+  2. `go test -v ./...`
+  3. `go build ./...`
