@@ -16,8 +16,12 @@
     {{ template "header.html" . }}
 
     <main class="container main-content">
-        <!-- Page Title -->
+        <!-- Page Title & Back Link -->
         <div style="margin-bottom: 2rem;">
+            <a href="/certificates" class="back-nav-link" id="settings-back-link">
+                <i class="material-icons">arrow_back</i>
+                <span>Back to Certificates</span>
+            </a>
             <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.6rem;">
                 <i class="material-icons" style="color: var(--accent-primary); font-size: 28px;">tune</i>
                 <span>Configuration & Settings</span>
@@ -27,7 +31,28 @@
             </p>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Settings Tabs Navigation -->
+        <nav class="settings-tabs-nav" role="tablist" aria-label="Settings Sections">
+            <button class="settings-tab-btn active" id="tab-server-cert" role="tab" aria-selected="true" aria-controls="panel-server-cert" tabindex="0" onclick="switchSettingsTab('server-cert')">
+                <i class="material-icons">router</i>
+                <span>Server Certificate</span>
+            </button>
+            <button class="settings-tab-btn" id="tab-defaults" role="tab" aria-selected="false" aria-controls="panel-defaults" tabindex="-1" onclick="switchSettingsTab('defaults')">
+                <i class="material-icons">auto_awesome</i>
+                <span>Certificate Defaults</span>
+            </button>
+            <button class="settings-tab-btn" id="tab-oidc" role="tab" aria-selected="false" aria-controls="panel-oidc" tabindex="-1" onclick="switchSettingsTab('oidc')">
+                <i class="material-icons">fingerprint</i>
+                <span>Single Sign-On (OIDC)</span>
+            </button>
+            <button class="settings-tab-btn" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" onclick="switchSettingsTab('security')">
+                <i class="material-icons">security</i>
+                <span>Security &amp; Session</span>
+            </button>
+        </nav>
+
+        <!-- Tab 1: Server Certificate -->
+        <div class="settings-tab-panel active" id="panel-server-cert" role="tabpanel" aria-labelledby="tab-server-cert">
             <!-- Card 1: Certificate Manager Certificate Defaults -->
             <section class="glass-card">
                 <div class="card-header">
@@ -90,7 +115,10 @@
                     </form>
                 </div>
             </section>
+        </div>
 
+        <!-- Tab 2: Certificate Defaults -->
+        <div class="settings-tab-panel" id="panel-defaults" role="tabpanel" aria-labelledby="tab-defaults">
             <!-- Card 2: General Certificate Defaults -->
             <section class="glass-card">
                 <div class="card-header">
@@ -153,47 +181,10 @@
                     </form>
                 </div>
             </section>
+        </div>
 
-            <!-- Card 3: Session Inactivity Timeout -->
-            <section class="glass-card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="material-icons" style="color: var(--accent-warning);">timer</i>
-                        <span>Session Inactivity Timeout</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)">
-                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
-
-                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
-                            <div style="max-width: 480px;">
-                                <label class="form-label" for="timeout_minutes">Inactivity Timeout (Minutes)</label>
-                                <input 
-                                    type="number" 
-                                    id="timeout_minutes" 
-                                    name="timeout_minutes" 
-                                    value="{{ .sessionTimeoutMinutes }}" 
-                                    min="1" 
-                                    max="30" 
-                                    required 
-                                    style="max-width: 140px;" 
-                                    oninput="enableSessionSettingsSaveButton()"
-                                >
-                                <span class="helper-text">
-                                    The web interface will automatically log out if no activity occurs for this duration (1 - 30 minutes).
-                                </span>
-                            </div>
-
-                            <button id="saveSessionSettingsButton" type="submit" class="btn btn-primary" disabled>
-                                <i class="material-icons">save</i>
-                                <span>Save Timeout Settings</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-
+        <!-- Tab 3: Single Sign-On (OIDC) -->
+        <div class="settings-tab-panel" id="panel-oidc" role="tabpanel" aria-labelledby="tab-oidc">
             <!-- Card 4: Pocket ID / OIDC Authentication -->
             <section class="glass-card">
                 <div class="card-header">
@@ -261,7 +252,7 @@
                             <div style="margin-top: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--border-radius-md); background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.2); display: flex; gap: 0.75rem; align-items: flex-start; font-size: 0.85rem; color: var(--text-secondary);">
                                 <i class="material-icons" style="color: var(--accent-primary); font-size: 20px; flex-shrink: 0; margin-top: 2px;">info</i>
                                 <div>
-                                    <strong style="color: var(--text-primary);">Automatic Root CA Trust & Fallback:</strong> If Pocket ID uses a TLS certificate signed by this HomeLab CA, the built-in trust pool will validate it automatically. The standard local admin login remains active at all times on the sign-in screen to prevent lockouts.
+                                    <strong style="color: var(--text-primary);">Automatic Root CA Trust &amp; Fallback:</strong> If Pocket ID uses a TLS certificate signed by this HomeLab CA, the built-in trust pool will validate it automatically. The standard local admin login remains active at all times on the sign-in screen to prevent lockouts.
                                 </div>
                             </div>
                         </div>
@@ -275,43 +266,88 @@
                     </form>
                 </div>
             </section>
+        </div>
 
-            <!-- Card 5: Change Password -->
-            <section class="glass-card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="material-icons" style="color: var(--accent-danger);">lock_reset</i>
-                        <span>Change Administrator Password</span>
+        <!-- Tab 4: Security & Session -->
+        <div class="settings-tab-panel" id="panel-security" role="tabpanel" aria-labelledby="tab-security">
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Card 3: Session Inactivity Timeout -->
+                <section class="glass-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="material-icons" style="color: var(--accent-warning);">timer</i>
+                            <span>Session Inactivity Timeout</span>
+                        </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    <form id="changePasswordForm" onsubmit="changePassword(event)" style="max-width: 540px;">
-                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                    <div class="card-body">
+                        <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)">
+                            <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
 
-                        <div class="form-group">
-                            <label class="form-label" for="old_password">Current Password</label>
-                            <input id="old_password" name="old_password" type="password" required autocomplete="current-password">
-                        </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+                                <div style="max-width: 480px;">
+                                    <label class="form-label" for="timeout_minutes">Inactivity Timeout (Minutes)</label>
+                                    <input 
+                                        type="number" 
+                                        id="timeout_minutes" 
+                                        name="timeout_minutes" 
+                                        value="{{ .sessionTimeoutMinutes }}" 
+                                        min="1" 
+                                        max="30" 
+                                        required 
+                                        style="max-width: 140px;" 
+                                        oninput="enableSessionSettingsSaveButton()"
+                                    >
+                                    <span class="helper-text">
+                                        The web interface will automatically log out if no activity occurs for this duration (1 - 30 minutes).
+                                    </span>
+                                </div>
 
-                        <div class="form-group" style="margin-top: 1rem;">
-                            <label class="form-label" for="new_password">New Password (min 8 characters)</label>
-                            <input id="new_password" name="new_password" type="password" required minlength="8" autocomplete="new-password">
-                        </div>
+                                <button id="saveSessionSettingsButton" type="submit" class="btn btn-primary" disabled>
+                                    <i class="material-icons">save</i>
+                                    <span>Save Timeout Settings</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
 
-                        <div class="form-group" style="margin-top: 1rem;">
-                            <label class="form-label" for="confirm_password">Confirm New Password</label>
-                            <input id="confirm_password" name="confirm_password" type="password" required minlength="8" autocomplete="new-password">
+                <!-- Card 5: Change Password -->
+                <section class="glass-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="material-icons" style="color: var(--accent-danger);">lock_reset</i>
+                            <span>Change Administrator Password</span>
                         </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="changePasswordForm" onsubmit="changePassword(event)" style="max-width: 540px;">
+                            <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
 
-                        <div style="margin-top: 1.5rem;">
-                            <button id="changePasswordButton" class="btn btn-danger" type="submit" disabled>
-                                <i class="material-icons">lock_reset</i>
-                                <span>Update Password</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </section>
+                            <div class="form-group">
+                                <label class="form-label" for="old_password">Current Password</label>
+                                <input id="old_password" name="old_password" type="password" required autocomplete="current-password">
+                            </div>
+
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" for="new_password">New Password (min 8 characters)</label>
+                                <input id="new_password" name="new_password" type="password" required minlength="8" autocomplete="new-password">
+                            </div>
+
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" for="confirm_password">Confirm New Password</label>
+                                <input id="confirm_password" name="confirm_password" type="password" required minlength="8" autocomplete="new-password">
+                            </div>
+
+                            <div style="margin-top: 1.5rem;">
+                                <button id="changePasswordButton" class="btn btn-danger" type="submit" disabled>
+                                    <i class="material-icons">lock_reset</i>
+                                    <span>Update Password</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+            </div>
         </div>
     </main>
 
@@ -320,7 +356,73 @@
         const cmDnsTags = [];
         const cmIpTags = [];
 
+        // Tab Management
+        const VALID_SETTINGS_TABS = ['server-cert', 'defaults', 'oidc', 'security'];
+
+        function switchSettingsTab(tabId) {
+            if (!VALID_SETTINGS_TABS.includes(tabId)) {
+                tabId = 'server-cert';
+            }
+
+            VALID_SETTINGS_TABS.forEach(id => {
+                const btn = document.getElementById('tab-' + id);
+                const panel = document.getElementById('panel-' + id);
+                const isActive = (id === tabId);
+                if (btn) {
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                    btn.tabIndex = isActive ? 0 : -1;
+                }
+                if (panel) {
+                    panel.classList.toggle('active', isActive);
+                }
+            });
+
+            if (history.replaceState) {
+                history.replaceState(null, null, '#' + tabId);
+            }
+        }
+
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash.replace('#', '');
+            if (hash && VALID_SETTINGS_TABS.includes(hash)) {
+                switchSettingsTab(hash);
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Initial Active Tab Selection from Hash or Default
+            const initialHash = window.location.hash.replace('#', '');
+            if (initialHash && VALID_SETTINGS_TABS.includes(initialHash)) {
+                switchSettingsTab(initialHash);
+            } else {
+                switchSettingsTab('server-cert');
+            }
+
+            // Keyboard navigation for Settings Tabs
+            const tabButtons = document.querySelectorAll('.settings-tab-btn');
+            tabButtons.forEach((btn, index) => {
+                btn.addEventListener('keydown', function(e) {
+                    let targetIndex = -1;
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                        targetIndex = (index + 1) % tabButtons.length;
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        targetIndex = (index - 1 + tabButtons.length) % tabButtons.length;
+                    } else if (e.key === 'Home') {
+                        targetIndex = 0;
+                    } else if (e.key === 'End') {
+                        targetIndex = tabButtons.length - 1;
+                    }
+
+                    if (targetIndex !== -1) {
+                        e.preventDefault();
+                        const targetBtn = tabButtons[targetIndex];
+                        targetBtn.focus();
+                        const targetId = targetBtn.id.replace('tab-', '');
+                        switchSettingsTab(targetId);
+                    }
+                });
+            });
             // Load Certificate Manager Settings
             try {
                 const cmSettings = JSON.parse(`{{ .certManagerSettings | toJson }}`);

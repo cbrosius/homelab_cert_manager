@@ -37,5 +37,7 @@ Features:
 - FEAT: Interactive OIDC settings card with real-time toggle switch and client secret mask toggle
 - UI: Modern glassmorphic styling updates, toggle switches, and responsive layout improvements
 - UI: Restored dedicated showcase card for the Certificate Manager service certificate in certificate dashboard
+- UI: Introduced tabbed configuration page (Server Certificate, Certificate Defaults, OIDC SSO, Security & Session) with URL hash and keyboard navigation
+- UI: Streamlined navigation header by removing redundant certificate links and adding a dedicated back link to the certificate list on the settings page
 - SECURITY: Unprivileged Docker container execution (appuser, UID 10001) with automatic legacy permission migration
 
