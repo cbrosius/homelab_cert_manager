@@ -203,7 +203,8 @@ For hardware appliances, managed switches, hypervisors, and storage systems (e.g
 Homelab Cert Manager supports optional Passkey and Single Sign-On (SSO) via [Pocket ID](https://pocket-id.org/) or any standard OpenID Connect (OIDC) identity provider.
 
 #### 1. Setup in Pocket ID / Identity Provider
-- **Client Type:** Confidential or Public (PKCE)
+- **Client Type:** Public (PKCE) or Confidential
+- **PKCE Support:** PKCE with `S256` code challenge is enforced for all OIDC login flows. The Client Secret is completely optional when configured as a Public Client in Pocket ID.
 - **Redirect / Callback URI:** `https://<cert-manager-host>:8443/auth/oidc/callback`
 - **Scopes:** `openid`, `profile`, `email`
 
@@ -215,7 +216,7 @@ You can configure OIDC either in the web interface under **Settings -> Pocket ID
 | `OIDC_ENABLED` | Enable or disable OIDC SSO (`true`/`false`) | `true` |
 | `OIDC_ISSUER_URL` | Base URL of your OIDC provider | `https://pocket-id.homelab.local` |
 | `OIDC_CLIENT_ID` | Client ID registered in your provider | `homelab-cert-manager` |
-| `OIDC_CLIENT_SECRET` | Client Secret (optional for public clients) | `your-secret-here` |
+| `OIDC_CLIENT_SECRET` | Client Secret (optional for Pocket ID Public Clients / PKCE) | `your-secret-here` |
 | `OIDC_REDIRECT_URL` | Explicit callback URL override (optional) | `https://certs.homelab.local:8443/auth/oidc/callback` |
 
 #### 3. Automatic Internal Root CA Trust

@@ -97,6 +97,9 @@ func handleOIDCLogin(c *gin.Context) {
 
 	cfg := getOidcSettings()
 
+	// Generate PKCE code verifier
+	verifier := oauth2.GenerateVerifier()
+
 	// Generate random 32-byte CSRF state
 	stateBytes := make([]byte, 32)
 	if _, err := rand.Read(stateBytes); err != nil {
@@ -106,9 +109,10 @@ func handleOIDCLogin(c *gin.Context) {
 	}
 	state := hex.EncodeToString(stateBytes)
 
-	// Set state cookie (SameSite Lax required for IdP redirects)
+	// Set state and PKCE verifier cookies (SameSite Lax required for IdP redirects)
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("oidc_state", state, 600, "/", "", c.Request.TLS != nil, true)
+	c.SetCookie("oidc_verifier", verifier, 600, "/", "", c.Request.TLS != nil, true)
 
 	httpClient := getOIDCHTTPClient()
 	ctx := oidc.ClientContext(c.Request.Context(), httpClient)
@@ -130,7 +134,7 @@ func handleOIDCLogin(c *gin.Context) {
 		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 	}
 
-	authURL := oauthConfig.AuthCodeURL(state)
+	authURL := oauthConfig.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
 	c.Redirect(http.StatusSeeOther, authURL)
 }
 
@@ -143,16 +147,24 @@ func handleOIDCCallback(c *gin.Context) {
 
 	cfg := getOidcSettings()
 
-	cookieState, err := c.Cookie("oidc_state")
+	cookieState, errState := c.Cookie("oidc_state")
+	cookieVerifier, errVerifier := c.Cookie("oidc_verifier")
 	queryState := c.Query("state")
 
-	// Clear state cookie
+	// Clear state and verifier cookies
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("oidc_state", "", -1, "/", "", c.Request.TLS != nil, true)
+	c.SetCookie("oidc_verifier", "", -1, "/", "", c.Request.TLS != nil, true)
 
-	if err != nil || cookieState == "" || cookieState != queryState {
-		log.Printf("OIDC state validation failed: cookie=%q query=%q err=%v", cookieState, queryState, err)
+	if errState != nil || cookieState == "" || cookieState != queryState {
+		log.Printf("OIDC state validation failed: cookie=%q query=%q err=%v", cookieState, queryState, errState)
 		c.Redirect(http.StatusSeeOther, "/login?error="+url.QueryEscape("Invalid or expired login session state"))
+		return
+	}
+
+	if errVerifier != nil || cookieVerifier == "" {
+		log.Printf("OIDC PKCE verifier validation failed: err=%v", errVerifier)
+		c.Redirect(http.StatusSeeOther, "/login?error="+url.QueryEscape("Invalid or expired PKCE verification state"))
 		return
 	}
 
@@ -193,7 +205,7 @@ func handleOIDCCallback(c *gin.Context) {
 		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 	}
 
-	token, err := oauthConfig.Exchange(ctx, code)
+	token, err := oauthConfig.Exchange(ctx, code, oauth2.VerifierOption(cookieVerifier))
 	if err != nil {
 		log.Printf("OIDC token exchange failed: %v", err)
 		c.Redirect(http.StatusSeeOther, "/login?error="+url.QueryEscape("Failed to exchange authorization code for token"))
