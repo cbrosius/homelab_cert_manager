@@ -9,15 +9,6 @@
             <span class="brand-title">HomeLab CA</span>
         </a>
 
-        <!-- Main Navigation Links -->
-        <ul class="nav-menu">
-            <li>
-                <a href="/certificates" class="nav-link" id="nav-link-certs">
-                    <i class="material-icons">verified_user</i>
-                    <span>Certificates</span>
-                </a>
-            </li>
-        </ul>
 
         <!-- Right Side Actions -->
         <div class="nav-actions">
@@ -44,15 +35,15 @@
                 <!-- Modern Dropdown Menu -->
                 <ul id="dropdown1" class="dropdown-menu-box hidden" role="menu">
                     <li role="none">
-                        <a href="/certificates" role="menuitem">
-                            <i class="material-icons">verified_user</i>
-                            <span>Certificate List</span>
-                        </a>
-                    </li>
-                    <li role="none">
                         <a href="/settings" role="menuitem">
                             <i class="material-icons">tune</i>
                             <span>Settings</span>
+                        </a>
+                    </li>
+                    <li role="none">
+                        <a href="/change-password" role="menuitem">
+                            <i class="material-icons">lock_reset</i>
+                            <span>Change Password</span>
                         </a>
                     </li>
                     <li class="divider" role="separator"></li>
@@ -71,7 +62,7 @@
     {{ if .defaultPassword }}
     <div class="security-warning-bar" role="alert">
         <i class="material-icons" style="color: var(--accent-warning);">warning</i>
-        <span>Security Warning: The default password is active. Please update your password immediately in <a href="/settings">Settings</a>.</span>
+        <span>Security Warning: The default password is active. Please update your password immediately in <a href="/change-password">Change Password</a>.</span>
     </div>
     {{ end }}
 
@@ -79,14 +70,6 @@
 </header>
 
 <script>
-// Highlight active navigation tab based on URL path
-(function() {
-    const currentPath = window.location.pathname;
-    if (currentPath === '/certificates' || currentPath === '/') {
-        const el = document.getElementById('nav-link-certs');
-        if (el) el.classList.add('active');
-    }
-})();
 
 // Modern Profile Dropdown Logic (Native JS)
 document.addEventListener('DOMContentLoaded', function() {

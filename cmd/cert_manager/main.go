@@ -273,8 +273,10 @@ func Run() error {
 		})
 
 		authorized.GET("/change-password", func(c *gin.Context) {
+			isDefaultPassword := checkPasswordHash("admin", viper.GetString("password"))
 			c.HTML(http.StatusOK, "change_password.html", gin.H{
 				"MustChangePassword": config.MustChangePassword,
+				"defaultPassword":    isDefaultPassword,
 				"csrfToken":          getCSRFToken(c.Request),
 			})
 		})

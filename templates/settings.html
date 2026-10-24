@@ -16,8 +16,12 @@
     {{ template "header.html" . }}
 
     <main class="container main-content">
-        <!-- Page Title -->
+        <!-- Page Title & Back Link -->
         <div style="margin-bottom: 2rem;">
+            <a href="/certificates" class="back-nav-link" id="settings-back-link">
+                <i class="material-icons">arrow_back</i>
+                <span>Back to Certificates</span>
+            </a>
             <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.6rem;">
                 <i class="material-icons" style="color: var(--accent-primary); font-size: 28px;">tune</i>
                 <span>Configuration & Settings</span>
@@ -27,7 +31,28 @@
             </p>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Settings Tabs Navigation -->
+        <nav class="settings-tabs-nav" role="tablist" aria-label="Settings Sections">
+            <button class="settings-tab-btn active" id="tab-server-cert" role="tab" aria-selected="true" aria-controls="panel-server-cert" tabindex="0" onclick="switchSettingsTab('server-cert')">
+                <i class="material-icons">router</i>
+                <span>Server Certificate</span>
+            </button>
+            <button class="settings-tab-btn" id="tab-defaults" role="tab" aria-selected="false" aria-controls="panel-defaults" tabindex="-1" onclick="switchSettingsTab('defaults')">
+                <i class="material-icons">auto_awesome</i>
+                <span>Certificate Defaults</span>
+            </button>
+            <button class="settings-tab-btn" id="tab-oidc" role="tab" aria-selected="false" aria-controls="panel-oidc" tabindex="-1" onclick="switchSettingsTab('oidc')">
+                <i class="material-icons">fingerprint</i>
+                <span>Single Sign-On (OIDC)</span>
+            </button>
+            <button class="settings-tab-btn" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" onclick="switchSettingsTab('security')">
+                <i class="material-icons">timer</i>
+                <span>Session Timeout</span>
+            </button>
+        </nav>
+
+        <!-- Tab 1: Server Certificate -->
+        <div class="settings-tab-panel active" id="panel-server-cert" role="tabpanel" aria-labelledby="tab-server-cert">
             <!-- Card 1: Certificate Manager Certificate Defaults -->
             <section class="glass-card">
                 <div class="card-header">
@@ -90,7 +115,10 @@
                     </form>
                 </div>
             </section>
+        </div>
 
+        <!-- Tab 2: Certificate Defaults -->
+        <div class="settings-tab-panel" id="panel-defaults" role="tabpanel" aria-labelledby="tab-defaults">
             <!-- Card 2: General Certificate Defaults -->
             <section class="glass-card">
                 <div class="card-header">
@@ -153,47 +181,10 @@
                     </form>
                 </div>
             </section>
+        </div>
 
-            <!-- Card 3: Session Inactivity Timeout -->
-            <section class="glass-card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="material-icons" style="color: var(--accent-warning);">timer</i>
-                        <span>Session Inactivity Timeout</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)">
-                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
-
-                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
-                            <div style="max-width: 480px;">
-                                <label class="form-label" for="timeout_minutes">Inactivity Timeout (Minutes)</label>
-                                <input 
-                                    type="number" 
-                                    id="timeout_minutes" 
-                                    name="timeout_minutes" 
-                                    value="{{ .sessionTimeoutMinutes }}" 
-                                    min="1" 
-                                    max="30" 
-                                    required 
-                                    style="max-width: 140px;" 
-                                    oninput="enableSessionSettingsSaveButton()"
-                                >
-                                <span class="helper-text">
-                                    The web interface will automatically log out if no activity occurs for this duration (1 - 30 minutes).
-                                </span>
-                            </div>
-
-                            <button id="saveSessionSettingsButton" type="submit" class="btn btn-primary" disabled>
-                                <i class="material-icons">save</i>
-                                <span>Save Timeout Settings</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-
+        <!-- Tab 3: Single Sign-On (OIDC) -->
+        <div class="settings-tab-panel" id="panel-oidc" role="tabpanel" aria-labelledby="tab-oidc">
             <!-- Card 4: Pocket ID / OIDC Authentication -->
             <section class="glass-card">
                 <div class="card-header">
@@ -261,7 +252,7 @@
                             <div style="margin-top: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--border-radius-md); background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.2); display: flex; gap: 0.75rem; align-items: flex-start; font-size: 0.85rem; color: var(--text-secondary);">
                                 <i class="material-icons" style="color: var(--accent-primary); font-size: 20px; flex-shrink: 0; margin-top: 2px;">info</i>
                                 <div>
-                                    <strong style="color: var(--text-primary);">Automatic Root CA Trust & Fallback:</strong> If Pocket ID uses a TLS certificate signed by this HomeLab CA, the built-in trust pool will validate it automatically. The standard local admin login remains active at all times on the sign-in screen to prevent lockouts.
+                                    <strong style="color: var(--text-primary);">Automatic Root CA Trust &amp; Fallback:</strong> If Pocket ID uses a TLS certificate signed by this HomeLab CA, the built-in trust pool will validate it automatically. The standard local admin login remains active at all times on the sign-in screen to prevent lockouts.
                                 </div>
                             </div>
                         </div>
@@ -275,38 +266,73 @@
                     </form>
                 </div>
             </section>
+        </div>
 
-            <!-- Card 5: Change Password -->
+        <!-- Tab 4: Session Timeout -->
+        <div class="settings-tab-panel" id="panel-security" role="tabpanel" aria-labelledby="tab-security">
+            <!-- Card 3: Session Inactivity Timeout -->
             <section class="glass-card">
                 <div class="card-header">
                     <div class="card-title">
-                        <i class="material-icons" style="color: var(--accent-danger);">lock_reset</i>
-                        <span>Change Administrator Password</span>
+                        <i class="material-icons" style="color: var(--accent-warning);">timer</i>
+                        <span>Session Inactivity Timeout</span>
                     </div>
+                    <span id="sessionTimeoutDisplayBadge" class="badge-pill status-active" style="font-size: 0.8rem; text-transform: none;">
+                        {{ .sessionTimeoutMinutes }} Minutes
+                    </span>
                 </div>
                 <div class="card-body">
-                    <form id="changePasswordForm" onsubmit="changePassword(event)" style="max-width: 540px;">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                        The web interface will automatically log out if no user interaction occurs for this duration (1 – 30 minutes).
+                    </p>
+
+                    <form id="sessionSettingsForm" onsubmit="submitSessionSettings(event)" style="max-width: 600px;">
                         <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
 
                         <div class="form-group">
-                            <label class="form-label" for="old_password">Current Password</label>
-                            <input id="old_password" name="old_password" type="password" required autocomplete="current-password">
-                        </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                                <label class="form-label" for="timeout_minutes" style="margin-bottom: 0;">
+                                    Inactivity Timeout (Minutes) <span style="color: var(--accent-danger);">*</span>
+                                </label>
+                            </div>
 
-                        <div class="form-group" style="margin-top: 1rem;">
-                            <label class="form-label" for="new_password">New Password (min 8 characters)</label>
-                            <input id="new_password" name="new_password" type="password" required minlength="8" autocomplete="new-password">
-                        </div>
-
-                        <div class="form-group" style="margin-top: 1rem;">
-                            <label class="form-label" for="confirm_password">Confirm New Password</label>
-                            <input id="confirm_password" name="confirm_password" type="password" required minlength="8" autocomplete="new-password">
+                            <div class="validity-controls">
+                                <div class="slider-row">
+                                    <input 
+                                        type="range" 
+                                        id="session_timeout_slider" 
+                                        class="range-slider" 
+                                        min="1" 
+                                        max="30" 
+                                        value="{{ .sessionTimeoutMinutes }}" 
+                                        oninput="onSessionTimeoutSliderChange(this.value)"
+                                    >
+                                    <input 
+                                        type="number" 
+                                        id="timeout_minutes" 
+                                        name="timeout_minutes" 
+                                        value="{{ .sessionTimeoutMinutes }}" 
+                                        min="1" 
+                                        max="30" 
+                                        required 
+                                        style="width: 80px; text-align: center;" 
+                                        oninput="onSessionTimeoutNumberChange(this.value)"
+                                    >
+                                </div>
+                                <div class="preset-pill-group">
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 5 }}active{{ end }}" onclick="setSessionTimeoutMinutes(5)">5 Minutes</button>
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 10 }}active{{ end }}" onclick="setSessionTimeoutMinutes(10)">10 Minutes</button>
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 15 }}active{{ end }}" onclick="setSessionTimeoutMinutes(15)">15 Minutes</button>
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 20 }}active{{ end }}" onclick="setSessionTimeoutMinutes(20)">20 Minutes</button>
+                                    <button type="button" class="preset-pill-btn {{ if eq .sessionTimeoutMinutes 30 }}active{{ end }}" onclick="setSessionTimeoutMinutes(30)">30 Minutes</button>
+                                </div>
+                            </div>
                         </div>
 
                         <div style="margin-top: 1.5rem;">
-                            <button id="changePasswordButton" class="btn btn-danger" type="submit" disabled>
-                                <i class="material-icons">lock_reset</i>
-                                <span>Update Password</span>
+                            <button id="saveSessionSettingsButton" type="submit" class="btn btn-primary" disabled>
+                                <i class="material-icons">save</i>
+                                <span>Save Timeout Settings</span>
                             </button>
                         </div>
                     </form>
@@ -320,7 +346,84 @@
         const cmDnsTags = [];
         const cmIpTags = [];
 
+        // Tab Management
+        const VALID_SETTINGS_TABS = ['server-cert', 'defaults', 'oidc', 'security'];
+
+        function switchSettingsTab(tabId) {
+            if (!VALID_SETTINGS_TABS.includes(tabId)) {
+                tabId = 'server-cert';
+            }
+
+            VALID_SETTINGS_TABS.forEach(id => {
+                const btn = document.getElementById('tab-' + id);
+                const panel = document.getElementById('panel-' + id);
+                const isActive = (id === tabId);
+                if (btn) {
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                    btn.tabIndex = isActive ? 0 : -1;
+                }
+                if (panel) {
+                    panel.classList.toggle('active', isActive);
+                }
+            });
+
+            if (history.replaceState) {
+                history.replaceState(null, null, '#' + tabId);
+            }
+
+            if (tabId === 'security') {
+                const s = document.getElementById('session_timeout_slider');
+                if (s) updateSessionTimeoutSliderTrack(s);
+            }
+        }
+
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash.replace('#', '');
+            if (hash && VALID_SETTINGS_TABS.includes(hash)) {
+                switchSettingsTab(hash);
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Initial Active Tab Selection from Hash or Default
+            const initialHash = window.location.hash.replace('#', '');
+            if (initialHash && VALID_SETTINGS_TABS.includes(initialHash)) {
+                switchSettingsTab(initialHash);
+            } else {
+                switchSettingsTab('server-cert');
+            }
+
+            // Keyboard navigation for Settings Tabs
+            const tabButtons = document.querySelectorAll('.settings-tab-btn');
+            tabButtons.forEach((btn, index) => {
+                btn.addEventListener('keydown', function(e) {
+                    let targetIndex = -1;
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                        targetIndex = (index + 1) % tabButtons.length;
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        targetIndex = (index - 1 + tabButtons.length) % tabButtons.length;
+                    } else if (e.key === 'Home') {
+                        targetIndex = 0;
+                    } else if (e.key === 'End') {
+                        targetIndex = tabButtons.length - 1;
+                    }
+
+                    if (targetIndex !== -1) {
+                        e.preventDefault();
+                        const targetBtn = tabButtons[targetIndex];
+                        targetBtn.focus();
+                        const targetId = targetBtn.id.replace('tab-', '');
+                        switchSettingsTab(targetId);
+                    }
+                });
+            });
+            // Initialize Session Timeout Slider Track
+            const initialSessionSlider = document.getElementById('session_timeout_slider');
+            if (initialSessionSlider) {
+                updateSessionTimeoutSliderTrack(initialSessionSlider);
+            }
+
             // Load Certificate Manager Settings
             try {
                 const cmSettings = JSON.parse(`{{ .certManagerSettings | toJson }}`);
@@ -349,20 +452,6 @@
                 console.log('Error parsing general options:', e);
             }
 
-            // Password Validation Listener
-            const newPassword = document.getElementById('new_password');
-            const confirmPassword = document.getElementById('confirm_password');
-            const changePasswordButton = document.getElementById('changePasswordButton');
-
-            function checkPasswords() {
-                if (newPassword.value.length >= 8 && confirmPassword.value.length >= 8) {
-                    changePasswordButton.disabled = false;
-                } else {
-                    changePasswordButton.disabled = true;
-                }
-            }
-            newPassword.addEventListener('input', checkPasswords);
-            confirmPassword.addEventListener('input', checkPasswords);
         });
 
         // Certificate Manager Tag Handlers
@@ -441,6 +530,49 @@
         function enableGeneralOptionsSaveButton() {
             const btn = document.getElementById('saveGeneralOptionsButton');
             if (btn) btn.disabled = false;
+        }
+
+        function updateSessionTimeoutSliderTrack(slider) {
+            if (!slider) return;
+            const min = parseFloat(slider.min) || 1;
+            const max = parseFloat(slider.max) || 30;
+            const val = parseFloat(slider.value) || min;
+            const percentage = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+            slider.style.setProperty('--slider-percent', `${percentage}%`);
+        }
+
+        function setSessionTimeoutMinutes(mins) {
+            const valid = Math.max(1, Math.min(30, mins));
+            const numInput = document.getElementById('timeout_minutes');
+            const slider = document.getElementById('session_timeout_slider');
+            const badge = document.getElementById('sessionTimeoutDisplayBadge');
+
+            if (numInput) numInput.value = valid;
+            if (slider) {
+                slider.value = valid;
+                updateSessionTimeoutSliderTrack(slider);
+            }
+            if (badge) {
+                badge.textContent = `${valid} ${valid === 1 ? 'Minute' : 'Minutes'}`;
+            }
+
+            // Update active preset button
+            document.querySelectorAll('#sessionSettingsForm .preset-pill-btn').forEach(btn => {
+                const btnMins = parseInt(btn.textContent, 10);
+                if (btnMins === valid) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            enableSessionSettingsSaveButton();
+        }
+
+        function onSessionTimeoutSliderChange(val) {
+            setSessionTimeoutMinutes(parseInt(val, 10));
+        }
+
+        function onSessionTimeoutNumberChange(val) {
+            const parsed = parseInt(val, 10) || 1;
+            setSessionTimeoutMinutes(parsed);
         }
 
         function enableSessionSettingsSaveButton() {
@@ -574,6 +706,8 @@
             .then(() => {
                 if (window.showToast) window.showToast('Session inactivity timeout updated to ' + val + ' minutes', 'success');
                 if (window.initSessionTimer) window.initSessionTimer();
+                const badge = document.getElementById('sessionTimeoutDisplayBadge');
+                if (badge) badge.textContent = `${val} ${val === 1 ? 'Minute' : 'Minutes'}`;
             })
             .catch(err => {
                 btn.disabled = false;
@@ -633,48 +767,7 @@
             });
         }
 
-        function changePassword(event) {
-            event.preventDefault();
-            const form = document.getElementById('changePasswordForm');
-            const oldPwd = form.old_password.value;
-            const newPwd = form.new_password.value;
-            const confirmPwd = form.confirm_password.value;
-            const btn = document.getElementById('changePasswordButton');
 
-            if (newPwd !== confirmPwd) {
-                if (window.showToast) window.showToast('New passwords do not match', 'error');
-                return;
-            }
-
-            btn.disabled = true;
-
-            fetch('/change-password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': getCsrfToken()
-                },
-                body: JSON.stringify({
-                    old_password: oldPwd,
-                    new_password: newPwd
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    if (window.showToast) window.showToast('Password updated successfully! Reloading...', 'success');
-                    form.reset();
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    btn.disabled = false;
-                    if (window.showToast) window.showToast(data.message || 'Password update failed', 'error');
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                if (window.showToast) window.showToast('Error changing password: ' + err.message, 'error');
-            });
-        }
     </script>
 </body>
 </html>

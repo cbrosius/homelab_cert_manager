@@ -41,6 +41,7 @@
 - **Internal CA Trust:** When making outbound HTTPS calls (e.g., to an OIDC Issuer), always append root CA (if present) to the `x509.SystemCertPool()` so the container trusts certificates issued by itself.
 
 ### Frontend & UI
+- **Default UI Language:** The default UI language during development is **English**. All user-facing labels, buttons, navigation tabs, dialogs, form inputs, tooltips, and notification messages must be written in English.
 - **Offline Capability:** Never load CSS, fonts, or JS from external CDNs. Keep all assets local in `static/`.
 - **Consistency:** Follow the existing Materialize CSS structure and support both **Dark Mode and Light Mode** across all new modals, buttons, and tables.
 - **No Frontend Build Step:** Use plain HTML templates and vanilla JS. Do not introduce npm, Webpack, Vite, or SPA frameworks.
