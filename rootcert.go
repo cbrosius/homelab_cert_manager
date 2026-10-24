@@ -128,7 +128,7 @@ func createRootCertificate(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Error saving settings")
 		return
 	}
-	_ = os.Chmod("data/settings.json", 0600)
+	_ = os.Chmod("data/settings.json", 0660)
 
 	c.Redirect(http.StatusSeeOther, "/certificates")
 }
