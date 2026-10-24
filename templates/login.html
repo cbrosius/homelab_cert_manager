@@ -48,19 +48,22 @@
 
             {{ if .oidcEnabled }}
             <!-- Pocket ID / OIDC Primary Login Action -->
-            <div style="margin-bottom: 1.5rem;">
+            <div>
                 <a href="/auth/oidc/login" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem; text-decoration: none; box-sizing: border-box; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.35);">
                     <i class="material-icons" style="font-size: 20px;">fingerprint</i>
                     <span style="font-weight: 600;">Sign in with Pocket ID / OIDC</span>
                 </a>
             </div>
 
-            <!-- Emergency Fallback Divider -->
-            <div style="display: flex; align-items: center; margin: 1.5rem 0 1.25rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;">
-                <span style="flex: 1; border-bottom: 1px solid var(--border-subtle);"></span>
-                <span style="padding: 0 0.75rem; font-weight: 500;">or local admin fallback</span>
-                <span style="flex: 1; border-bottom: 1px solid var(--border-subtle);"></span>
+            <!-- Visually minimal fallback toggle link -->
+            <div style="text-align: center; margin-top: 1rem;">
+                <button type="button" id="fallbackToggleBtn" class="fallback-minimal-link" onclick="toggleFallbackLogin()" aria-expanded="false" aria-controls="fallbackLoginContainer">
+                    <span>Local admin fallback</span>
+                    <i id="fallbackChevron" class="material-icons chevron">expand_more</i>
+                </button>
             </div>
+
+            <div id="fallbackLoginContainer" class="fallback-login-panel" style="display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle);">
             {{ end }}
 
             <!-- Login Form -->
@@ -80,7 +83,7 @@
                             autocomplete="current-password" 
                             placeholder="Enter your password" 
                             required
-                            autofocus
+                            {{ if not .oidcEnabled }}autofocus{{ end }}
                         >
                         <button type="button" class="input-trailing-btn" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
                             <i id="passwordToggleIcon" class="material-icons" style="font-size: 18px;">visibility</i>
@@ -97,6 +100,10 @@
                 </div>
             </form>
 
+            {{ if .oidcEnabled }}
+            </div>
+            {{ end }}
+
             <!-- Bottom Security Badge -->
             <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; gap: 0.45rem; font-size: 0.75rem; color: var(--text-muted);">
                 <i class="material-icons" style="font-size: 14px; color: var(--accent-success);">verified_user</i>
@@ -107,6 +114,25 @@
 
     <script src="/static/script.js"></script>
     <script>
+        function toggleFallbackLogin() {
+            const container = document.getElementById('fallbackLoginContainer');
+            const btn = document.getElementById('fallbackToggleBtn');
+            if (!container || !btn) return;
+
+            const isHidden = container.style.display === 'none' || container.style.display === '';
+            if (isHidden) {
+                container.style.display = 'block';
+                btn.classList.add('open');
+                btn.setAttribute('aria-expanded', 'true');
+                const pwd = document.getElementById('password');
+                if (pwd) pwd.focus();
+            } else {
+                container.style.display = 'none';
+                btn.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        }
+
         function togglePasswordVisibility() {
             const pwdInput = document.getElementById('password');
             const icon = document.getElementById('passwordToggleIcon');
@@ -135,7 +161,13 @@
             updateThemeIcon();
         }
 
-        document.addEventListener('DOMContentLoaded', updateThemeIcon);
+        document.addEventListener('DOMContentLoaded', function() {
+            updateThemeIcon();
+            {{ if and .oidcEnabled .error }}
+            // Auto-expand local admin fallback if local login returned an error
+            toggleFallbackLogin();
+            {{ end }}
+        });
     </script>
 </body>
 </html>
