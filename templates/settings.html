@@ -194,7 +194,89 @@
                 </div>
             </section>
 
-            <!-- Card 4: Change Password -->
+            <!-- Card 4: Pocket ID / OIDC Authentication -->
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="material-icons" style="color: var(--accent-primary);">fingerprint</i>
+                        <span>Pocket ID / OIDC Authentication</span>
+                    </div>
+                    <span class="badge-pill {{ if .oidcSettings.Enabled }}status-active{{ else }}status-revoked{{ end }}" id="oidcStatusBadge" style="font-size: 0.75rem;">
+                        {{ if .oidcSettings.Enabled }}Active SSO{{ else }}Disabled{{ end }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                        Enable Passkey / Single Sign-On via <strong>Pocket ID</strong> or any standard OpenID Connect provider. The Certificate Manager automatically trusts its own internal Root CA, so self-hosted Pocket ID instances secured by Homelab certificates work out of the box.
+                    </p>
+
+                    <form id="oidcSettingsForm" onsubmit="submitOidcSettings(event)">
+                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+
+                        <!-- Toggle Switch -->
+                        <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                            <label class="switch">
+                                <input type="checkbox" id="oidc_enabled" name="oidc_enabled" {{ if .oidcSettings.Enabled }}checked{{ end }} onchange="toggleOidcFields(); enableOidcSaveButton();">
+                                <span class="slider"></span>
+                            </label>
+                            <label for="oidc_enabled" class="form-label" style="cursor: pointer; margin: 0; font-size: 0.95rem; font-weight: 600;">
+                                Enable OIDC Authentication
+                            </label>
+                        </div>
+
+                        <div id="oidcFieldsContainer" style="{{ if not .oidcSettings.Enabled }}display: none;{{ end }}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="oidc_issuer_url">Issuer URL *</label>
+                                    <input type="url" id="oidc_issuer_url" name="oidc_issuer_url" value="{{ .oidcSettings.IssuerURL }}" placeholder="https://pocket-id.homelab.local" oninput="enableOidcSaveButton()">
+                                    <span class="helper-text">Base URL of your Pocket ID / OIDC provider (where <code>.well-known/openid-configuration</code> is served).</span>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="oidc_client_id">Client ID *</label>
+                                    <input type="text" id="oidc_client_id" name="oidc_client_id" value="{{ .oidcSettings.ClientID }}" placeholder="e.g. homelab-cert-manager" oninput="enableOidcSaveButton()">
+                                    <span class="helper-text">Client identifier registered in your OIDC provider.</span>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="oidc_client_secret">Client Secret</label>
+                                    <div class="input-with-icon">
+                                        <i class="material-icons input-leading-icon">key</i>
+                                        <input type="password" id="oidc_client_secret" name="oidc_client_secret" value="{{ .oidcSettings.ClientSecret }}" placeholder="Client secret (if required by provider)" oninput="enableOidcSaveButton()">
+                                        <button type="button" class="input-trailing-btn" onclick="toggleOidcSecretVisibility()" aria-label="Toggle secret visibility">
+                                            <i id="oidcSecretToggleIcon" class="material-icons" style="font-size: 18px;">visibility</i>
+                                        </button>
+                                    </div>
+                                    <span class="helper-text">Optional for public clients (e.g. PKCE) or confidential client secret.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="oidc_redirect_url">Redirect / Callback URL (Optional)</label>
+                                    <input type="url" id="oidc_redirect_url" name="oidc_redirect_url" value="{{ .oidcSettings.RedirectURL }}" placeholder="https://<host>:8443/auth/oidc/callback" oninput="enableOidcSaveButton()">
+                                    <span class="helper-text">Leave blank to automatically use <code>https://&lt;current-host&gt;:8443/auth/oidc/callback</code>.</span>
+                                </div>
+                            </div>
+
+                            <!-- Info Box -->
+                            <div style="margin-top: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--border-radius-md); background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.2); display: flex; gap: 0.75rem; align-items: flex-start; font-size: 0.85rem; color: var(--text-secondary);">
+                                <i class="material-icons" style="color: var(--accent-primary); font-size: 20px; flex-shrink: 0; margin-top: 2px;">info</i>
+                                <div>
+                                    <strong style="color: var(--text-primary);">Automatic Root CA Trust & Fallback:</strong> If Pocket ID uses a TLS certificate signed by this HomeLab CA, the built-in trust pool will validate it automatically. The standard local admin login remains active at all times on the sign-in screen to prevent lockouts.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+                            <button id="saveOidcSettingsButton" type="submit" class="btn btn-primary" disabled>
+                                <i class="material-icons">save</i>
+                                <span>Save OIDC Configuration</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Card 5: Change Password -->
             <section class="glass-card">
                 <div class="card-header">
                     <div class="card-title">
@@ -366,6 +448,36 @@
             if (btn) btn.disabled = false;
         }
 
+        function enableOidcSaveButton() {
+            const btn = document.getElementById('saveOidcSettingsButton');
+            if (btn) btn.disabled = false;
+        }
+
+        function toggleOidcFields() {
+            const enabled = document.getElementById('oidc_enabled').checked;
+            const container = document.getElementById('oidcFieldsContainer');
+            const badge = document.getElementById('oidcStatusBadge');
+            if (container) {
+                container.style.display = enabled ? 'block' : 'none';
+            }
+            if (badge) {
+                badge.className = 'badge-pill ' + (enabled ? 'status-active' : 'status-revoked');
+                badge.textContent = enabled ? 'Active SSO' : 'Disabled';
+            }
+        }
+
+        function toggleOidcSecretVisibility() {
+            const input = document.getElementById('oidc_client_secret');
+            const icon = document.getElementById('oidcSecretToggleIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                icon.textContent = 'visibility';
+            }
+        }
+
         function getCsrfToken() {
             const el = document.querySelector('input[name="csrf_token"]') || document.getElementById('session_csrf_token');
             return el ? el.value : '';
@@ -462,6 +574,58 @@
             .then(() => {
                 if (window.showToast) window.showToast('Session inactivity timeout updated to ' + val + ' minutes', 'success');
                 if (window.initSessionTimer) window.initSessionTimer();
+            })
+            .catch(err => {
+                btn.disabled = false;
+                if (window.showToast) window.showToast('Error: ' + err.message, 'error');
+            });
+        }
+
+        function submitOidcSettings(event) {
+            event.preventDefault();
+            const form = event.target;
+            const btn = document.getElementById('saveOidcSettingsButton');
+            const enabled = form.oidc_enabled.checked;
+            const issuerUrl = form.oidc_issuer_url.value.trim();
+            const clientId = form.oidc_client_id.value.trim();
+            const clientSecret = form.oidc_client_secret.value.trim();
+            const redirectUrl = form.oidc_redirect_url.value.trim();
+
+            if (enabled) {
+                if (!issuerUrl) {
+                    if (window.showToast) window.showToast('Issuer URL is required when OIDC is enabled', 'warning');
+                    return;
+                }
+                if (!clientId) {
+                    if (window.showToast) window.showToast('Client ID is required when OIDC is enabled', 'warning');
+                    return;
+                }
+            }
+
+            btn.disabled = true;
+
+            const payload = {
+                enabled: enabled,
+                issuer_url: issuerUrl,
+                client_id: clientId,
+                client_secret: clientSecret,
+                redirect_url: redirectUrl
+            };
+
+            fetch('/settings/oidc', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(d => { throw new Error(d.error || 'Failed to save OIDC settings'); });
+                return res.json();
+            })
+            .then(data => {
+                if (window.showToast) window.showToast('Pocket ID / OIDC settings saved successfully', 'success');
             })
             .catch(err => {
                 btn.disabled = false;

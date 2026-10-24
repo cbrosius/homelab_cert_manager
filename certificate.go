@@ -687,7 +687,7 @@ func recreateHomelabCertificate(c *gin.Context) {
 
 	// Create certificate template
 	template := x509.Certificate{
-		SerialNumber:          serialNumber,
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: "HomeLab Certificate Manager",
 		},
@@ -843,4 +843,3 @@ func SignCSR(csrPEM []byte, validDays int) error {
 
 	return nil
 }
-

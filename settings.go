@@ -26,6 +26,22 @@ type Settings struct {
 	SessionSettings struct {
 		TimeoutMinutes int `mapstructure:"timeout_minutes"`
 	} `mapstructure:"session_settings"`
+
+	OidcSettings struct {
+		Enabled      bool   `mapstructure:"enabled"`
+		IssuerURL    string `mapstructure:"issuer_url"`
+		ClientID     string `mapstructure:"client_id"`
+		ClientSecret string `mapstructure:"client_secret"`
+		RedirectURL  string `mapstructure:"redirect_url"`
+	} `mapstructure:"oidc_settings"`
+}
+
+type OidcConfig struct {
+	Enabled      bool   `json:"enabled" mapstructure:"enabled"`
+	IssuerURL    string `json:"issuer_url" mapstructure:"issuer_url"`
+	ClientID     string `json:"client_id" mapstructure:"client_id"`
+	ClientSecret string `json:"client_secret" mapstructure:"client_secret"`
+	RedirectURL  string `json:"redirect_url" mapstructure:"redirect_url"`
 }
 
 func initSettings() error {
@@ -48,6 +64,18 @@ func initSettings() error {
 
 	viper.SetDefault("session_settings.timeout_minutes", 2)
 
+	viper.SetDefault("oidc_settings.enabled", false)
+	viper.SetDefault("oidc_settings.issuer_url", "")
+	viper.SetDefault("oidc_settings.client_id", "")
+	viper.SetDefault("oidc_settings.client_secret", "")
+	viper.SetDefault("oidc_settings.redirect_url", "")
+
+	_ = viper.BindEnv("oidc_settings.enabled", "OIDC_ENABLED")
+	_ = viper.BindEnv("oidc_settings.issuer_url", "OIDC_ISSUER_URL")
+	_ = viper.BindEnv("oidc_settings.client_id", "OIDC_CLIENT_ID")
+	_ = viper.BindEnv("oidc_settings.client_secret", "OIDC_CLIENT_SECRET")
+	_ = viper.BindEnv("oidc_settings.redirect_url", "OIDC_REDIRECT_URL")
+
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			return viper.SafeWriteConfig()
@@ -55,6 +83,55 @@ func initSettings() error {
 		return err
 	}
 	return nil
+}
+
+// getOidcSettings returns the effective OIDC configuration, applying environment variable overrides.
+func getOidcSettings() OidcConfig {
+	enabled := viper.GetBool("oidc_settings.enabled")
+	if env := os.Getenv("OIDC_ENABLED"); env != "" {
+		enabled = strings.ToLower(env) == "true" || env == "1"
+	}
+	issuerURL := viper.GetString("oidc_settings.issuer_url")
+	if env := os.Getenv("OIDC_ISSUER_URL"); env != "" {
+		issuerURL = env
+	}
+	clientID := viper.GetString("oidc_settings.client_id")
+	if env := os.Getenv("OIDC_CLIENT_ID"); env != "" {
+		clientID = env
+	}
+	clientSecret := viper.GetString("oidc_settings.client_secret")
+	if env := os.Getenv("OIDC_CLIENT_SECRET"); env != "" {
+		clientSecret = env
+	}
+	redirectURL := viper.GetString("oidc_settings.redirect_url")
+	if env := os.Getenv("OIDC_REDIRECT_URL"); env != "" {
+		redirectURL = env
+	}
+
+	return OidcConfig{
+		Enabled:      enabled,
+		IssuerURL:    strings.TrimSpace(issuerURL),
+		ClientID:     strings.TrimSpace(clientID),
+		ClientSecret: strings.TrimSpace(clientSecret),
+		RedirectURL:  strings.TrimSpace(redirectURL),
+	}
+}
+
+// isOidcEnabled returns true if OIDC is enabled and minimum configuration (issuer URL and client ID) is provided.
+func isOidcEnabled() bool {
+	cfg := getOidcSettings()
+	return cfg.Enabled && cfg.IssuerURL != "" && cfg.ClientID != ""
+}
+
+// saveOidcSettings persists OIDC configuration to settings.json.
+func saveOidcSettings(enabled bool, issuerURL, clientID, clientSecret, redirectURL string) error {
+	debugLog("saveOidcSettings called: enabled=%v", enabled)
+	viper.Set("oidc_settings.enabled", enabled)
+	viper.Set("oidc_settings.issuer_url", strings.TrimSpace(issuerURL))
+	viper.Set("oidc_settings.client_id", strings.TrimSpace(clientID))
+	viper.Set("oidc_settings.client_secret", strings.TrimSpace(clientSecret))
+	viper.Set("oidc_settings.redirect_url", strings.TrimSpace(redirectURL))
+	return saveViperConfig()
 }
 
 // getSessionTimeoutMinutes returns the configured session timeout between 1 and 30 minutes (default 2).
