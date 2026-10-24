@@ -11,6 +11,9 @@ These certificates can then be used to configure SSL for or replace the self-sig
 
 Then your internal sites show secure connections (without warnings) in all modern browsers.
 
+> [!TIP]
+> For in-depth documentation, OS-specific Root CA installation guides (Windows, macOS, Linux, iOS, Android), appliance CSR workflows, and OIDC/Pocket ID setup, visit the official **[Project Wiki](https://github.com/cbrosius/homelab_cert_manager/wiki)**.
+
 ## Features
 
 - **Internal Certificate Management:** Generate and manage internal SSL/TLS certificates.
