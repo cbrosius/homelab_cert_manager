@@ -16,11 +16,15 @@ import (
 
 func backupAndRestoreSettings(t *testing.T) {
 	originalContent, err := os.ReadFile("data/settings.json")
+	origOidc := getOidcSettings()
+	origTimeout := viper.GetInt("session_settings.timeout_minutes")
 	t.Cleanup(func() {
 		if err == nil {
 			_ = os.WriteFile("data/settings.json", originalContent, 0600)
-			_ = initSettings()
 		}
+		viper.Set("session_settings.timeout_minutes", origTimeout)
+		_ = saveOidcSettings(origOidc.Enabled, origOidc.IssuerURL, origOidc.ClientID, origOidc.ClientSecret, origOidc.RedirectURL)
+		_ = initSettings()
 	})
 }
 

@@ -759,6 +759,10 @@
                 return res.json();
             })
             .then(data => {
+                btn.disabled = false;
+                if (data.config && data.config.client_secret) {
+                    form.oidc_client_secret.value = data.config.client_secret;
+                }
                 if (window.showToast) window.showToast('Pocket ID / OIDC settings saved successfully', 'success');
             })
             .catch(err => {

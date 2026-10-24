@@ -49,5 +49,8 @@ Features:
 - UI: Removed obsolete 'Create Certificate' action from admin dropdown menu
 - REFACTOR: Single-package architecture consolidation and directory cleanup (cmd/cert_manager/)
 - DOCS: Added developer guidelines and defined English as default UI development language in AGENTS.md
+- SECURITY: Encrypted OIDC client secret at rest in settings.json using AES-256-GCM
+- SECURITY: Masked OIDC client secret in settings UI (displaying only first 4 characters like Pocket ID, e.g. LRnX••••••••)
+- FIX: Protected live settings.json and OIDC settings from being overwritten during go test execution
 
 

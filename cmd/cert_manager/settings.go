@@ -1,6 +1,12 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"io"
 	"os"
 	"strings"
 
@@ -44,6 +50,79 @@ type OidcConfig struct {
 	RedirectURL  string `json:"redirect_url" mapstructure:"redirect_url"`
 }
 
+const encryptedSecretPrefix = "enc:"
+
+func getSecretEncryptionKey() []byte {
+	k := viper.GetString("csrf_key")
+	if k == "" {
+		k = "homelab-cert-manager-secret-encryption-salt"
+	}
+	hash := sha256.Sum256([]byte(k))
+	return hash[:]
+}
+
+func encryptSecret(plaintext string) (string, error) {
+	if plaintext == "" {
+		return "", nil
+	}
+	key := getSecretEncryptionKey()
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+	return encryptedSecretPrefix + base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+func decryptSecret(ciphertext string) string {
+	if !strings.HasPrefix(ciphertext, encryptedSecretPrefix) {
+		return ciphertext
+	}
+	raw := strings.TrimPrefix(ciphertext, encryptedSecretPrefix)
+	data, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		return ciphertext
+	}
+	key := getSecretEncryptionKey()
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return ciphertext
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return ciphertext
+	}
+	nonceSize := gcm.NonceSize()
+	if len(data) < nonceSize {
+		return ciphertext
+	}
+	nonce, ct := data[:nonceSize], data[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ct, nil)
+	if err != nil {
+		return ciphertext
+	}
+	return string(plaintext)
+}
+
+func maskClientSecret(secret string) string {
+	secret = strings.TrimSpace(secret)
+	if secret == "" {
+		return ""
+	}
+	if len(secret) <= 4 {
+		return secret + "••••••••"
+	}
+	return secret[:4] + "••••••••"
+}
+
 func initSettings() error {
 	debugLog("initSettings called")
 	viper.SetConfigName("settings")
@@ -82,6 +161,16 @@ func initSettings() error {
 		}
 		return err
 	}
+
+	// Automatically migrate plaintext client_secret to encrypted at rest
+	rawSecret := viper.GetString("oidc_settings.client_secret")
+	if rawSecret != "" && !strings.HasPrefix(rawSecret, encryptedSecretPrefix) {
+		if enc, err := encryptSecret(rawSecret); err == nil {
+			viper.Set("oidc_settings.client_secret", enc)
+			_ = saveViperConfig()
+		}
+	}
+
 	return nil
 }
 
@@ -99,7 +188,7 @@ func getOidcSettings() OidcConfig {
 	if env := os.Getenv("OIDC_CLIENT_ID"); env != "" {
 		clientID = env
 	}
-	clientSecret := viper.GetString("oidc_settings.client_secret")
+	clientSecret := decryptSecret(viper.GetString("oidc_settings.client_secret"))
 	if env := os.Getenv("OIDC_CLIENT_SECRET"); env != "" {
 		clientSecret = env
 	}
@@ -129,8 +218,31 @@ func saveOidcSettings(enabled bool, issuerURL, clientID, clientSecret, redirectU
 	viper.Set("oidc_settings.enabled", enabled)
 	viper.Set("oidc_settings.issuer_url", strings.TrimSpace(issuerURL))
 	viper.Set("oidc_settings.client_id", strings.TrimSpace(clientID))
-	viper.Set("oidc_settings.client_secret", strings.TrimSpace(clientSecret))
 	viper.Set("oidc_settings.redirect_url", strings.TrimSpace(redirectURL))
+
+	trimmedSecret := strings.TrimSpace(clientSecret)
+	existingRaw := viper.GetString("oidc_settings.client_secret")
+	existingDecrypted := decryptSecret(existingRaw)
+
+	// If the user submitted a masked secret (e.g. contains bullets or equals masked value), keep existing
+	if strings.Contains(trimmedSecret, "•") || (existingDecrypted != "" && trimmedSecret == maskClientSecret(existingDecrypted)) {
+		if !strings.HasPrefix(existingRaw, encryptedSecretPrefix) && existingDecrypted != "" {
+			enc, err := encryptSecret(existingDecrypted)
+			if err == nil {
+				viper.Set("oidc_settings.client_secret", enc)
+			}
+		}
+	} else if trimmedSecret != "" {
+		enc, err := encryptSecret(trimmedSecret)
+		if err != nil {
+			viper.Set("oidc_settings.client_secret", trimmedSecret)
+		} else {
+			viper.Set("oidc_settings.client_secret", enc)
+		}
+	} else if !enabled {
+		viper.Set("oidc_settings.client_secret", "")
+	}
+
 	return saveViperConfig()
 }
 

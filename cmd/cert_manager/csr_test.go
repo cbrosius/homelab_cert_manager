@@ -76,6 +76,9 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	// Backup live settings.json before any tests run
+	originalSettings, origSettingsErr := os.ReadFile("data/settings.json")
+
 	_ = os.MkdirAll(filepath.Join("data", "certs"), 0750)
 	rootCertDir := filepath.Join("data", "root-cert")
 	_ = os.MkdirAll(rootCertDir, 0700)
@@ -95,6 +98,12 @@ func TestMain(m *testing.M) {
 	if created {
 		_ = os.Remove(certPath)
 		_ = os.Remove(keyPath)
+	}
+
+	// Restore live settings.json after all tests complete
+	if origSettingsErr == nil {
+		_ = os.WriteFile("data/settings.json", originalSettings, 0600)
+		_ = initSettings()
 	}
 
 	os.Exit(code)

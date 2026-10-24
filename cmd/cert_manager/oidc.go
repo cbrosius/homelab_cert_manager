@@ -17,6 +17,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 )
 
@@ -233,14 +234,15 @@ func handleOIDCCallback(c *gin.Context) {
 	}
 
 	session, err := store.Get(c.Request, "session")
-	if err != nil || session == nil {
-		session, err = store.New(c.Request, "session")
-		if err != nil || session == nil {
-			log.Printf("Failed to create session on OIDC login: %v", err)
-			c.Redirect(http.StatusSeeOther, "/login?error="+url.QueryEscape("Failed to create user session"))
-			return
-		}
+	if err != nil {
+		log.Printf("Notice: replacing invalid/expired session cookie during OIDC login: %v", err)
 	}
+	if session == nil {
+		session = sessions.NewSession(store, "session")
+		session.Options = store.Options
+	}
+
+	session.Values = make(map[interface{}]interface{})
 
 	session.Values["authenticated"] = true
 	session.Values["last_activity"] = time.Now().Unix()
@@ -263,6 +265,7 @@ func handleOIDCSettings(c *gin.Context) {
 
 	if c.Request.Method == "GET" {
 		cfg := getOidcSettings()
+		cfg.ClientSecret = maskClientSecret(cfg.ClientSecret)
 		c.JSON(http.StatusOK, cfg)
 		return
 	}
@@ -303,8 +306,10 @@ func handleOIDCSettings(c *gin.Context) {
 		return
 	}
 
+	respCfg := getOidcSettings()
+	respCfg.ClientSecret = maskClientSecret(respCfg.ClientSecret)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "OIDC settings saved successfully",
-		"config":  getOidcSettings(),
+		"config":  respCfg,
 	})
 }

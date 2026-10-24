@@ -455,6 +455,9 @@ func handleSignCSR(c *gin.Context) {
 
 func showSettingsPage(c *gin.Context) {
 	isDefaultPassword := checkPasswordHash("admin", viper.GetString("password"))
+	oidcCfg := getOidcSettings()
+	oidcCfg.ClientSecret = maskClientSecret(oidcCfg.ClientSecret)
+
 	c.HTML(http.StatusOK, "settings.html", gin.H{
 		"certManagerSettings": gin.H{
 			"DnsNames":    viper.GetStringSlice("certificate_manager_certificate.dns_names"),
@@ -470,7 +473,7 @@ func showSettingsPage(c *gin.Context) {
 			"Email":            viper.GetString("general_cert_options.email"),
 		},
 		"sessionTimeoutMinutes": getSessionTimeoutMinutes(),
-		"oidcSettings":          getOidcSettings(),
+		"oidcSettings":          oidcCfg,
 		"defaultPassword":       isDefaultPassword,
 		"csrfToken":             getCSRFToken(c.Request),
 	})
@@ -750,15 +753,8 @@ func handleLogin(c *gin.Context, config *Config) {
 			log.Printf("Notice: replacing invalid/expired session cookie during login: %v", err)
 		}
 		if session == nil {
-			session, err = store.New(c.Request, "session")
-			if err != nil || session == nil {
-				log.Printf("Fatal: failed to create session during login: %v", err)
-				c.HTML(http.StatusInternalServerError, "login.html", gin.H{
-					"error":     "Session error",
-					"csrfToken": getCSRFToken(c.Request),
-				})
-				return
-			}
+			session = sessions.NewSession(store, "session")
+			session.Options = store.Options
 		}
 
 		session.Values["authenticated"] = true

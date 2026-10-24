@@ -42,6 +42,7 @@ func setupTestOidcRouter() *gin.Engine {
 }
 
 func TestOidcSettings_GettersAndEnvOverrides(t *testing.T) {
+	backupAndRestoreSettings(t)
 	// Clean environment
 	os.Unsetenv("OIDC_ENABLED")
 	os.Unsetenv("OIDC_ISSUER_URL")
@@ -86,6 +87,7 @@ func TestOidcSettings_GettersAndEnvOverrides(t *testing.T) {
 }
 
 func TestOidcSettings_SaveAndValidation(t *testing.T) {
+	backupAndRestoreSettings(t)
 	os.Unsetenv("OIDC_ENABLED")
 	os.Unsetenv("OIDC_ISSUER_URL")
 	os.Unsetenv("OIDC_CLIENT_ID")
@@ -157,6 +159,9 @@ func TestOidcSettings_SaveAndValidation(t *testing.T) {
 	if !savedCfg.Enabled || savedCfg.IssuerURL != "https://auth.homelab.local" || savedCfg.ClientID != "cert-manager" {
 		t.Fatalf("Mismatch in saved OIDC configuration: %+v", savedCfg)
 	}
+	if savedCfg.ClientSecret != "supe••••••••" {
+		t.Fatalf("Expected masked client secret 'supe••••••••', got %s", savedCfg.ClientSecret)
+	}
 }
 
 func TestOIDCHTTPClient_TrustPool(t *testing.T) {
@@ -210,6 +215,7 @@ func TestOIDCHTTPClient_TrustPool(t *testing.T) {
 }
 
 func TestOIDCLogin_DisabledRedirects(t *testing.T) {
+	backupAndRestoreSettings(t)
 	os.Unsetenv("OIDC_ENABLED")
 	os.Unsetenv("OIDC_ISSUER_URL")
 	viper.Set("oidc_settings.enabled", false)
@@ -229,6 +235,7 @@ func TestOIDCLogin_DisabledRedirects(t *testing.T) {
 }
 
 func TestOIDCCallback_StateValidation(t *testing.T) {
+	backupAndRestoreSettings(t)
 	os.Unsetenv("OIDC_ENABLED")
 	os.Unsetenv("OIDC_ISSUER_URL")
 	viper.Set("oidc_settings.enabled", true)
@@ -329,5 +336,46 @@ func TestCheckPasswordChange_OIDCProviderBypass(t *testing.T) {
 	}
 	if w.Body.String() != "Welcome OIDC User" {
 		t.Fatalf("Expected body 'Welcome OIDC User', got %q", w.Body.String())
+	}
+}
+
+func TestSecretEncryptionAndMasking(t *testing.T) {
+	backupAndRestoreSettings(t)
+
+	// 1. Masking tests
+	if got := maskClientSecret(""); got != "" {
+		t.Errorf("Expected empty string for empty secret, got %q", got)
+	}
+	if got := maskClientSecret("LRnXLShA4YMRY9lGDqj3ydt74KwAJ5J2"); got != "LRnX••••••••" {
+		t.Errorf("Expected 'LRnX••••••••', got %q", got)
+	}
+	if got := maskClientSecret("abc"); got != "abc••••••••" {
+		t.Errorf("Expected 'abc••••••••', got %q", got)
+	}
+	if got := maskClientSecret("1234"); got != "1234••••••••" {
+		t.Errorf("Expected '1234••••••••', got %q", got)
+	}
+
+	// 2. Encryption and Decryption tests
+	sampleSecret := "LRnXLShA4YMRY9lGDqj3ydt74KwAJ5J2"
+	enc, err := encryptSecret(sampleSecret)
+	if err != nil {
+		t.Fatalf("encryptSecret failed: %v", err)
+	}
+	if !strings.HasPrefix(enc, "enc:") {
+		t.Fatalf("Expected ciphertext to start with 'enc:', got %s", enc)
+	}
+	if enc == sampleSecret {
+		t.Fatal("Ciphertext must not match plaintext")
+	}
+
+	dec := decryptSecret(enc)
+	if dec != sampleSecret {
+		t.Fatalf("Decrypted secret mismatch: expected %q, got %q", sampleSecret, dec)
+	}
+
+	// 3. Plaintext passthrough
+	if got := decryptSecret("legacy-plain-text"); got != "legacy-plain-text" {
+		t.Errorf("Expected plaintext passthrough, got %q", got)
 	}
 }
