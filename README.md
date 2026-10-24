@@ -99,7 +99,7 @@ Alternatively, you can clone the repository and compile the project locally:
 ```bash
 git clone https://github.com/cbrosius/homelab_cert_manager.git
 cd homelab_cert_manager
-go build -o homelab_cert_manager .
+go build -o homelab_cert_manager ./cmd/cert_manager
 ./homelab_cert_manager
 ```
 

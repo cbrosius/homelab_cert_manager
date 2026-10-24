@@ -70,6 +70,12 @@ func setupEphemeralRootCA(certPath, keyPath string) error {
 }
 
 func TestMain(m *testing.M) {
+	if _, err := os.Stat("templates"); os.IsNotExist(err) {
+		if _, err := os.Stat("../../templates"); err == nil {
+			_ = os.Chdir("../..")
+		}
+	}
+
 	_ = os.MkdirAll(filepath.Join("data", "certs"), 0750)
 	rootCertDir := filepath.Join("data", "root-cert")
 	_ = os.MkdirAll(rootCertDir, 0700)
