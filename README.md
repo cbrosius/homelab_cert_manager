@@ -30,19 +30,70 @@ Then your internal sites show secure connections (without warnings) in all moder
 ## Screenshots
 
 ### Certificates Dashboard
+*Overview of Root CA, application server certificate, issued certificates, and CSR badges.*
+
 | Dark Mode | Light Mode |
 |:---:|:---:|
-| ![Dashboard Dark](static/screenshots/dashboard_dark.png) | ![Dashboard Light](static/screenshots/dashboard_light.png) |
+| ![Dashboard Dark](static/screenshots/10_dashboard_with_certificates_dark.png) | ![Dashboard Light](static/screenshots/10_dashboard_with_certificates_light.png) |
 
 ### Interactive Certificate Creator
-| Dark Mode | Light Mode |
-|:---:|:---:|
-| ![Create Certificate Dark](static/screenshots/create_cert_dark.png) | ![Create Certificate Light](static/screenshots/create_cert_light.png) |
+*Create certificates with live domain validation, SAN auto-population, and custom validity periods.*
 
-### Login & Authentication
 | Dark Mode | Light Mode |
 |:---:|:---:|
-| ![Login Dark](static/screenshots/login_dark.png) | ![Login Light](static/screenshots/login_light.png) |
+| ![Create Certificate Dark](static/screenshots/08_create_certificate_dark.png) | ![Create Certificate Light](static/screenshots/08_create_certificate_light.png) |
+
+### External CSR Signing
+*Sign certificate signing requests from Proxmox, TrueNAS, switches, and other homelab appliances.*
+
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Sign CSR Modal Dark](static/screenshots/09_sign_csr_modal_dark.png) | ![Sign CSR Modal Light](static/screenshots/09_sign_csr_modal_light.png) |
+
+### Pocket ID / OIDC Single Sign-On
+*Configure OpenID Connect authentication with automatic internal Root CA trust and local admin fallback.*
+
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![OIDC Settings Dark](static/screenshots/12_settings_oidc_auth_dark.png) | ![OIDC Settings Light](static/screenshots/12_settings_oidc_auth_light.png) |
+
+### Session Inactivity Timeout
+*Interactive slider setting timeout between 1 and 30 minutes with live countdown badge.*
+
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Session Timeout Dark](static/screenshots/13_settings_session_timeout_dark.png) | ![Session Timeout Light](static/screenshots/13_settings_session_timeout_light.png) |
+
+<details>
+<summary><strong>View Additional Setup & Configuration Screenshots</strong></summary>
+
+#### Initial Login & Mandatory Password Setup
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Login Dark](static/screenshots/01_initial_login_dark.png) | ![Login Light](static/screenshots/01_initial_login_light.png) |
+| ![Password Change Dark](static/screenshots/02_mandatory_password_change_dark.png) | ![Password Change Light](static/screenshots/02_mandatory_password_change_light.png) |
+
+#### Root CA Creation
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Generate Root CA Dark](static/screenshots/04_generate_root_ca_dark.png) | ![Generate Root CA Light](static/screenshots/04_generate_root_ca_light.png) |
+
+#### Server Certificate Configuration
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Server Cert Dark](static/screenshots/06_settings_server_cert_dark.png) | ![Server Cert Light](static/screenshots/06_settings_server_cert_light.png) |
+
+#### Certificate Defaults Configuration
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Cert Defaults Dark](static/screenshots/11_settings_cert_defaults_dark.png) | ![Cert Defaults Light](static/screenshots/11_settings_cert_defaults_light.png) |
+
+#### Dedicated Password Change
+| Dark Mode | Light Mode |
+|:---:|:---:|
+| ![Change Password Dark](static/screenshots/14_change_password_dark.png) | ![Change Password Light](static/screenshots/14_change_password_light.png) |
+
+</details>
 
 ## Security Features
 
