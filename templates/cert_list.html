@@ -154,17 +154,27 @@
                     <span class="badge-pill status-active" style="margin-left: 0.5rem; font-size: 0.75rem;" id="cert-count-pill">{{ len .certificates }}</span>
                 </div>
 
-                {{ if .rootCertificate }}
-                <a href="/create-certificate-form" class="btn btn-primary">
-                    <i class="material-icons">add</i>
-                    <span>Create Certificate</span>
-                </a>
-                {{ else }}
-                <button class="btn btn-secondary" disabled title="Root CA required before issuing certificates">
-                    <i class="material-icons">add</i>
-                    <span>Create Certificate</span>
-                </button>
-                {{ end }}
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    {{ if .rootCertificate }}
+                    <button type="button" class="btn btn-secondary" onclick="openSignCsrModal()" id="btn-open-sign-csr">
+                        <i class="material-icons">assignment</i>
+                        <span>Sign CSR</span>
+                    </button>
+                    <a href="/create-certificate-form" class="btn btn-primary">
+                        <i class="material-icons">add</i>
+                        <span>Create Certificate</span>
+                    </a>
+                    {{ else }}
+                    <button type="button" class="btn btn-secondary" disabled title="Root CA required before signing CSRs">
+                        <i class="material-icons">assignment</i>
+                        <span>Sign CSR</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" disabled title="Root CA required before issuing certificates">
+                        <i class="material-icons">add</i>
+                        <span>Create Certificate</span>
+                    </button>
+                    {{ end }}
+                </div>
             </div>
 
             <div class="card-body">
@@ -211,6 +221,9 @@
                                             <i class="material-icons" style="font-size: 16px;">lock</i>
                                         </div>
                                         <span>{{ .Name }}</span>
+                                        {{ if not .HasPrivateKey }}
+                                        <span class="badge-pill" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); font-size: 0.72rem; padding: 2px 8px; font-weight: 600;" title="Signed from external Certificate Signing Request (CSR)">CSR</span>
+                                        {{ end }}
                                     </div>
                                 </td>
                                 <td>
@@ -241,11 +254,12 @@
                                             </button>
                                             <ul id="download-menu-{{ .Name }}" class="dropdown-menu-box hidden">
                                                 <li>
-                                                    <a href="/certificates/download/{{ .Name }}.pem">
+                                                    <a href="/certificates/download/{{ .Name }}.{{ if .Ext }}{{ .Ext }}{{ else }}pem{{ end }}">
                                                         <i class="material-icons" style="font-size: 16px;">file_download</i>
-                                                        <span>Certificate (.PEM)</span>
+                                                        <span>Certificate (.{{ if eq .Ext "crt" }}CRT{{ else }}PEM{{ end }})</span>
                                                     </a>
                                                 </li>
+                                                {{ if .HasPrivateKey }}
                                                 <li>
                                                     <a href="/certificates/download/{{ .Name }}.key">
                                                         <i class="material-icons" style="font-size: 16px;">vpn_key</i>
@@ -258,6 +272,7 @@
                                                         <span>PKCS#12 (.PFX)</span>
                                                     </a>
                                                 </li>
+                                                {{ end }}
                                             </ul>
                                         </div>
 
@@ -346,6 +361,58 @@
                 </button>
             </form>
         </div>
+    </dialog>
+
+    <!-- Sign CSR Modal Dialog -->
+    <dialog id="signCsrModal" class="modern-dialog" style="max-width: 580px;">
+        <div class="modal-header">
+            <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="material-icons" style="color: var(--accent-primary);">assignment</i>
+                <span>Sign Certificate Request (CSR)</span>
+            </h3>
+            <button class="btn-icon-nav" type="button" onclick="closeSignCsrModal()" aria-label="Close modal">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+        <form id="signCsrForm" action="/sign-csr" method="POST" enctype="multipart/form-data" onsubmit="submitSignCsrForm(event)">
+            <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div class="alert-banner-error" id="signCsrAlert" style="display: none;" role="alert">
+                    <i class="material-icons">error</i>
+                    <span id="signCsrAlertText"></span>
+                </div>
+
+                <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">
+                    Upload a <code>.csr</code> or <code>.pem</code> file from your client or service, or paste the raw PEM request below to sign it with your trusted HomeLab Root CA.
+                </p>
+
+                <!-- File upload field -->
+                <div class="form-group">
+                    <label class="form-label" for="csr_file">Upload CSR File (.csr, .pem, .txt)</label>
+                    <input type="file" id="csr_file" name="csr_file" accept=".csr,.pem,.txt" class="form-input" style="padding: 0.4rem 0.6rem; cursor: pointer;" onchange="onCsrFileSelected(this)">
+                </div>
+
+                <!-- Textarea fallback -->
+                <div class="form-group">
+                    <label class="form-label" for="csr_text">Or Paste CSR Content (PEM)</label>
+                    <textarea id="csr_text" name="csr_text" class="form-input code-viewer" rows="6" placeholder="-----BEGIN CERTIFICATE REQUEST-----&#10;...&#10;-----END CERTIFICATE REQUEST-----" style="resize: vertical; font-size: 0.825rem; font-family: monospace;"></textarea>
+                </div>
+
+                <!-- Validity period input -->
+                <div class="form-group">
+                    <label class="form-label" for="validity_days">Validity Period (Days)</label>
+                    <input type="number" id="validity_days" name="validity_days" min="1" max="3650" value="{{ if .defaultValidityDays }}{{ .defaultValidityDays }}{{ else }}365{{ end }}" class="form-input" required>
+                    <span style="font-size: 0.775rem; color: var(--text-muted); margin-top: 4px; display: block;">Default is 365 days (1 year).</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeSignCsrModal()">Cancel</button>
+                <button type="submit" id="btn-submit-csr" class="btn btn-primary">
+                    <i class="material-icons">verified</i>
+                    <span>Sign CSR</span>
+                </button>
+            </div>
+        </form>
     </dialog>
 
     <!-- Custom Scripts -->
@@ -566,6 +633,90 @@
                 icon.textContent = 'unfold_more';
             }
         });
+    }
+
+    // Sign CSR Modal
+    function openSignCsrModal() {
+        const dialog = document.getElementById('signCsrModal');
+        const alertBox = document.getElementById('signCsrAlert');
+        if (alertBox) alertBox.style.display = 'none';
+        if (dialog) dialog.showModal();
+    }
+
+    function closeSignCsrModal() {
+        const dialog = document.getElementById('signCsrModal');
+        if (dialog) dialog.close();
+    }
+
+    function onCsrFileSelected(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const textarea = document.getElementById('csr_text');
+                if (textarea && !textarea.value.trim()) {
+                    textarea.value = e.target.result;
+                }
+            };
+            reader.readAsText(file);
+        }
+    }
+
+    function submitSignCsrForm(e) {
+        e.preventDefault();
+        const form = document.getElementById('signCsrForm');
+        const alertBox = document.getElementById('signCsrAlert');
+        const alertText = document.getElementById('signCsrAlertText');
+        const submitBtn = document.getElementById('btn-submit-csr');
+        const formData = new FormData(form);
+
+        const fileInput = document.getElementById('csr_file');
+        const textInput = document.getElementById('csr_text');
+
+        if ((!fileInput.files || fileInput.files.length === 0) && !textInput.value.trim()) {
+            if (alertText) alertText.textContent = 'Please select a CSR file or paste CSR content.';
+            if (alertBox) alertBox.style.display = 'flex';
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="material-icons" style="animation: pulseDot 1s infinite;">refresh</i> <span>Signing...</span>';
+
+        fetch('/sign-csr', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to sign CSR');
+            }
+            return data;
+        })
+        .then(data => {
+            if (window.showToast) window.showToast(data.message || 'CSR signed successfully!', 'success');
+            window.location.href = data.redirect || '/certificates';
+        })
+        .catch(err => {
+            if (alertText) alertText.textContent = err.message;
+            if (alertBox) alertBox.style.display = 'flex';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="material-icons">verified</i> <span>Sign CSR</span>';
+        });
+    }
+
+    // Check query params on page load for success/error notifications
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('signed') === '1' && window.showToast) {
+        window.showToast('CSR successfully signed and certificate issued!', 'success');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('error') && window.showToast) {
+        window.showToast(urlParams.get('error'), 'error');
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
     </script>
 </body>
