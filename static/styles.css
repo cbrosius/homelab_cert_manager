@@ -662,6 +662,7 @@ input[type="text"],
 input[type="number"],
 input[type="email"],
 input[type="password"],
+input[type="url"],
 textarea,
 select {
     width: 100%;
@@ -679,10 +680,16 @@ input[type="text"]:focus,
 input[type="number"]:focus,
 input[type="email"]:focus,
 input[type="password"]:focus,
+input[type="url"]:focus,
 textarea:focus,
 select:focus {
     border-color: var(--input-focus-border);
     box-shadow: 0 0 0 3px var(--accent-primary-glow);
+}
+
+::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
 }
 
 .helper-text {
