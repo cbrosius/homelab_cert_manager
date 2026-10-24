@@ -84,11 +84,11 @@ The container runs securely as an unprivileged user (`appuser`, UID 10001) with 
 > [!NOTE]
 > **Migrating from Legacy Versions (v1.x / root-based container):**
 > Older versions of this container ran as `root` (UID 0), creating files owned by `root:root` with restricted permissions. 
-> To grant the unprivileged user access to your existing volume, run this command on your host:
+> The container entrypoint automatically detects legacy root-owned files in `/app/data` (and `/app/app.log`) and updates ownership to `appuser:appgroup` before dropping root privileges.
+> If you prefer to update file ownership manually on the host before starting, you can run:
 > ```bash
 > sudo chown -R 10001:10001 ./data
 > ```
-> *(Or use `chmod -R u+rwX,g+rwX ./data`)*
 
 ### Building from Source
 

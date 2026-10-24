@@ -29,6 +29,9 @@ WORKDIR /app
 RUN addgroup -S -g 10001 appgroup && \
     adduser -S -u 10001 -G appgroup -h /app -s /sbin/nologin appuser
 
+ENV APP_USER=appuser \
+    APP_GROUP=appgroup
+
 # Copy executable and assets from builder
 COPY --from=builder /build/homelab_cert_manager /app/
 COPY --from=builder /build/templates /app/templates
