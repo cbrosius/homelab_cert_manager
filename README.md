@@ -14,6 +14,8 @@ Then your internal sites show secure connections (without warnings) in all moder
 ## Features
 
 - **Internal Certificate Management:** Generate and manage internal SSL/TLS certificates.
+- **CSR Signing (Certificate Signing Requests):** Upload or paste external CSRs from third-party appliances, switches, and servers (Proxmox, TrueNAS, etc.) to sign them with your Root CA without handling private keys.
+- **Pocket ID / OIDC SSO Authentication:** Optional Passkey and Single Sign-On support via Pocket ID or any OpenID Connect provider with built-in Root CA trust and emergency local fallback.
 - **Configurable Session Timeout:** Inactivity timeout (1–30 minutes, default 2 minutes) with live top-bar countdown badge that automatically resets upon user activity.
 - **Robust Security:** CSRF protection, brute-force login rate limiter, strong password policies, and path traversal prevention.
 - **Hardened HTTP & TLS:** Modern security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options), Slowloris protection, request body size limits, and TLS 1.2+ encryption.
@@ -130,6 +132,49 @@ Default certificate attributes can be configured through the **Settings** page:
 - Organization & Organizational Unit
 - Country (2-letter ISO), State, Location
 - Email Address
+
+### External CSR Signing (Certificate Signing Requests)
+
+For hardware appliances, managed switches, hypervisors, and storage systems (e.g. Proxmox, TrueNAS, pfSense, Ubiquiti) where the private key is generated directly on the device and must not leave it:
+
+1. Generate a standard Certificate Signing Request (CSR) on your appliance.
+2. In Homelab Cert Manager, click **Sign CSR** on the dashboard.
+3. Either upload the `.csr` file or paste the raw `-----BEGIN CERTIFICATE REQUEST-----` PEM block.
+4. Specify the desired validity period (in days) and submit.
+5. The application validates the cryptographic signature, extracts all Subject attributes and Subject Alternative Names (SANs - DNS, IP, URI, Email), and signs the certificate using your HomeLab Root CA.
+6. The signed certificate is saved in your certificate dashboard with a distinct **CSR** badge. Since the private key remains on the target device, the "Download Key" option is cleanly disabled.
+
+### Pocket ID / OIDC Single Sign-On (SSO)
+
+Homelab Cert Manager supports optional Passkey and Single Sign-On (SSO) via [Pocket ID](https://pocket-id.org/) or any standard OpenID Connect (OIDC) identity provider.
+
+#### 1. Setup in Pocket ID / Identity Provider
+- **Client Type:** Confidential or Public (PKCE)
+- **Redirect / Callback URI:** `https://<cert-manager-host>:8443/auth/oidc/callback`
+- **Scopes:** `openid`, `profile`, `email`
+
+#### 2. Configuration Options
+You can configure OIDC either in the web interface under **Settings -> Pocket ID / OIDC Authentication** or via Docker environment variables:
+
+| Environment Variable | Description | Example |
+| --- | --- | --- |
+| `OIDC_ENABLED` | Enable or disable OIDC SSO (`true`/`false`) | `true` |
+| `OIDC_ISSUER_URL` | Base URL of your OIDC provider | `https://pocket-id.homelab.local` |
+| `OIDC_CLIENT_ID` | Client ID registered in your provider | `homelab-cert-manager` |
+| `OIDC_CLIENT_SECRET` | Client Secret (optional for public clients) | `your-secret-here` |
+| `OIDC_REDIRECT_URL` | Explicit callback URL override (optional) | `https://certs.homelab.local:8443/auth/oidc/callback` |
+
+#### 3. Automatic Internal Root CA Trust
+A common issue in self-hosted homelabs is a "chicken-and-egg" certificate error when your OIDC provider itself uses a certificate issued by your internal Root CA. 
+
+Homelab Cert Manager solves this automatically:
+- Its internal OIDC HTTP client automatically loads and trusts your local Homelab Root CA (`data/root-cert/HomeLab_Root_CA.pem` / `data/rootCA.crt`).
+- No need to inject extra certificates into container trust stores.
+
+#### 4. Emergency Local Admin Fallback
+To prevent lockouts if your OIDC provider is offline or its own certificate has expired:
+- The standard local username and password login remains available on the login page via a discreet **Local admin fallback** link.
+- You can always sign in locally with your administrator password to renew certificates or troubleshoot services.
 
 ### Debug Logging
 

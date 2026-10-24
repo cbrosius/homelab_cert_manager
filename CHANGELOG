@@ -22,3 +22,19 @@ Security Improvements:
 - SECURITY: Added proper error handling for file deletion operations
 - FIX: Added missing email field to settings API response
 - FIX: Fixed malformed HTML attribute in settings template
+
+2026/10/24 v0.4 - CSR Signing & Pocket ID / OIDC Authentication
+Features:
+- FEAT: External CSR (Certificate Signing Request) signing support using Go standard library crypto/x509
+- FEAT: Support for uploading .csr/.pem files or pasting raw CSR PEM text directly
+- FEAT: Automatic extraction of CommonName, Subject attributes, and SANs (DNS, IP, Email, URI) from CSRs
+- FEAT: Distinct CSR badge in certificate dashboard with protected key handling (private keys remain on source device)
+- FEAT: Pocket ID and generic OpenID Connect (OIDC) SSO authentication with Passkey support
+- FEAT: Built-in custom trust pool automatically trusting local Root CA for internal OIDC IdP endpoints
+- FEAT: Cryptographically random CSRF state validation with SameSite=Lax cookie handling for OIDC flows
+- FEAT: Docker environment variable overrides (OIDC_ENABLED, OIDC_ISSUER_URL, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, OIDC_REDIRECT_URL)
+- FEAT: Emergency local admin fallback on the sign-in screen to prevent lockouts during IdP renewal
+- FEAT: Interactive OIDC settings card with real-time toggle switch and client secret mask toggle
+- UI: Modern glassmorphic styling updates, toggle switches, and responsive layout improvements
+- SECURITY: Unprivileged Docker container execution (appuser, UID 10001) with automatic legacy permission migration
+

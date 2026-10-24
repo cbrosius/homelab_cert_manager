@@ -84,8 +84,8 @@
 ## Milestone 3: Documentation & Release
 **Goal:** Document the new features clearly for self-hosters and tag the first official release.
 
-- [ ] **Update `README.md`**:
+- [x] **Update `README.md`**:
   - Document the CSR signing workflow.
   - Add a short guide for connecting **Pocket ID** (specifically noting the callback URL format `https://<host>:8443/auth/oidc/callback` and automatic internal Root CA trust).
-- [ ] **Update `CHANGELOG` & `todo.txt`**: Mark CSR and OIDC support as completed.
-- [ ] **Create Git Tag & Release**: Tag `v1.1.0` (or `v2.0.0`) to trigger the GitHub Actions Docker build and publish the first official GitHub Release.
+- [x] **Update `CHANGELOG` & `todo.txt`**: Mark CSR and OIDC support as completed.
+- [ ] **Create Git Tag & Release**: Tag `v0.4` to trigger the GitHub Actions Docker build and publish the release (user to execute per Git commit rules).
