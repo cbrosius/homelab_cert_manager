@@ -39,5 +39,6 @@ Features:
 - UI: Restored dedicated showcase card for the Certificate Manager service certificate in certificate dashboard
 - UI: Introduced tabbed configuration page (Server Certificate, Certificate Defaults, OIDC SSO, Security & Session) with URL hash and keyboard navigation
 - UI: Streamlined navigation header by removing redundant certificate links and adding a dedicated back link to the certificate list on the settings page
+- UI: Replaced session inactivity timeout number input with an interactive range slider and quick-select preset pills (5, 10, 15, 20, 30 min)
 - SECURITY: Unprivileged Docker container execution (appuser, UID 10001) with automatic legacy permission migration
 
