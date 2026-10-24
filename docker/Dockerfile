@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build statically linked binary without debug symbols or symbol tables
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o homelab_cert_manager .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o homelab_cert_manager ./cmd/cert_manager
 
 # Stage 2: Minimal, secure runtime image
 FROM alpine:latest
@@ -36,7 +36,7 @@ ENV APP_USER=appuser \
 COPY --from=builder /build/homelab_cert_manager /app/
 COPY --from=builder /build/templates /app/templates
 COPY --from=builder /build/static /app/static
-COPY entrypoint.sh /app/entrypoint.sh
+COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Ensure data directory exists with correct ownership

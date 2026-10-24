@@ -15,5 +15,3 @@ cert_manager
 *.pfx
 *.csr
 docker-migration-fix.md
-Roadmap.md
-gemini.md
