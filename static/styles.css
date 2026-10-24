@@ -703,6 +703,159 @@ select:focus {
     color: var(--accent-danger);
 }
 
+/* File Inputs & Custom File Upload Dropzone */
+input[type="file"] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px dashed var(--input-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    outline: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+input[type="file"]:hover {
+    border-color: var(--accent-primary);
+    background: rgba(6, 182, 212, 0.04);
+}
+
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--border-subtle);
+    color: var(--text-primary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--border-radius-sm);
+    padding: 0.45rem 0.95rem;
+    margin-right: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+input[type="file"]::file-selector-button:hover,
+input[type="file"]::-webkit-file-upload-button:hover {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    color: #ffffff;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 12px var(--accent-primary-glow);
+}
+
+[theme='light'] input[type="file"] {
+    background: #ffffff;
+    border: 1px dashed rgba(15, 23, 42, 0.2);
+    color: #475569;
+}
+
+[theme='light'] input[type="file"]:hover {
+    border-color: var(--accent-primary);
+    background: rgba(8, 145, 178, 0.04);
+}
+
+[theme='light'] input[type="file"]::file-selector-button,
+[theme='light'] input[type="file"]::-webkit-file-upload-button {
+    background: #f1f5f9;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+}
+
+[theme='light'] input[type="file"]::file-selector-button:hover,
+[theme='light'] input[type="file"]::-webkit-file-upload-button:hover {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    color: #ffffff;
+    border-color: var(--accent-primary);
+}
+
+.file-upload-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.file-upload-input {
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.file-upload-dropzone {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px dashed var(--input-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.5rem 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    user-select: none;
+}
+
+.file-upload-dropzone:hover,
+.file-upload-dropzone.dragover {
+    border-color: var(--accent-primary);
+    background: rgba(6, 182, 212, 0.06);
+    box-shadow: 0 0 15px var(--accent-primary-glow);
+}
+
+[theme='light'] .file-upload-dropzone {
+    background: #ffffff;
+    border: 1px dashed rgba(15, 23, 42, 0.2);
+}
+
+[theme='light'] .file-upload-dropzone:hover,
+[theme='light'] .file-upload-dropzone.dragover {
+    border-color: var(--accent-primary);
+    background: rgba(8, 145, 178, 0.05);
+    box-shadow: 0 0 15px var(--accent-primary-glow);
+}
+
+.file-upload-filename {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-grow: 1;
+}
+
+.file-upload-filename.has-file {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+[theme='light'] .file-upload-filename.has-file {
+    color: #0f172a;
+}
+
+.file-upload-clear {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-sm);
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.file-upload-clear:hover {
+    color: var(--accent-danger);
+    background: rgba(244, 63, 94, 0.1);
+}
+
 /* ==========================================================================
    Status Badges & Pills
    ========================================================================== */

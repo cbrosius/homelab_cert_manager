@@ -448,7 +448,19 @@
                 <!-- File upload field -->
                 <div class="form-group">
                     <label class="form-label" for="csr_file">Upload CSR File (.csr, .pem, .txt)</label>
-                    <input type="file" id="csr_file" name="csr_file" accept=".csr,.pem,.txt" class="form-input" style="padding: 0.4rem 0.6rem; cursor: pointer;" onchange="onCsrFileSelected(this)">
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="csr_file" name="csr_file" accept=".csr,.pem,.txt" class="file-upload-input" onchange="onCsrFileSelected(this)">
+                        <label for="csr_file" class="file-upload-dropzone" id="csr_file_dropzone">
+                            <span class="btn btn-secondary" style="pointer-events: none; padding: 0.45rem 0.85rem; font-size: 0.825rem;">
+                                <i class="material-icons" style="font-size: 16px;">upload_file</i>
+                                <span>Choose File</span>
+                            </span>
+                            <span class="file-upload-filename" id="csr_filename_display">No file chosen (or drag & drop here)</span>
+                            <button type="button" id="csr_file_clear" class="file-upload-clear" style="display: none;" onclick="clearCsrFileSelection(event)" title="Clear selected file">
+                                <i class="material-icons" style="font-size: 18px;">close</i>
+                            </button>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Textarea fallback -->
@@ -530,6 +542,33 @@
 
         const initialCsrSlider = document.getElementById('csr_validity_years_slider');
         if (initialCsrSlider) updateCsrSliderTrack(initialCsrSlider);
+
+        const dropzone = document.getElementById('csr_file_dropzone');
+        if (dropzone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.add('dragover');
+                });
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.remove('dragover');
+                });
+            });
+            dropzone.addEventListener('drop', e => {
+                const dt = e.dataTransfer;
+                const files = dt && dt.files;
+                if (files && files.length > 0) {
+                    const input = document.getElementById('csr_file');
+                    input.files = files;
+                    onCsrFileSelected(input);
+                }
+            });
+        }
     });
 
     // Compute status badges and days remaining for certificates
@@ -819,8 +858,16 @@
     }
 
     function onCsrFileSelected(input) {
+        const nameDisplay = document.getElementById('csr_filename_display');
+        const clearBtn = document.getElementById('csr_file_clear');
         if (input.files && input.files[0]) {
             const file = input.files[0];
+            if (nameDisplay) {
+                nameDisplay.textContent = file.name;
+                nameDisplay.classList.add('has-file');
+            }
+            if (clearBtn) clearBtn.style.display = 'flex';
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const textarea = document.getElementById('csr_text');
@@ -829,7 +876,29 @@
                 }
             };
             reader.readAsText(file);
+        } else {
+            if (nameDisplay) {
+                nameDisplay.textContent = 'No file chosen (or drag & drop here)';
+                nameDisplay.classList.remove('has-file');
+            }
+            if (clearBtn) clearBtn.style.display = 'none';
         }
+    }
+
+    function clearCsrFileSelection(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const input = document.getElementById('csr_file');
+        if (input) input.value = '';
+        const nameDisplay = document.getElementById('csr_filename_display');
+        if (nameDisplay) {
+            nameDisplay.textContent = 'No file chosen (or drag & drop here)';
+            nameDisplay.classList.remove('has-file');
+        }
+        const clearBtn = document.getElementById('csr_file_clear');
+        if (clearBtn) clearBtn.style.display = 'none';
     }
 
     function submitSignCsrForm(e) {
