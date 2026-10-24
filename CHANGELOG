@@ -36,10 +36,18 @@ Features:
 - FEAT: Emergency local admin fallback on the sign-in screen to prevent lockouts during IdP renewal
 - FEAT: Interactive OIDC settings card with real-time toggle switch and client secret mask toggle
 - UI: Modern glassmorphic styling updates, toggle switches, and responsive layout improvements
-- UI: Restored dedicated showcase card for the Certificate Manager service certificate in certificate dashboard
-- UI: Introduced tabbed configuration page (Server Certificate, Certificate Defaults, OIDC SSO, Security & Session) with URL hash and keyboard navigation
-- UI: Streamlined navigation header by removing redundant certificate links and adding a dedicated back link to the certificate list on the settings page
-- UI: Replaced session inactivity timeout number input with an interactive range slider and quick-select preset pills (5, 10, 15, 20, 30 min)
-- UI: Consolidated password change into dedicated page (/change-password) with admin menu entry and removed duplicate form from settings
 - SECURITY: Unprivileged Docker container execution (appuser, UID 10001) with automatic legacy permission migration
+
+2026/10/24 v0.5 - Tabbed Configuration & Navigation Streamlining
+Features:
+- UI: Introduced tabbed configuration page (Server Certificate, Certificate Defaults, OIDC SSO, Session Timeout) with URL hash deep-linking and full keyboard navigation (WAI-ARIA)
+- UI: Replaced session inactivity timeout number input with an interactive range slider and quick-select preset pills (5, 10, 15, 20, 30 min)
+- UI: Consolidated password change workflow into dedicated /change-password page with admin menu entry and removed duplicate form from settings
+- UI: Streamlined navigation header by removing redundant certificate links and adding dedicated back-navigation links on settings and change-password pages
+- UI: Restored dedicated showcase card for the Certificate Manager service certificate in certificate dashboard
+- UI: Fixed CSR upload button styling in modal to match modern cyber-glass theme
+- UI: Removed obsolete 'Create Certificate' action from admin dropdown menu
+- REFACTOR: Single-package architecture consolidation and directory cleanup (cmd/cert_manager/)
+- DOCS: Added developer guidelines and defined English as default UI development language in AGENTS.md
+
 

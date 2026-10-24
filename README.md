@@ -23,7 +23,7 @@ Then your internal sites show secure connections (without warnings) in all moder
 - **Ease of Use:** Simple web interface for generating, viewing, and exporting certificates.
 - **Dark/Light Mode:** Toggle between dark and light themes with preference persistence.
 - **Search/Filter:** Easily search and filter certificates in the table.
-- **Settings Page:** Configure certificate defaults, session timeout, and manage credentials.
+- **Tabbed Settings Page:** Configure certificate defaults, server certificates, OIDC SSO, and session timeouts with interactive slider controls.
 - **PKCS#12 Export:** Export certificates in `.pfx` format for Windows and IIS services.
 - **Unprivileged Container:** Runs securely in Docker under an unprivileged user (`appuser`, UID 10001).
 
