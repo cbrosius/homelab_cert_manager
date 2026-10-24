@@ -64,7 +64,7 @@ func TestSignCSR_Success(t *testing.T) {
 		t.Fatalf("SignCSR failed: %v", err)
 	}
 
-	certPath := filepath.Join("data", "certs", cn+".crt")
+	certPath := filepath.Join("data", "certs", cn+".pem")
 	defer os.Remove(certPath) // Cleanup
 
 	// Verify certificate was written
@@ -117,7 +117,7 @@ func TestSignCSR_MissingCN_UsesSAN(t *testing.T) {
 		t.Fatalf("SignCSR failed for CSR with empty CN but valid SAN: %v", err)
 	}
 
-	certPath := filepath.Join("data", "certs", "headless-device.local.crt")
+	certPath := filepath.Join("data", "certs", "headless-device.local.pem")
 	defer os.Remove(certPath)
 
 	if _, err := os.Stat(certPath); os.IsNotExist(err) {
@@ -203,7 +203,7 @@ func TestHandleSignCSR_MultipartUpload(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	certPath := filepath.Join("data", "certs", cn+".crt")
+	certPath := filepath.Join("data", "certs", cn+".pem")
 	defer os.Remove(certPath)
 
 	if w.Code != http.StatusOK {
@@ -238,7 +238,7 @@ func TestHandleSignCSR_ValidityYears(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	certPath := filepath.Join("data", "certs", cn+".crt")
+	certPath := filepath.Join("data", "certs", cn+".pem")
 	defer os.Remove(certPath)
 
 	if w.Code != http.StatusOK {
@@ -275,7 +275,7 @@ func TestCheckRootCertAndListCerts_HasPrivateKey(t *testing.T) {
 	if err := SignCSR(csrPEM, 30); err != nil {
 		t.Fatalf("Failed to sign CSR: %v", err)
 	}
-	defer os.Remove(filepath.Join("data", "certs", cn+".crt"))
+	defer os.Remove(filepath.Join("data", "certs", cn+".pem"))
 
 	req, _ := http.NewRequest(http.MethodGet, "/certificates", nil)
 	w := httptest.NewRecorder()

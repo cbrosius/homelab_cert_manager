@@ -107,7 +107,13 @@ func checkRootCertAndListCerts(c *gin.Context) {
 			ext = "pem"
 		} else if strings.HasSuffix(file.Name(), ".crt") {
 			name = strings.TrimSuffix(file.Name(), ".crt")
-			ext = "crt"
+			// Migrate legacy .crt file to .pem if .pem doesn't exist yet
+			pemPath := filepath.Join("./data/certs", name+".pem")
+			crtPath := filepath.Join("./data/certs", file.Name())
+			if _, err := os.Stat(pemPath); os.IsNotExist(err) {
+				_ = os.Rename(crtPath, pemPath)
+			}
+			ext = "pem"
 		} else {
 			continue
 		}
@@ -485,18 +491,16 @@ func downloadCertificate(c *gin.Context) {
 	}
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		// Fallback check between .pem and .crt
+		// Fallback check between .pem and .crt on disk without altering the requested download filename
 		if ext == ".pem" {
 			altPath := filepath.Join(baseDir, safeBaseName+".crt")
 			if _, err := os.Stat(altPath); err == nil {
 				filePath = altPath
-				safeFileName = safeBaseName + ".crt"
 			}
 		} else if ext == ".crt" {
 			altPath := filepath.Join(baseDir, safeBaseName+".pem")
 			if _, err := os.Stat(altPath); err == nil {
 				filePath = altPath
-				safeFileName = safeBaseName + ".pem"
 			}
 		}
 	}
@@ -826,7 +830,7 @@ func SignCSR(csrPEM []byte, validDays int) error {
 		return fmt.Errorf("failed to create certs directory: %w", err)
 	}
 
-	certFilePath := filepath.Join("data", "certs", safeName+".crt")
+	certFilePath := filepath.Join("data", "certs", safeName+".pem")
 	certFile, err := createFileWithPermissions(certFilePath, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to save certificate file: %w", err)

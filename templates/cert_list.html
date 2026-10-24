@@ -254,9 +254,9 @@
                                             </button>
                                             <ul id="download-menu-{{ .Name }}" class="dropdown-menu-box hidden">
                                                 <li>
-                                                    <a href="/certificates/download/{{ .Name }}.{{ if .Ext }}{{ .Ext }}{{ else }}pem{{ end }}">
+                                                    <a href="/certificates/download/{{ .Name }}.pem">
                                                         <i class="material-icons" style="font-size: 16px;">file_download</i>
-                                                        <span>Certificate (.{{ if eq .Ext "crt" }}CRT{{ else }}PEM{{ end }})</span>
+                                                        <span>Certificate (.PEM)</span>
                                                     </a>
                                                 </li>
                                                 {{ if .HasPrivateKey }}
