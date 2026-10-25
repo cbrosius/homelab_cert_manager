@@ -2370,5 +2370,35 @@ dialog.modern-dialog::backdrop {
     transition: transform var(--transition-fast);
 }
 
+/* Contextual Help Icon (?) */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    text-decoration: none;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+    border-radius: var(--border-radius-full);
+    padding: 2px;
+    cursor: pointer;
+    transition: color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.help-icon:hover {
+    color: var(--accent-primary);
+    background-color: var(--accent-primary-glow);
+    transform: scale(1.18);
+}
+
+.help-icon:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.help-icon i {
+    font-size: 16px;
+}
+
 
 

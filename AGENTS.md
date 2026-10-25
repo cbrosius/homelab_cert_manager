@@ -22,13 +22,11 @@ Keep the flat, readable package structure (`package main`). Do not over-engineer
 - `cmd/cert_manager/certificate.go`: Service certificate generation, CSR parsing/signing, listing, and file management.
 - `cmd/cert_manager/settings.go`: Reading and writing configuration in `data/settings.json`.
 - `cmd/cert_manager/oidc.go`: Optional OpenID Connect / Pocket ID authentication flow (with PKCE) and custom Root CA trust pool.
-- `cmd/cert_manager/wiki.go`: Offline Markdown rendering for the embedded/bundled GitHub Wiki (`wiki/`).
-- `cmd/cert_manager/i18n.go`: Lightweight localization loader and template helper for German (`de`) and English (`en`).
+- `cmd/cert_manager/wiki.go`: Offline Markdown rendering for the bundled documentation (`wiki/`) served under `/help`.
 - `cmd/cert_manager/*_test.go`: Unit and integration tests using the standard `testing` package.
 - `templates/`: Server-side rendered Go HTML templates (`*.html`).
 - `static/`: Local frontend assets (Materialize CSS, JS, icons). **No external CDNs** (must work offline/air-gapped).
 - `wiki/`: Local Markdown documentation synchronized with the GitHub Wiki (`homelab_cert_manager.wiki.git`).
-- `locales/`: UI translation dictionaries (`en.json`, `de.json`).
 - `data/`: Runtime directory for `settings.json`, `rootCA.crt`, `rootCA.key`, and issued certificates (excluded from Git).
 
 ---
@@ -43,16 +41,18 @@ Keep the flat, readable package structure (`package main`). Do not over-engineer
 - **Path Traversal Protection:** Always sanitize filenames (`filepath.Base`) before reading or deleting files in `data/` or rendering Markdown pages from `wiki/`.
 - **Internal CA Trust:** When making outbound HTTPS calls (e.g., to an OIDC Issuer), always append `data/rootCA.crt` (if present) to the `x509.SystemCertPool()` so the container trusts certificates issued by itself.
 
-### Frontend, Multilanguage (i18n) & Contextual Help
+### Frontend & Contextual Offline Help
 - **Offline Capability:** Never load CSS, fonts, images, or JS from external CDNs. Keep all assets local in `static/` and `wiki/`.
-- **Theme Consistency:** Follow the existing Materialize CSS structure and support both **Dark Mode and Light Mode** across all views, modals, and the offline Wiki viewer.
-- **No Hardcoded UI Strings (i18n Rule):** Never hardcode user-facing text in `templates/*.html`. Always use the translation helper and add every new key to **both** `locales/en.json` and `locales/de.json`. Keep standard PKI terms (e.g., *Common Name*, *SAN*, *CSR*, *Root CA*, *PKCE*) recognizable in German translations.
-- **Contextual Help Icons (`?`):** Every new configuration section, modal, or non-trivial input field must include a contextual help icon (`help_outline` with `target="_blank" rel="noopener"`) deep-linking to the corresponding `/wiki/<Page>#<anchor>`.
+- **Theme Consistency:** Follow the existing Materialize CSS structure and support both **Dark Mode and Light Mode** across all views, modals, and the integrated help viewer (`templates/help.html`).
+- **No Frontend Build Step:** Use plain HTML templates and vanilla JS. Do not introduce npm, Webpack, Vite, or SPA frameworks.
+- **Same-Window Contextual Help (`?`):**
+  - Help links and the main "Help" menu item open in the **current browser window/tab** (do **not** use `target="_blank"`), providing a consistent top navigation bar to return to the Certificate List (`/`) or Settings (`/settings`).
+  - Every configuration section, modal, and **every individual option on the Settings page (`templates/settings.html`)** must include a contextual `?` help icon (`help_outline`) deep-linking to its exact section in `/help/<Page>#<anchor>` (specifically `/help/Settings#<setting-anchor>` for settings).
 
 ### Docker & Deployment
 - **Non-Root Execution:** The application must run as an unprivileged user (`appuser:appgroup`) at runtime.
 - **Seamless Upgrades:** File ownership migrations on `/app/data` must be handled automatically in `entrypoint.sh` via privilege dropping (`su-exec` / `gosu`) before starting the Go binary.
-- **Bundle Docs & Locales:** Ensure `Dockerfile` copies `templates/`, `static/`, `wiki/`, and `locales/` into the runtime image.
+- **Bundle Docs:** Ensure `Dockerfile` copies `templates/`, `static/`, and `wiki/` into the runtime image.
 
 ---
 
@@ -62,20 +62,19 @@ Keep the flat, readable package structure (`package main`). Do not over-engineer
 - **Required Test Coverage:**
   - **Cryptography & CSR:** Root CA generation, service cert chain verification, CSR signing (`SignCSR` preserving Subject & SANs without creating a `.key` file), invalid PEM/CSR rejection, and `0600` key file permissions.
   - **OIDC & PKCE:** Redirect URL generation with PKCE (`code_challenge`, `code_challenge_method=S256`), optional empty client secret support, and custom Root CA pool loading.
-  - **Wiki & i18n Parity:** Verify Markdown rendering and `#anchor` generation, path traversal rejection on `/wiki/`, and automated key-parity verification ensuring `locales/en.json` and `locales/de.json` contain the exact same keys.
+  - **Integrated Help / Wiki:** Verify Markdown rendering under `/help`, automatic heading `#anchor` ID generation, and strict path traversal rejection.
 
 ---
 
 ## 6. Documentation, Wiki & Git Hygiene (Definition of Done)
 A task or feature is **NOT complete** until all of the following steps are fulfilled:
-1. **Update Offline Wiki (`wiki/*.md`):** Whenever a feature, setting, environment variable, or workflow is added or modified, update the corresponding Markdown page in `wiki/` (with a clear `##` heading so deep-link `#anchors` work) and ensure the matching `?` help icon is linked in the UI.
-2. **Maintain Translation Parity (`locales/*.json`):** Ensure both `locales/en.json` and `locales/de.json` are updated with all new UI strings.
-3. **Keep `README.md`, `CHANGELOG` & `todo.txt` in Sync:**
+1. **Update Offline Wiki (`wiki/*.md`):** Whenever a feature, workflow, environment variable, or **Settings option** is added or modified, update the corresponding Markdown page in `wiki/` (especially `wiki/Settings.md` with a dedicated `##` / `###` heading so `#anchors` work) and link the matching `?` help icon in the UI.
+2. **Keep `README.md`, `CHANGELOG` & `todo.txt` in Sync:**
    - Record every user-facing feature, fix, or security change in `CHANGELOG`.
    - Make surgical updates to `README.md` when setup steps or environment variables change.
    - Remove or check off completed items in `todo.txt`.
-4. **Never Commit Runtime Files:** Ensure `app.log`, `data/*.crt`, `data/*.pem`, `data/*.key`, and local `data/settings.json` are never staged or committed.
-5. **Run Pre-Commit Verification:**
+3. **Never Commit Runtime Files:** Ensure `app.log`, `data/*.crt`, `data/*.pem`, `data/*.key`, and local `data/settings.json` are never staged or committed.
+4. **Run Pre-Commit Verification:**
    - `go vet ./...`
    - `go test -v ./...`
    - `go build ./...`

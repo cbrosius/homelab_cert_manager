@@ -224,6 +224,10 @@ func Run() error {
 	r.GET("/auth/oidc/login", handleOIDCLogin)
 	r.GET("/auth/oidc/callback", handleOIDCCallback)
 
+	// Integrated Help & Documentation routes
+	r.GET("/help", showHelpPage)
+	r.GET("/help/:page", showHelpPage)
+
 	authorized := r.Group("/")
 	authorized.Use(AuthRequired)
 	authorized.Use(CheckPasswordChange(config))

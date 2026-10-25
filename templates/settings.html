@@ -59,6 +59,7 @@
                     <div class="card-title">
                         <i class="material-icons" style="color: var(--accent-primary);">router</i>
                         <span>Certificate Manager Server Certificate</span>
+                        <a href="/help/Settings#server-cert" class="help-icon" title="Explain Server Certificate"><i class="material-icons tiny">help_outline</i></a>
                     </div>
                     <span class="badge-pill status-active" style="font-size: 0.75rem;">TLS 1.2+ HTTPS</span>
                 </div>
@@ -75,6 +76,7 @@
                             <div class="form-group">
                                 <label class="form-label">
                                     DNS Hostname(s) or FQDN
+                                    <a href="/help/Settings#server-cert-dns" class="help-icon" title="Explain DNS Hostnames"><i class="material-icons tiny">help_outline</i></a>
                                 </label>
                                 <div class="tag-input-box" id="cmDnsTagBox" onclick="focusCmInput('cmDnsInput')">
                                     <div id="cmDnsTagsWrapper" style="display: inline-flex; flex-wrap: wrap; gap: 0.35rem;"></div>
@@ -92,6 +94,7 @@
                             <div class="form-group">
                                 <label class="form-label">
                                     Server IP Address(es)
+                                    <a href="/help/Settings#server-cert-ips" class="help-icon" title="Explain Server IP Addresses"><i class="material-icons tiny">help_outline</i></a>
                                 </label>
                                 <div class="tag-input-box" id="cmIpTagBox" onclick="focusCmInput('cmIpInput')">
                                     <div id="cmIpTagsWrapper" style="display: inline-flex; flex-wrap: wrap; gap: 0.35rem;"></div>
@@ -125,6 +128,7 @@
                     <div class="card-title">
                         <i class="material-icons" style="color: var(--accent-secondary);">auto_awesome</i>
                         <span>General Certificate Defaults</span>
+                        <a href="/help/Settings#cert-defaults" class="help-icon" title="Explain Certificate Defaults"><i class="material-icons tiny">help_outline</i></a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -137,37 +141,37 @@
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                             <div class="form-group">
-                                <label class="form-label" for="validity_period">Default Validity Period (Years) *</label>
+                                <label class="form-label" for="validity_period">Default Validity Period (Years) * <a href="/help/Settings#validity-period" class="help-icon" title="Explain Validity Period"><i class="material-icons tiny">help_outline</i></a></label>
                                 <input type="number" id="validity_period" name="validity_period" min="1" max="100" class="validate" oninput="enableGeneralOptionsSaveButton()" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="organization">Default Organization</label>
+                                <label class="form-label" for="organization">Default Organization <a href="/help/Settings#organization" class="help-icon" title="Explain Organization"><i class="material-icons tiny">help_outline</i></a></label>
                                 <input type="text" id="organization" name="organization" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. My HomeLab">
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem;">
                             <div class="form-group">
-                                <label class="form-label" for="organization_unit">Unit (OU)</label>
+                                <label class="form-label" for="organization_unit">Unit (OU) <a href="/help/Settings#organizational-unit" class="help-icon" title="Explain Organizational Unit"><i class="material-icons tiny">help_outline</i></a></label>
                                 <input type="text" id="organization_unit" name="organization_unit" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. Infrastructure">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="country">Country (2-letter ISO)</label>
+                                <label class="form-label" for="country">Country (2-letter ISO) <a href="/help/Settings#country" class="help-icon" title="Explain Country Code"><i class="material-icons tiny">help_outline</i></a></label>
                                 <input type="text" id="country" name="country" maxlength="2" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase(); enableGeneralOptionsSaveButton()" placeholder="e.g. US, DE">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="state">State / Province</label>
+                                <label class="form-label" for="state">State / Province <a href="/help/Settings#state-or-province" class="help-icon" title="Explain State or Province"><i class="material-icons tiny">help_outline</i></a></label>
                                 <input type="text" id="state" name="state" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. RLP">
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                             <div class="form-group">
-                                <label class="form-label" for="location">Locality / City</label>
+                                <label class="form-label" for="location">Locality / City <a href="/help/Settings#locality" class="help-icon" title="Explain Locality"><i class="material-icons tiny">help_outline</i></a></label>
                                 <input type="text" id="location" name="location" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. Home">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="email">Admin Email</label>
+                                <label class="form-label" for="email">Admin Email <a href="/help/Settings#admin-email" class="help-icon" title="Explain Admin Email"><i class="material-icons tiny">help_outline</i></a></label>
                                 <input type="email" id="email" name="email" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. admin@homelab.local">
                             </div>
                         </div>
@@ -191,6 +195,7 @@
                     <div class="card-title">
                         <i class="material-icons" style="color: var(--accent-primary);">fingerprint</i>
                         <span>Pocket ID / OIDC Authentication</span>
+                        <a href="/help/Settings#oidc-auth" class="help-icon" title="Explain OIDC Authentication"><i class="material-icons tiny">help_outline</i></a>
                     </div>
                     <span class="badge-pill {{ if .oidcSettings.Enabled }}status-active{{ else }}status-revoked{{ end }}" id="oidcStatusBadge" style="font-size: 0.75rem;">
                         {{ if .oidcSettings.Enabled }}Active SSO{{ else }}Disabled{{ end }}
@@ -212,18 +217,19 @@
                             </label>
                             <label for="oidc_enabled" class="form-label" style="cursor: pointer; margin: 0; font-size: 0.95rem; font-weight: 600;">
                                 Enable OIDC Authentication
+                                <a href="/help/Settings#oidc-enabled" class="help-icon" title="Explain OIDC Enabled"><i class="material-icons tiny">help_outline</i></a>
                             </label>
                         </div>
 
                         <div id="oidcFieldsContainer" style="{{ if not .oidcSettings.Enabled }}display: none;{{ end }}">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                                 <div class="form-group">
-                                    <label class="form-label" for="oidc_issuer_url">Issuer URL *</label>
+                                    <label class="form-label" for="oidc_issuer_url">Issuer URL * <a href="/help/Settings#oidc-issuer-url" class="help-icon" title="Explain OIDC Issuer URL"><i class="material-icons tiny">help_outline</i></a></label>
                                     <input type="url" id="oidc_issuer_url" name="oidc_issuer_url" value="{{ .oidcSettings.IssuerURL }}" placeholder="https://pocket-id.homelab.local" oninput="enableOidcSaveButton()">
                                     <span class="helper-text">Base URL of your Pocket ID / OIDC provider (where <code>.well-known/openid-configuration</code> is served).</span>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label" for="oidc_client_id">Client ID *</label>
+                                    <label class="form-label" for="oidc_client_id">Client ID * <a href="/help/Settings#oidc-client-id" class="help-icon" title="Explain OIDC Client ID"><i class="material-icons tiny">help_outline</i></a></label>
                                     <input type="text" id="oidc_client_id" name="oidc_client_id" value="{{ .oidcSettings.ClientID }}" placeholder="e.g. homelab-cert-manager" oninput="enableOidcSaveButton()">
                                     <span class="helper-text">Client identifier registered in your OIDC provider.</span>
                                 </div>
@@ -231,7 +237,7 @@
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1rem;">
                                 <div class="form-group">
-                                    <label class="form-label" for="oidc_client_secret">Client Secret (Optional for Public Clients / PKCE)</label>
+                                    <label class="form-label" for="oidc_client_secret">Client Secret (Optional for Public Clients / PKCE) <a href="/help/Settings#oidc-client-secret" class="help-icon" title="Explain OIDC Client Secret & PKCE"><i class="material-icons tiny">help_outline</i></a></label>
                                     <div class="input-with-icon">
                                         <i class="material-icons input-leading-icon">key</i>
                                         <input type="password" id="oidc_client_secret" name="oidc_client_secret" value="{{ .oidcSettings.ClientSecret }}" placeholder="Optional for Pocket ID public clients / PKCE" oninput="enableOidcSaveButton()">
@@ -242,7 +248,7 @@
                                     <span class="helper-text">Optional when using Pocket ID Public Clients with PKCE (S256), or enter client secret for confidential clients.</span>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label" for="oidc_redirect_url">Redirect / Callback URL (Optional)</label>
+                                    <label class="form-label" for="oidc_redirect_url">Redirect / Callback URL (Optional) <a href="/help/Settings#oidc-redirect-url" class="help-icon" title="Explain Redirect URL"><i class="material-icons tiny">help_outline</i></a></label>
                                     <input type="url" id="oidc_redirect_url" name="oidc_redirect_url" value="{{ .oidcSettings.RedirectURL }}" placeholder="https://<host>:8443/auth/oidc/callback" oninput="enableOidcSaveButton()">
                                     <span class="helper-text">Leave blank to automatically use <code>https://&lt;current-host&gt;:8443/auth/oidc/callback</code>.</span>
                                 </div>
@@ -276,6 +282,7 @@
                     <div class="card-title">
                         <i class="material-icons" style="color: var(--accent-warning);">timer</i>
                         <span>Session Inactivity Timeout</span>
+                        <a href="/help/Settings#session-timeout" class="help-icon" title="Explain Session Timeout"><i class="material-icons tiny">help_outline</i></a>
                     </div>
                     <span id="sessionTimeoutDisplayBadge" class="badge-pill status-active" style="font-size: 0.8rem; text-transform: none;">
                         {{ .sessionTimeoutMinutes }} Minutes
@@ -293,6 +300,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
                                 <label class="form-label" for="timeout_minutes" style="margin-bottom: 0;">
                                     Inactivity Timeout (Minutes) <span style="color: var(--accent-danger);">*</span>
+                                    <a href="/help/Settings#session-timeout" class="help-icon" title="Explain Inactivity Timeout"><i class="material-icons tiny">help_outline</i></a>
                                 </label>
                             </div>
 
