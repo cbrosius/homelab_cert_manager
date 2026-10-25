@@ -104,6 +104,7 @@ func (l *LoginRateLimiter) Middleware() gin.HandlerFunc {
 			c.HTML(http.StatusTooManyRequests, "login.html", gin.H{
 				"error":     fmt.Sprintf("Too many failed login attempts. Please try again in %d seconds.", seconds),
 				"csrfToken": getCSRFToken(c.Request),
+				"Lang":      getRequestLanguage(c),
 			})
 			c.Abort()
 			return

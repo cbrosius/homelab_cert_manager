@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ if .Lang }}{{ .Lang }}{{ else }}en{{ end }}" theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup Root CA - HomeLab Certificate Manager</title>
+    <title>{{ t .Lang "root_ca_modal_title" }} – {{ t .Lang "app_title" }}</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Modern Design System -->
     <link rel="stylesheet" href="/static/styles.css">
@@ -21,8 +21,11 @@
             <div class="brand-logo-glow" style="width: 56px; height: 56px; margin: 0 auto 1rem; border-radius: var(--border-radius-lg);">
                 <i class="material-icons" style="font-size: 32px; color: var(--accent-primary);">shield</i>
             </div>
-            <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;">
-                Initialize HomeLab Certificate Authority
+            <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <span>{{ t .Lang "root_ca_modal_title" }}</span>
+                <a href="/wiki/Root-Certificate#trust-root-ca" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_root_ca" }}">
+                    <i class="material-icons tiny">help_outline</i>
+                </a>
             </h1>
             <p style="font-size: 0.95rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.6;">
                 Create your internal <strong>Root Certificate</strong>. All service certificates you create will be signed by this Root CA.

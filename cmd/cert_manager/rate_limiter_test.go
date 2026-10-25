@@ -74,6 +74,9 @@ func TestLoginRateLimiterMiddleware(t *testing.T) {
 	r := gin.New()
 	r.SetFuncMap(template.FuncMap{
 		"toJson": toJson,
+		"t": func(lang, key string) string {
+			return T(lang, key)
+		},
 	})
 	r.LoadHTMLGlob("templates/*")
 	r.POST("/test-login", limiter.Middleware(), func(c *gin.Context) {

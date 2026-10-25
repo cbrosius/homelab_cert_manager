@@ -64,14 +64,17 @@
                     <div class="card-header">
                         <div class="card-title">
                             <i class="material-icons" style="color: var(--accent-primary);">tune</i>
-                            <span>Certificate Parameters</span>
+                            <span>{{ t .Lang "create_cert_modal_title" }}</span>
+                            <a href="/wiki/Certificates#create-certificate" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_san" }}">
+                                <i class="material-icons tiny">help_outline</i>
+                            </a>
                         </div>
                     </div>
                     <div class="card-body">
                         <!-- Common Name (CN) -->
                         <div class="form-group">
                             <label class="form-label" for="common_name">
-                                Common Name (CN) <span style="color: var(--accent-danger);">*</span>
+                                {{ t .Lang "create_cert_cn_label" }} <span style="color: var(--accent-danger);">*</span>
                             </label>
                             <input 
                                 type="text" 
@@ -84,13 +87,16 @@
                                 oninput="onCommonNameChange(this.value)"
                                 {{ if not .rootCertExists }}disabled{{ end }}
                             >
-                            <span class="helper-text" id="cn-helper">Main hostname or service identifier (max 64 characters)</span>
+                            <span class="helper-text" id="cn-helper">{{ t .Lang "create_cert_cn_help" }}</span>
                         </div>
 
                         <!-- Interactive Subject Alternative Names (SANs) Tag Manager -->
                         <div class="form-group" style="margin-top: 1.5rem;">
-                            <label class="form-label">
-                                Subject Alternative Names (SANs) - Hostnames & IPs
+                            <label class="form-label" style="display: flex; align-items: center;">
+                                <span>{{ t .Lang "create_cert_sans_title" }}</span>
+                                <a href="/wiki/Certificates#san-configuration" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_san" }}">
+                                    <i class="material-icons tiny">help_outline</i>
+                                </a>
                             </label>
                             <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
                                 Type a domain (e.g. <code>*.homelab.lan</code>) or IP address (e.g. <code>192.168.1.100</code>) and press <strong>Enter</strong> or comma.

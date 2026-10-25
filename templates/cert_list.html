@@ -65,7 +65,12 @@
                         <i class="material-icons" style="color: var(--accent-primary); font-size: 24px;">security</i>
                     </div>
                     <div>
-                        <h2>HomeLab Root CA Certificate</h2>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <h2 style="margin: 0;">{{ t .Lang "root_ca_title" }}</h2>
+                            <a href="/wiki/Root-Certificate#trust-root-ca" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_root_ca" }}">
+                                <i class="material-icons tiny">help_outline</i>
+                            </a>
+                        </div>
                         <div style="display: flex; align-items: center; gap: 0.6rem; margin-top: 2px;">
                             <span class="badge-pill status-active">
                                 <i class="material-icons" style="font-size: 12px;">check_circle</i>
@@ -427,7 +432,10 @@
         <div class="modal-header">
             <h3 style="display: flex; align-items: center; gap: 0.5rem;">
                 <i class="material-icons" style="color: var(--accent-primary);">assignment</i>
-                <span>Sign Certificate Request (CSR)</span>
+                <span>{{ t .Lang "csr_modal_title" }}</span>
+                <a href="/wiki/CSR-Signing#sign-csr" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_sign_csr" }}">
+                    <i class="material-icons tiny">help_outline</i>
+                </a>
             </h3>
             <button class="btn-icon-nav" type="button" onclick="closeSignCsrModal()" aria-label="Close modal">
                 <i class="material-icons">close</i>

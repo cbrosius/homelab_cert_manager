@@ -36,6 +36,8 @@ ENV APP_USER=appuser \
 COPY --from=builder /build/homelab_cert_manager /app/
 COPY --from=builder /build/templates /app/templates
 COPY --from=builder /build/static /app/static
+COPY --from=builder /build/wiki /app/wiki
+COPY --from=builder /build/locales /app/locales
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 

@@ -179,6 +179,7 @@ func checkRootCertAndListCerts(c *gin.Context) {
 		"defaultValidityDays":  defaultValidityDays,
 		"defaultValidityYears": defaultValidityYears,
 		"csrfToken":            getCSRFToken(c.Request),
+		"Lang":                 getRequestLanguage(c),
 	})
 }
 

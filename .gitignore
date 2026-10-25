@@ -5,6 +5,7 @@
 *.pfx
 *.csr
 *.json
+!locales/*.json
 app.log
 
 # Local data & certificates

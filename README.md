@@ -16,6 +16,8 @@ Then your internal sites show secure connections (without warnings) in all moder
 
 ## Features
 
+- **In-App Offline Wiki & Contextual Help:** Complete offline Markdown documentation viewer (`/wiki/`) with real-time search and contextual `?` deep-link icons across all views and modals.
+- **Multilanguage Support (DE / EN):** Complete German and English localization with automatic browser language detection (`Accept-Language`), quick navbar toggle (`DE` / `EN`), and settings persistence.
 - **Internal Certificate Management:** Generate and manage internal SSL/TLS certificates.
 - **CSR Signing (Certificate Signing Requests):** Upload or paste external CSRs from third-party appliances, switches, and servers (Proxmox, TrueNAS, etc.) to sign them with your Root CA without handling private keys.
 - **Pocket ID / OIDC SSO Authentication:** Optional Passkey and Single Sign-On support via Pocket ID or any OpenID Connect provider with built-in Root CA trust and emergency local fallback.
@@ -27,7 +29,7 @@ Then your internal sites show secure connections (without warnings) in all moder
 - **Ease of Use:** Simple web interface for generating, viewing, and exporting certificates.
 - **Dark/Light Mode:** Toggle between dark and light themes with preference persistence.
 - **Search/Filter:** Easily search and filter certificates in the table.
-- **Tabbed Settings Page:** Configure certificate defaults, server certificates, OIDC SSO, and session timeouts with interactive slider controls.
+- **Tabbed Settings Page:** Configure certificate defaults, server certificates, OIDC SSO, language preferences, and session timeouts with interactive slider controls.
 - **PKCS#12 Export:** Export certificates in `.pfx` format for Windows and IIS services.
 - **Unprivileged Container:** Runs securely in Docker under an unprivileged user (`appuser`, UID 10001).
 
@@ -233,6 +235,25 @@ Homelab Cert Manager solves this automatically:
 To prevent lockouts if your OIDC provider is offline or its own certificate has expired:
 - The standard local username and password login remains available on the login page via a discreet **Local admin fallback** link.
 - You can always sign in locally with your administrator password to renew certificates or troubleshoot services.
+
+### In-App Offline Wiki & Contextual Help
+
+The application bundles an embedded offline Wiki viewer available at `/wiki/` (and directly accessible via **Wiki / Help** in the top-right user menu).
+- **Zero Internet Requirement:** Documentation is parsed directly from local Markdown files (`/app/wiki/`) inside the container.
+- **Deep-Link Help Icons:** Inline contextual help icons (`?`) link directly to relevant guides and `#anchors`:
+  - Root CA Section $\rightarrow$ `/wiki/Root-Certificate#trust-root-ca`
+  - SAN Configuration $\rightarrow$ `/wiki/Certificates#san-configuration`
+  - CSR Signing $\rightarrow$ `/wiki/CSR-Signing#sign-csr`
+  - Server Certificate $\rightarrow$ `/wiki/Certificates#self-certificate`
+  - OIDC / PKCE Setup $\rightarrow$ `/wiki/Pocket-ID-OIDC#oidc-setup`
+  - Login Emergency Fallback $\rightarrow$ `/wiki/Pocket-ID-OIDC#emergency-fallback`
+
+### Multilanguage Support (German & English)
+
+Homelab Cert Manager supports German (`de`) and English (`en`):
+- **Auto-Detection:** Automatically detects the preferred language from the browser's `Accept-Language` header.
+- **Quick Switcher:** Instant toggle between `DE` and `EN` in the top navigation bar.
+- **Settings Persistence:** Preferred language can be configured under **Settings $\rightarrow$ Language** or pinned via the `APP_LANGUAGE` environment variable (e.g. `APP_LANGUAGE=de`).
 
 ### Debug Logging
 

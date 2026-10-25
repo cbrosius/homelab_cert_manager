@@ -12,15 +12,21 @@
 
         <!-- Right Side Actions -->
         <div class="nav-actions">
+            <!-- Language Switcher -->
+            <div class="lang-switcher-group" title="{{ t .Lang "nav_language" }}">
+                <a href="/set-language/de" class="lang-btn {{ if eq .Lang "de" }}active{{ end }}" title="Deutsch">DE</a>
+                <a href="/set-language/en" class="lang-btn {{ if ne .Lang "de" }}active{{ end }}" title="English">EN</a>
+            </div>
+
             <!-- Session Timer Pill -->
-            <div id="session-timer-badge" class="session-timer-pill" title="Session timeout countdown (resets on interaction)">
+            <div id="session-timer-badge" class="session-timer-pill" title="{{ t .Lang "session_timer_title" }}">
                 <span class="session-pulse-dot"></span>
                 <i class="material-icons" style="font-size: 14px;">timer</i>
                 <span id="session-countdown">--:--</span>
             </div>
 
             <!-- Theme Toggle Switch -->
-            <button id="theme-switch" class="btn-icon-nav" type="button" onclick="toggleTheme()" title="Toggle color theme" aria-label="Toggle theme">
+            <button id="theme-switch" class="btn-icon-nav" type="button" onclick="toggleTheme()" title="{{ t .Lang "theme_toggle_title" }}" aria-label="{{ t .Lang "theme_toggle_title" }}">
                 <i class="material-icons">light_mode</i>
             </button>
 
@@ -37,20 +43,26 @@
                     <li role="none">
                         <a href="/settings" role="menuitem">
                             <i class="material-icons">tune</i>
-                            <span>Settings</span>
+                            <span>{{ t .Lang "nav_settings" }}</span>
                         </a>
                     </li>
                     <li role="none">
                         <a href="/change-password" role="menuitem">
                             <i class="material-icons">lock_reset</i>
-                            <span>Change Password</span>
+                            <span>{{ t .Lang "nav_change_password" }}</span>
+                        </a>
+                    </li>
+                    <li role="none">
+                        <a href="/wiki/Home" target="_blank" rel="noopener" role="menuitem">
+                            <i class="material-icons">menu_book</i>
+                            <span>{{ t .Lang "nav_wiki_help" }}</span>
                         </a>
                     </li>
                     <li class="divider" role="separator"></li>
                     <li role="none">
                         <a href="/logout" class="logout-link" role="menuitem">
                             <i class="material-icons">logout</i>
-                            <span>Logout</span>
+                            <span>{{ t .Lang "nav_logout" }}</span>
                         </a>
                     </li>
                 </ul>
@@ -62,7 +74,7 @@
     {{ if .defaultPassword }}
     <div class="security-warning-bar" role="alert">
         <i class="material-icons" style="color: var(--accent-warning);">warning</i>
-        <span>Security Warning: The default password is active. Please update your password immediately in <a href="/change-password">Change Password</a>.</span>
+        <span>{{ t .Lang "security_warning_default_password" }}</span>
     </div>
     {{ end }}
 

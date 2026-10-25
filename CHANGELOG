@@ -59,3 +59,15 @@ Features:
 - DOCS: Added official Project Wiki link to README for setup guides, Root CA trust installation, and appliance CSR workflows
 - DOCS: Added automated UI screenshot test suite and comprehensive dark/light mode documentation gallery
 - FIX: Protected live settings.json and OIDC settings from being overwritten during go test execution
+
+2026/10/25 v0.7 - In-App Offline Wiki & Multilanguage (DE/EN)
+Features:
+- FEAT: In-app offline Wiki documentation viewer at /wiki/ and /wiki/{page} powered by pure Go Goldmark markdown engine with GFM support
+- FEAT: Contextual help icons (?) deep-linking directly to corresponding documentation sections (#anchors) across all views and modals
+- FEAT: Complete multilanguage support (DE / EN) with 100% key parity, automatic Accept-Language browser detection, navbar switcher, and settings persistence
+- FEAT: Dynamic sidebar documentation navigation with client-side real-time filter search
+- DOCS: Comprehensive local documentation bundle in ./wiki/ (Home, Root-Certificate, Certificates, CSR-Signing, Pocket-ID-OIDC) bundled directly into container runtime
+- CI/CD: Automated GitHub Wiki sync workflow (.github/workflows/sync-wiki.yml) publishing ./wiki/ changes to GitHub Wiki
+- SCRIPT: Added helper script scripts/sync-wiki.sh for manual synchronization between ./wiki/ and GitHub Wiki
+- TESTS: Added comprehensive unit tests for wiki rendering, anchor IDs, language fallback, path traversal rejection, and automated i18n key-parity verification
+

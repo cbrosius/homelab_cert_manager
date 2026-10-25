@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ if .Lang }}{{ .Lang }}{{ else }}en{{ end }}" theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In - HomeLab Certificate Manager</title>
+    <title>{{ t .Lang "login_title" }}</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <!-- Modern Design System -->
     <link rel="stylesheet" href="/static/styles.css">
@@ -14,9 +14,16 @@
 </head>
 <body>
     <div class="login-page-wrapper">
-        <!-- Top Right Theme Switcher -->
-        <div style="position: absolute; top: 20px; right: 24px;">
-            <button id="theme-switch" class="btn-icon-nav" type="button" onclick="toggleTheme()" title="Toggle color theme" aria-label="Toggle theme">
+        <!-- Top Right Actions -->
+        <div style="position: absolute; top: 20px; right: 24px; display: flex; align-items: center; gap: 0.75rem;">
+            <!-- Language Switcher -->
+            <div class="lang-switcher-group" title="{{ t .Lang "nav_language" }}">
+                <a href="/set-language/de" class="lang-btn {{ if eq .Lang "de" }}active{{ end }}" title="Deutsch">DE</a>
+                <a href="/set-language/en" class="lang-btn {{ if ne .Lang "de" }}active{{ end }}" title="English">EN</a>
+            </div>
+
+            <!-- Theme Toggle Switch -->
+            <button id="theme-switch" class="btn-icon-nav" type="button" onclick="toggleTheme()" title="{{ t .Lang "theme_toggle_title" }}" aria-label="{{ t .Lang "theme_toggle_title" }}">
                 <i class="material-icons">light_mode</i>
             </button>
         </div>
@@ -31,10 +38,10 @@
             <!-- Header Titles -->
             <div style="text-align: center; margin-bottom: 2rem;">
                 <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;">
-                    HomeLab Certificate Authority
+                    {{ t .Lang "login_heading" }}
                 </h1>
                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.35rem;">
-                    Sign in to manage your local SSL/TLS certificates
+                    {{ t .Lang "login_subheading" }}
                 </p>
             </div>
 
@@ -51,16 +58,19 @@
             <div>
                 <a href="/auth/oidc/login" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem; text-decoration: none; box-sizing: border-box; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.35);">
                     <i class="material-icons" style="font-size: 20px;">fingerprint</i>
-                    <span style="font-weight: 600;">Sign in with Pocket ID / OIDC</span>
+                    <span style="font-weight: 600;">{{ t .Lang "login_oidc_btn" }}</span>
                 </a>
             </div>
 
-            <!-- Visually minimal fallback toggle link -->
-            <div style="text-align: center; margin-top: 1rem;">
+            <!-- Visually minimal fallback toggle link with help deep-link -->
+            <div style="text-align: center; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                 <button type="button" id="fallbackToggleBtn" class="fallback-minimal-link" onclick="toggleFallbackLogin()" aria-expanded="false" aria-controls="fallbackLoginContainer">
-                    <span>Local admin fallback</span>
+                    <span>{{ t .Lang "login_local_admin_toggle" }}</span>
                     <i id="fallbackChevron" class="material-icons chevron">expand_more</i>
                 </button>
+                <a href="/wiki/Pocket-ID-OIDC#emergency-fallback" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_login_fallback" }}">
+                    <i class="material-icons tiny">help_outline</i>
+                </a>
             </div>
 
             <div id="fallbackLoginContainer" class="fallback-login-panel" style="display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle);">
@@ -73,7 +83,7 @@
 
                 <!-- Password Input -->
                 <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
+                    <label class="form-label" for="password">{{ t .Lang "login_password" }}</label>
                     <div class="input-with-icon">
                         <i class="material-icons input-leading-icon">lock</i>
                         <input 
@@ -81,7 +91,7 @@
                             id="password" 
                             name="password" 
                             autocomplete="current-password" 
-                            placeholder="Enter your password" 
+                            placeholder="••••••••••••" 
                             required
                             {{ if not .oidcEnabled }}autofocus{{ end }}
                         >
@@ -94,7 +104,7 @@
                 <!-- Sign In Button -->
                 <div style="margin-top: 1.75rem;">
                     <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;">
-                        <span>Sign In</span>
+                        <span>{{ t .Lang "login_btn" }}</span>
                         <i class="material-icons" style="font-size: 18px;">arrow_forward</i>
                     </button>
                 </div>

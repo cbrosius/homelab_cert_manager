@@ -79,6 +79,11 @@ func Run() error {
 		return fmt.Errorf("failed to initialize settings: %w", conf_error)
 	}
 
+	// Initialize i18n
+	if err := initI18n(); err != nil {
+		log.Printf("Warning: failed to initialize i18n: %v", err)
+	}
+
 	// Load configuration
 	config, conf_error := loadConfig()
 	if conf_error != nil {
@@ -206,13 +211,22 @@ func Run() error {
 	// Add CSRF middleware
 	r.Use(csrfMiddleware())
 
-	// Add the toJson function to the template's function map
+	// Add toJson and translation functions to the template's function map
 	r.SetFuncMap(template.FuncMap{
 		"toJson": toJson,
+		"t": func(lang, key string) string {
+			return T(lang, key)
+		},
 	})
 
 	// Load templates with the function map
 	r.LoadHTMLGlob("templates/*")
+
+	// Public wiki and language routes
+	r.GET("/wiki", handleWikiPage)
+	r.GET("/wiki/:page", handleWikiPage)
+	r.GET("/set-language/:lang", handleSetLanguage)
+	r.POST("/set-language", handleSetLanguage)
 
 	r.GET("/login", showLoginPage)
 	r.POST("/login", loginLimiter.Middleware(), func(c *gin.Context) {
@@ -268,6 +282,8 @@ func Run() error {
 		authorized.GET("/settings/oidc", handleOIDCSettings)
 		authorized.POST("/settings/oidc", handleOIDCSettings)
 
+		authorized.POST("/settings/language", handleLanguageSettings)
+
 		authorized.POST("/change-password", func(c *gin.Context) {
 			changePassword(c, config)
 		})
@@ -278,6 +294,7 @@ func Run() error {
 				"MustChangePassword": config.MustChangePassword,
 				"defaultPassword":    isDefaultPassword,
 				"csrfToken":          getCSRFToken(c.Request),
+				"Lang":               getRequestLanguage(c),
 			})
 		})
 	}
@@ -476,6 +493,8 @@ func showSettingsPage(c *gin.Context) {
 		"oidcSettings":          oidcCfg,
 		"defaultPassword":       isDefaultPassword,
 		"csrfToken":             getCSRFToken(c.Request),
+		"Lang":                  getRequestLanguage(c),
+		"Language":              getRequestLanguage(c),
 	})
 }
 
@@ -696,6 +715,9 @@ func renderTemplate(c *gin.Context, templateName string, data gin.H) {
 	if data == nil {
 		data = gin.H{}
 	}
+	if _, ok := data["Lang"]; !ok {
+		data["Lang"] = getRequestLanguage(c)
+	}
 	c.HTML(http.StatusOK, templateName, data)
 }
 
@@ -712,6 +734,7 @@ func showLoginPage(c *gin.Context) {
 		"error":       errorMsg,
 		"oidcEnabled": isOidcEnabled(),
 		"csrfToken":   getCSRFToken(c.Request),
+		"Lang":        getRequestLanguage(c),
 	})
 }
 
@@ -764,6 +787,7 @@ func handleLogin(c *gin.Context, config *Config) {
 			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
 				"error":     "Session error",
 				"csrfToken": getCSRFToken(c.Request),
+				"Lang":      getRequestLanguage(c),
 			})
 			return
 		}
@@ -774,6 +798,7 @@ func handleLogin(c *gin.Context, config *Config) {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"error":     "Invalid credentials",
 			"csrfToken": getCSRFToken(c.Request),
+			"Lang":      getRequestLanguage(c),
 		})
 	}
 }

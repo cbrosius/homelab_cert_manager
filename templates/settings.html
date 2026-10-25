@@ -35,19 +35,23 @@
         <nav class="settings-tabs-nav" role="tablist" aria-label="Settings Sections">
             <button class="settings-tab-btn active" id="tab-server-cert" role="tab" aria-selected="true" aria-controls="panel-server-cert" tabindex="0" onclick="switchSettingsTab('server-cert')">
                 <i class="material-icons">router</i>
-                <span>Server Certificate</span>
+                <span>{{ t .Lang "settings_tab_server_cert" }}</span>
             </button>
             <button class="settings-tab-btn" id="tab-defaults" role="tab" aria-selected="false" aria-controls="panel-defaults" tabindex="-1" onclick="switchSettingsTab('defaults')">
                 <i class="material-icons">auto_awesome</i>
-                <span>Certificate Defaults</span>
+                <span>{{ t .Lang "settings_tab_cert_defaults" }}</span>
             </button>
             <button class="settings-tab-btn" id="tab-oidc" role="tab" aria-selected="false" aria-controls="panel-oidc" tabindex="-1" onclick="switchSettingsTab('oidc')">
                 <i class="material-icons">fingerprint</i>
-                <span>Single Sign-On (OIDC)</span>
+                <span>{{ t .Lang "settings_tab_oidc" }}</span>
             </button>
             <button class="settings-tab-btn" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" onclick="switchSettingsTab('security')">
                 <i class="material-icons">timer</i>
-                <span>Session Timeout</span>
+                <span>{{ t .Lang "settings_tab_session" }}</span>
+            </button>
+            <button class="settings-tab-btn" id="tab-language" role="tab" aria-selected="false" aria-controls="panel-language" tabindex="-1" onclick="switchSettingsTab('language')">
+                <i class="material-icons">translate</i>
+                <span>{{ t .Lang "settings_tab_language" }}</span>
             </button>
         </nav>
 
@@ -58,13 +62,16 @@
                 <div class="card-header">
                     <div class="card-title">
                         <i class="material-icons" style="color: var(--accent-primary);">router</i>
-                        <span>Certificate Manager Server Certificate</span>
+                        <span>{{ t .Lang "server_cert_title" }}</span>
+                        <a href="/wiki/Certificates#self-certificate" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_server_cert" }}">
+                            <i class="material-icons tiny">help_outline</i>
+                        </a>
                     </div>
                     <span class="badge-pill status-active" style="font-size: 0.75rem;">TLS 1.2+ HTTPS</span>
                 </div>
                 <div class="card-body">
                     <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-                        Define the hostnames and IP addresses used to reach this Certificate Manager web interface. Recreating the certificate will issue a new TLS certificate signed by your HomeLab Root CA.
+                        {{ t .Lang "settings_server_cert_desc" }}
                     </p>
 
                     <form id="certManagerForm">
@@ -124,12 +131,15 @@
                 <div class="card-header">
                     <div class="card-title">
                         <i class="material-icons" style="color: var(--accent-secondary);">auto_awesome</i>
-                        <span>General Certificate Defaults</span>
+                        <span>{{ t .Lang "settings_tab_cert_defaults" }}</span>
+                        <a href="/wiki/Certificates#create-certificate" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_cert_defaults" }}">
+                            <i class="material-icons tiny">help_outline</i>
+                        </a>
                     </div>
                 </div>
                 <div class="card-body">
                     <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-                        These default values will pre-fill the certificate creation form for newly issued services.
+                        {{ t .Lang "settings_defaults_desc" }}
                     </p>
 
                     <form id="generalCertOptionsForm" onsubmit="submitGeneralCertOptions(event)">
@@ -137,37 +147,37 @@
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                             <div class="form-group">
-                                <label class="form-label" for="validity_period">Default Validity Period (Years) *</label>
+                                <label class="form-label" for="validity_period">{{ t .Lang "settings_defaults_validity" }} *</label>
                                 <input type="number" id="validity_period" name="validity_period" min="1" max="100" class="validate" oninput="enableGeneralOptionsSaveButton()" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="organization">Default Organization</label>
+                                <label class="form-label" for="organization">{{ t .Lang "settings_defaults_org" }}</label>
                                 <input type="text" id="organization" name="organization" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. My HomeLab">
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem;">
                             <div class="form-group">
-                                <label class="form-label" for="organization_unit">Unit (OU)</label>
+                                <label class="form-label" for="organization_unit">{{ t .Lang "settings_defaults_ou" }}</label>
                                 <input type="text" id="organization_unit" name="organization_unit" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. Infrastructure">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="country">Country (2-letter ISO)</label>
+                                <label class="form-label" for="country">{{ t .Lang "settings_defaults_country" }}</label>
                                 <input type="text" id="country" name="country" maxlength="2" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase(); enableGeneralOptionsSaveButton()" placeholder="e.g. US, DE">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="state">State / Province</label>
+                                <label class="form-label" for="state">{{ t .Lang "settings_defaults_state" }}</label>
                                 <input type="text" id="state" name="state" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. RLP">
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                             <div class="form-group">
-                                <label class="form-label" for="location">Locality / City</label>
+                                <label class="form-label" for="location">{{ t .Lang "settings_defaults_city" }}</label>
                                 <input type="text" id="location" name="location" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. Home">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="email">Admin Email</label>
+                                <label class="form-label" for="email">{{ t .Lang "settings_defaults_email" }}</label>
                                 <input type="email" id="email" name="email" oninput="enableGeneralOptionsSaveButton()" placeholder="e.g. admin@homelab.local">
                             </div>
                         </div>
@@ -175,7 +185,7 @@
                         <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
                             <button id="saveGeneralOptionsButton" type="submit" class="btn btn-primary" disabled>
                                 <i class="material-icons">save</i>
-                                <span>Save General Defaults</span>
+                                <span>{{ t .Lang "settings_defaults_btn" }}</span>
                             </button>
                         </div>
                     </form>
@@ -190,7 +200,10 @@
                 <div class="card-header">
                     <div class="card-title">
                         <i class="material-icons" style="color: var(--accent-primary);">fingerprint</i>
-                        <span>Pocket ID / OIDC Authentication</span>
+                        <span>{{ t .Lang "settings_tab_oidc" }}</span>
+                        <a href="/wiki/Pocket-ID-OIDC#oidc-setup" target="_blank" rel="noopener" class="help-icon" title="{{ t .Lang "help_tooltip_oidc" }}">
+                            <i class="material-icons tiny">help_outline</i>
+                        </a>
                     </div>
                     <span class="badge-pill {{ if .oidcSettings.Enabled }}status-active{{ else }}status-revoked{{ end }}" id="oidcStatusBadge" style="font-size: 0.75rem;">
                         {{ if .oidcSettings.Enabled }}Active SSO{{ else }}Disabled{{ end }}
@@ -332,7 +345,41 @@
                         <div style="margin-top: 1.5rem;">
                             <button id="saveSessionSettingsButton" type="submit" class="btn btn-primary" disabled>
                                 <i class="material-icons">save</i>
-                                <span>Save Timeout Settings</span>
+                                <span>{{ t .Lang "settings_session_btn" }}</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </div>
+
+        <!-- Tab 5: Language -->
+        <div class="settings-tab-panel" id="panel-language" role="tabpanel" aria-labelledby="tab-language">
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="material-icons" style="color: var(--accent-primary);">translate</i>
+                        <span>{{ t .Lang "settings_tab_language" }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                        {{ t .Lang "settings_lang_desc" }}
+                    </p>
+
+                    <form action="/settings/language" method="POST" style="max-width: 500px;">
+                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                        <div class="form-group">
+                            <label class="form-label" for="languageSelect">{{ t .Lang "settings_lang_label" }}</label>
+                            <select id="languageSelect" name="language" style="display: block; width: 100%; padding: 0.6rem 0.8rem; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: var(--border-radius-sm);">
+                                <option value="en" {{ if eq .Lang "en" }}selected{{ end }}>{{ t .Lang "settings_lang_en" }}</option>
+                                <option value="de" {{ if eq .Lang "de" }}selected{{ end }}>{{ t .Lang "settings_lang_de" }}</option>
+                            </select>
+                        </div>
+                        <div style="margin-top: 1.5rem;">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="material-icons">save</i>
+                                <span>{{ t .Lang "settings_lang_btn" }}</span>
                             </button>
                         </div>
                     </form>
@@ -347,7 +394,7 @@
         const cmIpTags = [];
 
         // Tab Management
-        const VALID_SETTINGS_TABS = ['server-cert', 'defaults', 'oidc', 'security'];
+        const VALID_SETTINGS_TABS = ['server-cert', 'defaults', 'oidc', 'security', 'language'];
 
         function switchSettingsTab(tabId) {
             if (!VALID_SETTINGS_TABS.includes(tabId)) {

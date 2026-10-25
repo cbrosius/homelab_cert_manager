@@ -1,0 +1,42 @@
+name: Sync Wiki
+run-name: Synchronize Wiki Documentation to GitHub Wiki
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "wiki/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-wiki:
+    name: Sync Documentation to GitHub Wiki
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clone external GitHub Wiki repository
+        run: |
+          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" /tmp/wiki
+
+      - name: Sync Markdown documentation files
+        run: |
+          rsync -av --delete --exclude='.git/' ./wiki/ /tmp/wiki/
+
+      - name: Commit and push changes to GitHub Wiki
+        run: |
+          cd /tmp/wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Automated documentation sync from main repository wiki/ [skip ci]"
+            git push origin HEAD
+            echo "Wiki updated and pushed successfully."
+          else
+            echo "No documentation changes detected to sync."
+          fi

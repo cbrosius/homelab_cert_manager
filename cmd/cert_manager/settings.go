@@ -7,13 +7,18 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
 
 type Settings struct {
+	Language string `mapstructure:"language"`
+
 	CertManagerCertificate struct {
 		DnsNames    []string `mapstructure:"dns_names"`
 		IpAddresses []string `mapstructure:"ip_addresses"`
@@ -129,7 +134,9 @@ func initSettings() error {
 	viper.SetConfigType("json")
 	viper.AddConfigPath("data")
 
-	// Set defaults
+	viper.SetDefault("language", "")
+	_ = viper.BindEnv("language", "APP_LANGUAGE")
+
 	viper.SetDefault("certificate_manager_certificate.dns_names", []string{})
 	viper.SetDefault("certificate_manager_certificate.ip_addresses", []string{})
 
@@ -268,8 +275,40 @@ func saveViperConfig() error {
 	if err != nil {
 		return err
 	}
-	_ = os.Chmod(configFile, 0660)
+	_ = os.Chmod(configFile, 0600)
 	return nil
+}
+
+// getAppLanguage returns configured language, env override, or empty string.
+func getAppLanguage() string {
+	if env := os.Getenv("APP_LANGUAGE"); env != "" {
+		return normalizeLanguage(env)
+	}
+	lang := viper.GetString("language")
+	if lang != "" {
+		return normalizeLanguage(lang)
+	}
+	return ""
+}
+
+// saveLanguageSetting persists the chosen language to settings.json.
+func saveLanguageSetting(lang string) error {
+	debugLog("saveLanguageSetting called with %s", lang)
+	viper.Set("language", normalizeLanguage(lang))
+	return saveViperConfig()
+}
+
+// handleLanguageSettings handles POST /settings/language
+func handleLanguageSettings(c *gin.Context) {
+	lang := c.PostForm("language")
+	normalized := normalizeLanguage(lang)
+	if err := saveLanguageSetting(normalized); err != nil {
+		c.Redirect(http.StatusSeeOther, "/settings?error="+url.QueryEscape("Failed to save language setting"))
+		return
+	}
+	isSecure := c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
+	c.SetCookie("app_lang", normalized, 365*24*3600, "/", "", isSecure, false)
+	c.Redirect(http.StatusSeeOther, "/settings#language")
 }
 
 // saveSessionSettings saves the session timeout setting after validation.

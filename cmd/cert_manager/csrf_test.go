@@ -145,6 +145,9 @@ func TestLoginWithInvalidSessionCookie(t *testing.T) {
 	r := gin.New()
 	r.SetFuncMap(template.FuncMap{
 		"toJson": toJson,
+		"t": func(lang, key string) string {
+			return T(lang, key)
+		},
 	})
 	r.LoadHTMLGlob("templates/*")
 	r.POST("/login", func(c *gin.Context) {

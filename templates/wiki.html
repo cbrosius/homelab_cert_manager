@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="{{ if .Lang }}{{ .Lang }}{{ else }}en{{ end }}" theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} – {{ t .Lang "app_title" }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('theme', savedTheme);
+        })();
+    </script>
+</head>
+<body class="site-body">
+    {{ template "header.html" . }}
+
+    <main class="wiki-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="wiki-sidebar">
+            <div class="wiki-sidebar-header">
+                <span class="wiki-sidebar-title">
+                    <i class="material-icons" style="font-size: 18px; vertical-align: middle; color: var(--accent-primary);">menu_book</i>
+                    {{ t .Lang "wiki_sidebar_title" }}
+                </span>
+                <a href="/certificates" class="back-nav-link" title="{{ t .Lang "wiki_back_dashboard" }}" style="margin-bottom: 0;">
+                    <i class="material-icons">arrow_back</i>
+                </a>
+            </div>
+
+            <!-- Page Filter Box -->
+            <div class="wiki-search-box">
+                <i class="material-icons">search</i>
+                <input type="text" id="wikiSearchInput" class="wiki-search-input" placeholder="{{ t .Lang "wiki_search_placeholder" }}" autocomplete="off">
+            </div>
+
+            <!-- Dynamic Wiki Pages List -->
+            <ul id="wikiNavList" class="wiki-nav-list">
+                {{ range .Pages }}
+                <li class="wiki-nav-item {{ if .IsActive }}active{{ end }}" data-slug="{{ .Slug }}">
+                    <a href="/wiki/{{ .Slug }}">
+                        <i class="material-icons" style="font-size: 16px;">{{ if eq .Slug "Home" }}home{{ else if eq .Slug "FAQ" }}help{{ else }}article{{ end }}</i>
+                        <span>{{ .Title }}</span>
+                    </a>
+                </li>
+                {{ end }}
+            </ul>
+        </aside>
+
+        <!-- Markdown Rendered Content Area -->
+        <article class="wiki-content-card">
+            <div class="wiki-markdown">
+                {{ .Content }}
+            </div>
+        </article>
+    </main>
+
+    <script>
+        // Real-time client-side Wiki page filter
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('wikiSearchInput');
+            const navList = document.getElementById('wikiNavList');
+
+            if (searchInput && navList) {
+                searchInput.addEventListener('input', function() {
+                    const query = this.value.toLowerCase().trim();
+                    const items = navList.querySelectorAll('.wiki-nav-item');
+                    items.forEach(function(item) {
+                        const text = item.textContent.toLowerCase();
+                        if (!query || text.includes(query)) {
+                            item.style.display = '';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
