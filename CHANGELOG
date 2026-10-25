@@ -58,4 +58,16 @@ Features:
 - FEAT: Made OIDC client secret optional to support Pocket ID and generic OIDC Public Clients
 - DOCS: Added official Project Wiki link to README for setup guides, Root CA trust installation, and appliance CSR workflows
 - DOCS: Added automated UI screenshot test suite and comprehensive dark/light mode documentation gallery
+
+2026/10/25 v0.7 - Integrated Offline Help & Contextual Documentation
+Features:
+- FEAT: Integrated offline Markdown help viewer at /help and /help/:page rendered with goldmark and GFM support
+- FEAT: Complete local wiki documentation bundled in wiki/ with zero external CDN dependencies
+- FEAT: Granular settings documentation in wiki/Settings.md with deep-linkable anchors for every individual setting
+- FEAT: Contextual help icons (?) next to every option, modal, and workflow in the UI linking directly to exact documentation anchors
+- FEAT: Automatic internal wiki link rewriting ([Settings](Settings#anchor) -> /help/Settings#anchor)
+- FEAT: Real-time search and topic filter in the help viewer sidebar
+- FEAT: Target section highlight animation on anchor navigation
+- CI/CD: Automated GitHub Wiki synchronization workflow (.github/workflows/sync-wiki.yml) and manual sync script (scripts/sync-wiki.sh)
+- DOCKER: Bundled wiki/ into Docker runtime image with proper unprivileged file permissions
 - FIX: Protected live settings.json and OIDC settings from being overwritten during go test execution

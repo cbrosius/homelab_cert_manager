@@ -56,11 +56,12 @@
             </div>
 
             <!-- Visually minimal fallback toggle link -->
-            <div style="text-align: center; margin-top: 1rem;">
+            <div style="text-align: center; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
                 <button type="button" id="fallbackToggleBtn" class="fallback-minimal-link" onclick="toggleFallbackLogin()" aria-expanded="false" aria-controls="fallbackLoginContainer">
                     <span>Local admin fallback</span>
                     <i id="fallbackChevron" class="material-icons chevron">expand_more</i>
                 </button>
+                <a href="/help/Settings#oidc-enabled" class="help-icon" title="Explain OIDC & Local Fallback"><i class="material-icons tiny">help_outline</i></a>
             </div>
 
             <div id="fallbackLoginContainer" class="fallback-login-panel" style="display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle);">
@@ -108,6 +109,14 @@
             <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; gap: 0.45rem; font-size: 0.75rem; color: var(--text-muted);">
                 <i class="material-icons" style="font-size: 14px; color: var(--accent-success);">verified_user</i>
                 <span>Protected with TLS 1.2+ & Session Timeout</span>
+            </div>
+
+            <!-- Documentation Link -->
+            <div style="text-align: center; margin-top: 0.85rem;">
+                <a href="/help" class="back-nav-link" style="font-size: 0.8rem; color: var(--text-muted); margin: 0; justify-content: center;">
+                    <i class="material-icons" style="font-size: 15px;">help_outline</i>
+                    <span>Help &amp; Documentation</span>
+                </a>
             </div>
         </div>
     </div>

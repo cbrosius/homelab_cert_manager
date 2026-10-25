@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .pageTitle }} - HomeLab Certificate Manager Help</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <!-- Modern Design System -->
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('theme', theme);
+    </script>
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Deep-link target highlighting */
+        :target {
+            animation: highlightAnchor 2.5s ease-out;
+            border-left: 3px solid var(--accent-primary);
+            padding-left: 0.6rem;
+            border-radius: var(--border-radius-sm);
+        }
+
+        @keyframes highlightAnchor {
+            0% {
+                background: var(--accent-primary-glow);
+            }
+            70% {
+                background: var(--accent-primary-glow);
+            }
+            100% {
+                background: transparent;
+            }
+        }
+
+        .wiki-layout {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 1.75rem;
+            align-items: start;
+        }
+
+        @media (max-width: 992px) {
+            .wiki-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Navigation */
+        .wiki-sidebar-card {
+            position: sticky;
+            top: 88px;
+            max-height: calc(100vh - 110px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .wiki-search-box {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .wiki-search-box input {
+            width: 100%;
+            padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--border-radius-md);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            transition: border-color var(--transition-fast);
+        }
+
+        .wiki-search-box input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .wiki-search-icon {
+            position: absolute;
+            left: 0.65rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 18px;
+            pointer-events: none;
+        }
+
+        .wiki-nav-group-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin: 1rem 0 0.4rem 0.5rem;
+        }
+
+        .wiki-nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            max-height: calc(100vh - 230px);
+        }
+
+        .wiki-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 0.75rem;
+            border-radius: var(--border-radius-md);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            margin-bottom: 0.2rem;
+        }
+
+        .wiki-nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .wiki-nav-link.active {
+            color: var(--accent-primary);
+            background: var(--accent-primary-glow);
+            font-weight: 600;
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .wiki-nav-link i {
+            font-size: 18px;
+            color: inherit;
+        }
+
+        /* Documentation Content Typography */
+        .wiki-content {
+            line-height: 1.7;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .wiki-content h1 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 0;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .wiki-content h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .wiki-content h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .wiki-content h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1.25rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .wiki-content p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .wiki-content a {
+            color: var(--accent-primary);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            transition: color var(--transition-fast);
+        }
+
+        .wiki-content a:hover {
+            color: var(--accent-primary-hover);
+        }
+
+        .wiki-content ul, .wiki-content ol {
+            padding-left: 1.5rem;
+            margin-bottom: 1.25rem;
+            color: var(--text-secondary);
+        }
+
+        .wiki-content li {
+            margin-bottom: 0.35rem;
+        }
+
+        .wiki-content code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.85em;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--border-radius-sm);
+            padding: 0.15rem 0.35rem;
+            color: var(--accent-primary);
+        }
+
+        .wiki-content pre {
+            background: #060911;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--border-radius-md);
+            padding: 1rem;
+            overflow-x: auto;
+            margin: 1.25rem 0;
+        }
+
+        .wiki-content pre code {
+            background: transparent;
+            border: none;
+            padding: 0;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            display: block;
+        }
+
+        .wiki-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .wiki-content th, .wiki-content td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .wiki-content th {
+            font-weight: 600;
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .wiki-content td {
+            color: var(--text-secondary);
+        }
+
+        .wiki-content blockquote {
+            margin: 1.25rem 0;
+            padding: 0.85rem 1.25rem;
+            border-left: 4px solid var(--accent-primary);
+            background: rgba(6, 182, 212, 0.06);
+            border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+            color: var(--text-secondary);
+        }
+
+        .wiki-content blockquote p {
+            margin: 0;
+            color: inherit;
+        }
+
+        .wiki-content img {
+            max-width: 100%;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border-subtle);
+            margin: 1.5rem 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .wiki-content hr {
+            border: none;
+            border-top: 1px solid var(--border-subtle);
+            margin: 2rem 0;
+        }
+
+        /* Unauthenticated top navigation bar */
+        .public-nav-bar {
+            background: var(--bg-surface-glass);
+            backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    {{ if .isLoggedIn }}
+        {{ template "header.html" . }}
+    {{ else }}
+        <header class="public-nav-bar">
+            <a href="/login" class="brand-wrapper" title="HomeLab Certificate Manager">
+                <div class="brand-logo-glow">
+                    <img src="/static/favicon.ico" alt="Logo">
+                </div>
+                <span class="brand-title">HomeLab CA Documentation</span>
+            </a>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <a href="/login" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; text-decoration: none;">
+                    <i class="material-icons" style="font-size: 16px;">login</i>
+                    <span>Sign In</span>
+                </a>
+                <button id="theme-switch" class="btn-icon-nav" type="button" onclick="toggleTheme()" title="Toggle color theme" aria-label="Toggle theme">
+                    <i class="material-icons">light_mode</i>
+                </button>
+            </div>
+        </header>
+    {{ end }}
+
+    <main class="container main-content">
+        <!-- Page Title & Navigation Bar -->
+        <div style="margin-bottom: 1.75rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    {{ if .isLoggedIn }}
+                    <a href="/certificates" class="back-nav-link" id="help-back-link">
+                        <i class="material-icons">arrow_back</i>
+                        <span>Back to Certificates</span>
+                    </a>
+                    <a href="/settings" class="back-nav-link" id="help-settings-link">
+                        <i class="material-icons">tune</i>
+                        <span>Settings</span>
+                    </a>
+                    {{ else }}
+                    <a href="/login" class="back-nav-link" id="help-login-link">
+                        <i class="material-icons">arrow_back</i>
+                        <span>Back to Sign In</span>
+                    </a>
+                    {{ end }}
+                </div>
+                <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem;">
+                    <i class="material-icons" style="color: var(--accent-primary); font-size: 28px;">menu_book</i>
+                    <span>Integrated Documentation &amp; Help</span>
+                </h1>
+            </div>
+            <div>
+                <a href="https://github.com/cbrosius/homelab_cert_manager/wiki" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.85rem; text-decoration: none;">
+                    <i class="material-icons" style="font-size: 16px;">open_in_new</i>
+                    <span>GitHub Wiki</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Documentation Layout -->
+        <div class="wiki-layout">
+            <!-- Sidebar Navigation -->
+            <aside class="glass-card wiki-sidebar-card">
+                <div class="wiki-search-box">
+                    <i class="material-icons wiki-search-icon">search</i>
+                    <input type="text" id="wikiSearchInput" placeholder="Filter topics..." oninput="filterWikiTopics(this.value)">
+                </div>
+
+                <div class="wiki-nav-group-title">Documentation Pages</div>
+                <ul class="wiki-nav-list" id="wikiNavList">
+                    {{ range .pages }}
+                    <li>
+                        <a href="/help/{{ .Slug }}" class="wiki-nav-link {{ if .IsActive }}active{{ end }}" data-title="{{ .Title }}" data-slug="{{ .Slug }}">
+                            <i class="material-icons">{{ .Icon }}</i>
+                            <span>{{ .Title }}</span>
+                        </a>
+                    </li>
+                    {{ end }}
+                </ul>
+            </aside>
+
+            <!-- Main Documentation Content -->
+            <article class="glass-card wiki-content">
+                {{ .content }}
+            </article>
+        </div>
+    </main>
+
+    <script>
+        // Real-time filter for documentation pages in sidebar
+        function filterWikiTopics(query) {
+            const term = query.toLowerCase().trim();
+            const links = document.querySelectorAll('#wikiNavList .wiki-nav-link');
+            
+            links.forEach(link => {
+                const title = (link.getAttribute('data-title') || '').toLowerCase();
+                const slug = (link.getAttribute('data-slug') || '').toLowerCase();
+                const item = link.closest('li');
+                
+                if (!term || title.includes(term) || slug.includes(term)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Auto-scroll to anchor with offset if anchor present in URL hash
+        window.addEventListener('DOMContentLoaded', function() {
+            if (window.location.hash) {
+                const id = window.location.hash.substring(1);
+                const el = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
+                if (el) {
+                    setTimeout(() => {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

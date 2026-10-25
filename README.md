@@ -28,6 +28,7 @@ Then your internal sites show secure connections (without warnings) in all moder
 - **Dark/Light Mode:** Toggle between dark and light themes with preference persistence.
 - **Search/Filter:** Easily search and filter certificates in the table.
 - **Tabbed Settings Page:** Configure certificate defaults, server certificates, OIDC SSO, and session timeouts with interactive slider controls.
+- **Integrated Offline Help & Docs:** Built-in Markdown help viewer (`/help`) rendered locally without CDN dependencies, featuring same-window navigation, real-time topic filtering, and contextual `?` help icons linking directly to exact setting explanations.
 - **PKCS#12 Export:** Export certificates in `.pfx` format for Windows and IIS services.
 - **Unprivileged Container:** Runs securely in Docker under an unprivileged user (`appuser`, UID 10001).
 
