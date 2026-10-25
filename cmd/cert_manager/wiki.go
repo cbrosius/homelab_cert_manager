@@ -82,6 +82,8 @@ func sanitizeWikiSlug(page string) string {
 	if page == "" {
 		return "Home"
 	}
+	// Normalize backslashes to forward slashes so path traversal stripping works cross-platform (Linux & Windows)
+	page = strings.ReplaceAll(page, "\\", "/")
 	// Strip directory paths to prevent path traversal
 	clean := filepath.Base(page)
 	// Remove trailing .md if provided
