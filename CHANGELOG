@@ -70,4 +70,6 @@ Features:
 - FEAT: Target section highlight animation on anchor navigation
 - CI/CD: Automated GitHub Wiki synchronization workflow (.github/workflows/sync-wiki.yml) and manual sync script (scripts/sync-wiki.sh)
 - DOCKER: Bundled wiki/ into Docker runtime image with proper unprivileged file permissions
+- FIX: Embedded offline screenshots (/static/screenshots/) across all Wiki pages and updated markdown rewriter to resolve CSP img-src violations
 - FIX: Protected live settings.json and OIDC settings from being overwritten during go test execution
+

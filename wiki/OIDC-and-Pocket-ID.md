@@ -42,7 +42,7 @@ You can configure OIDC using either the Web UI or Docker environment variables.
    - **Redirect URL (Optional):** Explicit callback URL override if running behind a complex reverse proxy.
 4. Click **Save OIDC Settings**.
 
-![Pocket ID and OIDC Authentication Settings](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/12_settings_oidc_auth_dark.png)
+![Pocket ID and OIDC Authentication Settings](/static/screenshots/12_settings_oidc_auth_dark.png)
 
 ### Option B: Docker Environment Variables
 You can also supply settings directly via your container environment (`docker-compose.yml` or CLI):

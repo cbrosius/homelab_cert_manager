@@ -17,6 +17,8 @@ HomeLab Cert Manager allows you to issue, manage, and download SSL/TLS certifica
 3. Configure your Subject Alternative Names (see below).
 4. Click **Create Certificate**.
 
+![Create Certificate Screen](/static/screenshots/08_create_certificate_dark.png)
+
 The manager creates a dedicated 4096-bit RSA key pair, embeds all requested SANs, signs the certificate with your internal Root CA, and securely stores the files in `data/certs/`.
 
 ---
@@ -45,6 +47,8 @@ In the creation dialog, enter each DNS name or IP address into the tag box and p
 
 Once issued, your certificate appears in the main dashboard table with its Common Name, SAN list, validity status, and expiration date.
 
+![Dashboard with Issued Certificates and Download Options](/static/screenshots/10_dashboard_with_certificates_dark.png)
+
 You can download your credentials in multiple formats:
 - **Certificate (.pem / .crt):** The signed public certificate for your service.
 - **Certificate Bundle (.pem):** Full certificate chain (Service Certificate + Root CA certificate) required by reverse proxies such as Nginx, Traefik, Caddy, and Apache.
@@ -68,4 +72,9 @@ Once your Root CA is generated, you should recreate the Certificate Manager's ow
    - Add all IP addresses where the web UI is accessed (e.g. `192.168.1.10`, `127.0.0.1`).
 3. Click **Recreate Server Certificate**.
 
+![Server Certificate Settings](/static/screenshots/06_settings_server_cert_dark.png)
+
 The application immediately generates a new certificate signed by your Root CA and live-reloads the TLS listener without dropping current user sessions.
+
+![Dashboard with Recreated Server Certificate](/static/screenshots/07_dashboard_server_cert_recreated_dark.png)
+

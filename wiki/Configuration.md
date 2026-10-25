@@ -14,7 +14,7 @@ Manage the SSL certificate used by HomeLab Cert Manager itself:
 - **IP Addresses:** Enter internal IP addresses where the manager is reachable (e.g. `127.0.0.1`, `192.168.1.50`).
 - **Recreate Certificate:** Click **Recreate HomeLab Certificate Manager Certificate** to regenerate the service certificate signed by your Root CA with all configured SANs.
 
-![Server Certificate Settings](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/06_settings_server_cert_dark.png)
+![Server Certificate Settings](/static/screenshots/06_settings_server_cert_dark.png)
 
 ---
 
@@ -26,7 +26,7 @@ Set default attributes automatically populated whenever you create a new leaf ce
 - **State / Province (ST) & Locality / City (L):** Regional details.
 - **Email Address:** Administrative contact email for the certificates.
 
-![Certificate Defaults Settings](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/11_settings_cert_defaults_dark.png)
+![Certificate Defaults Settings](/static/screenshots/11_settings_cert_defaults_dark.png)
 
 ---
 
@@ -40,7 +40,7 @@ Configure Single Sign-On and Passkey authentication:
   - **Encrypted & Masked:** If entered for confidential clients, secrets are encrypted at rest using AES-256-GCM and masked (e.g. `LRnX••••••••`) in the UI. Click the eye icon to unmask and verify.
 - **Redirect URL (Optional):** Explicit callback URL override if running behind a complex reverse proxy.
 
-![OIDC Authentication Settings](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/12_settings_oidc_auth_dark.png)
+![OIDC Authentication Settings](/static/screenshots/12_settings_oidc_auth_dark.png)
 
 ---
 
@@ -51,7 +51,7 @@ To protect administrative access if a workstation is left unattended, HomeLab Ce
 - **Live Countdown Badge:** Displays remaining session time directly in the navigation bar.
 - **Automatic Reset:** Any user interaction (mouse movement, keystroke, touch, or scroll) immediately resets the session timer.
 
-![Session Inactivity Timeout Settings](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/13_settings_session_timeout_dark.png)
+![Session Inactivity Timeout Settings](/static/screenshots/13_settings_session_timeout_dark.png)
 
 ---
 
@@ -68,7 +68,7 @@ For improved security and streamlined navigation, password changes are handled v
    - Cannot match default credentials
 5. Click **Change Password**.
 
-![Change Password Screen](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/14_change_password_dark.png)
+![Change Password Screen](/static/screenshots/14_change_password_dark.png)
 
 > [!NOTE]
 > On a fresh installation, the application requires an immediate password change upon your first login with `admin` / `admin`.

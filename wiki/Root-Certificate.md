@@ -10,14 +10,22 @@ A **Root Certificate Authority (CA)** is the trust anchor of your homelab PKI (P
 ### Generating Your Root CA
 
 1. On the main dashboard (`/certificates`), if no Root CA exists, click **Create Root Certificate**.
+
+![Dashboard Without Root CA](/static/screenshots/03_dashboard_no_root_ca_dark.png)
+
 2. Complete the Root CA creation form:
    - **Common Name (CN):** Descriptive name for your CA (e.g. `HomeLab Root CA`).
    - **Organization (O):** Your homelab or family organization name.
    - **Country (C):** 2-letter uppercase ISO code (e.g. `DE`, `US`).
    - **Validity (Days):** Recommended 10 to 30 years (3650 to 10950 days). Since Root CAs must be manually distributed, a long lifetime prevents frequent re-distribution.
+
+![Generate Root Certificate Form](/static/screenshots/04_generate_root_ca_dark.png)
+
 3. Click **Create Root Certificate**.
 
 The application generates a **4096-bit RSA** private key (`data/root-cert/rootCA.key`) and self-signed certificate (`data/root-cert/rootCA.pem`). The private key is secured with strict file permissions (`0600`) and the root certificate directory is set to `0700`.
+
+![Dashboard with Active Root CA](/static/screenshots/05_dashboard_root_ca_created_dark.png)
 
 ### Renewing or Replacing the Root CA
 
@@ -129,3 +137,11 @@ Modern versions of Firefox on Windows and macOS automatically inherit OS trust. 
 3. Under the **Authorities** tab, click **Import...**.
 4. Select `HomeLab_Root_CA.pem`.
 5. Check **Trust this CA to identify websites** and click **OK**.
+
+---
+
+## Verification
+
+Once imported, visit any service with a certificate issued by HomeLab Cert Manager. The browser address bar will display a verified lock icon without any warnings:
+
+![Verified Dashboard with Certificates and Root CA](/static/screenshots/10_dashboard_with_certificates_dark.png)

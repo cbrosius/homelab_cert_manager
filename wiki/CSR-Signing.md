@@ -42,7 +42,7 @@ You have two flexible options:
   -----END CERTIFICATE REQUEST-----
   ```
 
-![Sign CSR Modal Dialog](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/09_sign_csr_modal_dark.png)
+![Sign CSR Modal Dialog](/static/screenshots/09_sign_csr_modal_dark.png)
 
 ### Step 4: Specify Validity
 Set the validity duration using the interactive range slider, number input, or quick presets (1, 2, 5, 10, or 30 Years).
@@ -66,7 +66,7 @@ HomeLab Cert Manager will:
 
 Once signed, the certificate appears in your dashboard table with a prominent **CSR** badge:
 
-![Dashboard with Issued Certificates and CSR Badge](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/10_dashboard_with_certificates_dark.png)
+![Dashboard with Issued Certificates and CSR Badge](/static/screenshots/10_dashboard_with_certificates_dark.png)
 
 - **Download Certificate:** Download the signed `.pem` file or the full certificate bundle (leaf cert + Root CA).
 - **Protected Key Notice:** The "Download Key" and PKCS#12 (`.pfx`) export actions are cleanly disabled for CSR-issued certificates, preventing confusion since the private key was never submitted to or stored by HomeLab Cert Manager.

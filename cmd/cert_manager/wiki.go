@@ -218,15 +218,21 @@ func findWikiFile(wikiDir, slug string) (string, string, bool) {
 }
 
 var (
-	// Matches standard markdown links: [text](target)
-	mdLinkRegex = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
+	// Matches screenshot images either from GitHub raw URL, relative static/screenshots, or /static/screenshots
+	screenshotImgRegex = regexp.MustCompile(`!\[([^\]]*)\]\((?:https://raw\.githubusercontent\.com/[^/]+/[^/]+/(?:main|master)/)?(?:\./|/)?static/screenshots/([^)]+)\)`)
+	// Matches standard markdown links: [text](target), ensuring it's not an image (![...](...))
+	mdLinkRegex = regexp.MustCompile(`(^|[^!])\[([^\]]+)\]\(([^)]+)\)`)
 	// Matches MediaWiki syntax: [[Page]] or [[Page|Text]] or [[Page#Anchor]]
 	wikiLinkRegex = regexp.MustCompile(`\[\[([^\]|#]+)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]`)
 )
 
-// rewriteWikiLinks updates relative markdown and wiki-style links to point to /help/<Page>#<anchor>.
+// rewriteWikiLinks updates relative markdown and wiki-style links to point to /help/<Page>#<anchor>
+// and rewrites screenshot image URLs to local /static/screenshots/ path.
 func rewriteWikiLinks(md string) string {
-	// First rewrite [[Page#Anchor|Text]] syntax
+	// First rewrite any screenshots to local /static/screenshots/ path for offline compatibility and CSP compliance
+	md = screenshotImgRegex.ReplaceAllString(md, "![$1](/static/screenshots/$2)")
+
+	// Next rewrite [[Page#Anchor|Text]] syntax
 	md = wikiLinkRegex.ReplaceAllStringFunc(md, func(match string) string {
 		submatches := wikiLinkRegex.FindStringSubmatch(match)
 		if len(submatches) < 4 {
@@ -245,14 +251,15 @@ func rewriteWikiLinks(md string) string {
 		return fmt.Sprintf("[%s](%s)", text, url)
 	})
 
-	// Rewrite standard markdown links [Text](Target)
+	// Rewrite standard markdown links [Text](Target) that are not images
 	md = mdLinkRegex.ReplaceAllStringFunc(md, func(match string) string {
 		submatches := mdLinkRegex.FindStringSubmatch(match)
-		if len(submatches) < 3 {
+		if len(submatches) < 4 {
 			return match
 		}
-		text := submatches[1]
-		target := strings.TrimSpace(submatches[2])
+		prefix := submatches[1]
+		text := submatches[2]
+		target := strings.TrimSpace(submatches[3])
 
 		// Leave external, absolute, mailto, anchor-only, or static links untouched
 		if strings.HasPrefix(target, "http://") ||
@@ -272,7 +279,7 @@ func rewriteWikiLinks(md string) string {
 			anchorPart = "#" + parts[1]
 		}
 
-		return fmt.Sprintf("[%s](/help/%s%s)", text, pagePart, anchorPart)
+		return fmt.Sprintf("%s[%s](/help/%s%s)", prefix, text, pagePart, anchorPart)
 	})
 
 	return md

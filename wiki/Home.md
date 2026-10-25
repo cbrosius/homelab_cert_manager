@@ -4,7 +4,7 @@ Welcome to the **HomeLab Cert Manager** documentation wiki!
 
 HomeLab Cert Manager is a secure, lightweight, and modern certificate authority and SSL/TLS management application written in Go. It is tailored specifically for homelabbers, self-hosters, and home network enthusiasts who want trusted HTTPS connections across all their internal devices and services without dealing with complex OpenSSL CLI commands.
 
-![HomeLab Certificate Manager Dashboard](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/10_dashboard_with_certificates_dark.png)
+![HomeLab Certificate Manager Dashboard](/static/screenshots/10_dashboard_with_certificates_dark.png)
 
 ---
 

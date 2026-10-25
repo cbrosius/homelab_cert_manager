@@ -16,7 +16,7 @@ Navigate to `https://<server-ip>:8443/login` in your web browser. Log in using t
 - **Username:** `admin`
 - **Password:** `admin`
 
-![Initial Login Page](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/01_initial_login_dark.png)
+![Initial Login Page](/static/screenshots/01_initial_login_dark.png)
 
 ---
 
@@ -27,7 +27,7 @@ To ensure out-of-the-box security, HomeLab Cert Manager requires an immediate pa
 - **Current Password:** `admin`
 - **New Password:** Choose a strong password (minimum 8 characters with upper, lower, digits, and symbols recommended).
 
-![Mandatory Initial Password Change](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/02_mandatory_password_change_dark.png)
+![Mandatory Initial Password Change](/static/screenshots/02_mandatory_password_change_dark.png)
 
 ---
 
@@ -35,7 +35,7 @@ To ensure out-of-the-box security, HomeLab Cert Manager requires an immediate pa
 
 After setting your password, you arrive at the main dashboard (`/certificates`). Because no Root Certificate exists yet, the system displays an alert indicating that a Root Certificate is missing, and all certificate creation or CSR signing actions are disabled until a Root CA is established.
 
-![Dashboard Without Root CA](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/03_dashboard_no_root_ca_dark.png)
+![Dashboard Without Root CA](/static/screenshots/03_dashboard_no_root_ca_dark.png)
 
 Click **Create Root Certificate** to launch the Root CA generation wizard.
 
@@ -51,7 +51,7 @@ On the Root CA creation screen, fill in your organizational identity or click **
 
 The system generates a cryptographic **4096-bit RSA** key pair stored securely in `./data/root-cert/`.
 
-![Generate Root Certificate Form](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/04_generate_root_ca_dark.png)
+![Generate Root Certificate Form](/static/screenshots/04_generate_root_ca_dark.png)
 
 Click **Create Root Certificate** to generate the CA.
 
@@ -64,7 +64,7 @@ Once generated, the dashboard immediately updates to display your active Root Ce
 - **Validity Period:** Displaying creation and expiration timestamps.
 - **Download Action:** Allows downloading `HomeLab_Root_CA.pem` to distribute to client devices.
 
-![Dashboard with Active Root CA](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/05_dashboard_root_ca_created_dark.png)
+![Dashboard with Active Root CA](/static/screenshots/05_dashboard_root_ca_created_dark.png)
 
 ---
 
@@ -76,7 +76,7 @@ By default, HomeLab Cert Manager boots with a temporary self-signed certificate.
 2. Under **Server Certificate**, specify all hostnames and IP addresses used to reach your certificate manager (e.g. `certmanager.homelab.local`, `192.168.1.50`).
 3. Click **Save & Recreate Certificate**.
 
-![Settings - Certificate Manager HTTPS Certificate](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/06_settings_server_cert_dark.png)
+![Settings - Certificate Manager HTTPS Certificate](/static/screenshots/06_settings_server_cert_dark.png)
 
 The system automatically creates a 4096-bit leaf certificate signed by your Root CA and reloads the TLS listener seamlessly without service disruption.
 
@@ -88,7 +88,7 @@ Returning to the dashboard now shows both:
 1. The **Root CA Card**
 2. The **Certificate Manager Service Certificate Card** (with Subject Alternative Names and status `Valid`)
 
-![Dashboard with Root CA and Recreated Server Certificate](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/07_dashboard_server_cert_recreated_dark.png)
+![Dashboard with Root CA and Recreated Server Certificate](/static/screenshots/07_dashboard_server_cert_recreated_dark.png)
 
 ---
 
@@ -194,4 +194,4 @@ Most modern browsers (Chrome, Edge, Safari, Brave) use the operating system's tr
 
 Once imported, visit any service with a certificate issued by HomeLab Cert Manager. The browser address bar should now display a secure lock icon without any warnings:
 
-![Verified Dashboard with Certificates and Root CA](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/10_dashboard_with_certificates_dark.png)
+![Verified Dashboard with Certificates and Root CA](/static/screenshots/10_dashboard_with_certificates_dark.png)

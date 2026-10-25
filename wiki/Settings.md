@@ -12,6 +12,8 @@ The **Settings** page (`/settings`) allows you to configure server certificates 
 
 Manage the TLS/HTTPS certificate used by HomeLab Cert Manager itself.
 
+![Server Certificate Settings](/static/screenshots/06_settings_server_cert_dark.png)
+
 ### Server Certificate DNS Hostnames
 * **Anchor:** `#server-cert-dns`
 * **Aliases:** `#dns-hostnames`, `#server-certificate-dns-hostnames`
@@ -35,6 +37,8 @@ Manage the TLS/HTTPS certificate used by HomeLab Cert Manager itself.
 <a id="cert-defaults"></a>
 
 These values pre-fill the creation forms when issuing new leaf service certificates or signing external CSRs.
+
+![Certificate Defaults Settings](/static/screenshots/11_settings_cert_defaults_dark.png)
 
 ### Default Validity Period
 * **Anchor:** `#validity-period`
@@ -97,6 +101,8 @@ These values pre-fill the creation forms when issuing new leaf service certifica
 
 HomeLab Cert Manager supports optional Single Sign-On (SSO) and Passkey authentication via **Pocket ID** or any OpenID Connect (OIDC) compliant identity provider.
 
+![OIDC Authentication Settings](/static/screenshots/12_settings_oidc_auth_dark.png)
+
 ### OIDC Enabled
 * **Anchor:** `#oidc-enabled`
 * **Environment Override:** `OIDC_ENABLED=true|false`
@@ -132,6 +138,8 @@ HomeLab Cert Manager supports optional Single Sign-On (SSO) and Passkey authenti
 
 ## Session Timeout
 
+![Session Inactivity Timeout Settings](/static/screenshots/13_settings_session_timeout_dark.png)
+
 ### Session Inactivity Timeout
 * **Anchor:** `#session-timeout`
 * **Aliases:** `#timeout-minutes`, `#session-inactivity-timeout`
@@ -142,6 +150,8 @@ HomeLab Cert Manager supports optional Single Sign-On (SSO) and Passkey authenti
 ---
 
 ## Administrator Security
+
+![Change Password Screen](/static/screenshots/14_change_password_dark.png)
 
 ### Change Password
 * **Anchor:** `#change-password`

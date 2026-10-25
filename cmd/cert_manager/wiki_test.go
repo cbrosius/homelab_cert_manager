@@ -41,8 +41,13 @@ func TestRewriteWikiLinks(t *testing.T) {
 See [Settings](Settings#oidc-enabled) for more information.
 Check [Root Certificate](Root-Certificate) to trust the CA.
 External link: [GitHub](https://github.com/cbrosius/homelab_cert_manager).
-In-page jump: [Jump](#section).
+	In-page jump: [Jump](#section).
 Wiki syntax: [[Settings#country|Country Setting]] or [[Certificates]].
+Screenshots:
+![Raw URL](https://raw.githubusercontent.com/cbrosius/homelab_cert_manager/main/static/screenshots/01_initial_login_dark.png)
+![Relative Path](static/screenshots/02_mandatory_password_change_dark.png)
+![Dot Relative](./static/screenshots/03_dashboard_no_root_ca_dark.png)
+![Absolute Path](/static/screenshots/04_generate_root_ca_dark.png)
 `
 	result := rewriteWikiLinks(input)
 
@@ -63,6 +68,21 @@ Wiki syntax: [[Settings#country|Country Setting]] or [[Certificates]].
 	}
 	if !strings.Contains(result, "[Certificates](/help/Certificates)") {
 		t.Errorf("Expected plain wiki syntax to be rewritten, got: %s", result)
+	}
+	if !strings.Contains(result, "![Raw URL](/static/screenshots/01_initial_login_dark.png)") {
+		t.Errorf("Expected raw github screenshot URL to be rewritten to /static/screenshots/, got: %s", result)
+	}
+	if !strings.Contains(result, "![Relative Path](/static/screenshots/02_mandatory_password_change_dark.png)") {
+		t.Errorf("Expected relative screenshot path to be rewritten to /static/screenshots/, got: %s", result)
+	}
+	if !strings.Contains(result, "![Dot Relative](/static/screenshots/03_dashboard_no_root_ca_dark.png)") {
+		t.Errorf("Expected dot relative screenshot path to be rewritten to /static/screenshots/, got: %s", result)
+	}
+	if !strings.Contains(result, "![Absolute Path](/static/screenshots/04_generate_root_ca_dark.png)") {
+		t.Errorf("Expected absolute screenshot path to remain /static/screenshots/, got: %s", result)
+	}
+	if strings.Contains(result, "/help/static/screenshots") {
+		t.Errorf("Image link was incorrectly rewritten with /help/ prefix: %s", result)
 	}
 }
 
